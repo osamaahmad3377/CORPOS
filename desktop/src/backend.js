@@ -22,7 +22,10 @@ class Backend {
     this.backendDir = path.join(resourcesDir, 'backend');
     this.publicDir = path.join(this.backendDir, 'public');
     this.phpBin = this.findPhp();
-    this.phpIni = path.join(resourcesDir, 'php', 'php.ini');
+    // The bundled php.ini only suits the bundled (Windows) PHP build.
+    this.phpIni = path.dirname(this.phpBin) === path.join(resourcesDir, 'php')
+      ? path.join(resourcesDir, 'php', 'php.ini')
+      : '';
 
     this.dbFile = path.join(dataDir, 'database', 'corepos.sqlite');
     this.storageDir = path.join(dataDir, 'storage');
