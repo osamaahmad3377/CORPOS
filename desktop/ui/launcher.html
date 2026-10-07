@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:">
+<title>CorePOS</title>
+<link rel="stylesheet" href="launcher.css">
+</head>
+<body>
+<main class="card">
+  <header class="brand">
+    <div class="logo">C</div>
+    <div>
+      <h1>CorePOS</h1>
+      <p class="muted" id="version"></p>
+    </div>
+  </header>
+
+  <!-- starting / checking -->
+  <section data-state="starting checking">
+    <div class="spinner"></div>
+    <p class="center" id="busy-text">Starting CorePOS…</p>
+  </section>
+
+  <!-- activate -->
+  <section data-state="activate">
+    <h2>Activate CorePOS <span class="ur">پروڈکٹ کی درج کریں</span></h2>
+    <p class="muted">Enter the product key you received from CorePOS. Internet is needed for activation only.</p>
+    <div class="alert" id="activate-msg" hidden></div>
+    <form id="activate-form">
+      <label for="key">Product key</label>
+      <input id="key" autocomplete="off" spellcheck="false" placeholder="CPOS-XXXXX-XXXXX-XXXXX-XXXXX" maxlength="40" required>
+      <button type="submit" class="primary" id="activate-btn">Activate</button>
+    </form>
+    <div class="machine">
+      <span class="muted">Machine ID</span>
+      <code id="machine-id"></code>
+    </div>
+    <p class="help">Need a key or help? <a href="#" data-action="whatsapp">WhatsApp support</a> <span id="support-phone"></span></p>
+  </section>
+
+  <!-- first-run setup -->
+  <section data-state="setup">
+    <h2>Set up your shop <span class="ur">دکان کی معلومات</span></h2>
+    <p class="muted">This creates your shop and the owner (Admin) login. You can change these later in Settings.</p>
+    <div class="alert" id="setup-msg" hidden></div>
+    <form id="setup-form" class="grid">
+      <label class="full">Shop name *<input name="shop_name" required maxlength="255"></label>
+      <label>Shop phone<input name="shop_phone" maxlength="50"></label>
+      <label>Shop address<input name="shop_address" maxlength="500"></label>
+      <label class="full">Owner name *<input name="admin_name" required maxlength="255"></label>
+      <label class="full">Login email *<input name="admin_email" type="email" required maxlength="255" placeholder="owner@myshop.pk"></label>
+      <label>Password *<input name="admin_password" type="password" required minlength="8" autocomplete="new-password"></label>
+      <label>Confirm password *<input name="confirm" type="password" required minlength="8" autocomplete="new-password"></label>
+      <p class="muted full small">Password: at least 8 characters with an uppercase letter, a lowercase letter and a number. Write it down — it is needed to log in.</p>
+      <button type="submit" class="primary full" id="setup-btn">Create shop &amp; start</button>
+    </form>
+  </section>
+
+  <!-- offline / lease expired -->
+  <section data-state="offline">
+    <h2>Internet connection needed <span class="ur">انٹرنیٹ درکار ہے</span></h2>
+    <div class="alert" id="offline-msg"></div>
+    <div class="row">
+      <button class="primary" data-action="retry">Retry</button>
+      <button data-action="change-key">Enter a different key</button>
+    </div>
+    <p class="help">Problem? <a href="#" data-action="whatsapp">WhatsApp support</a></p>
+  </section>
+
+  <!-- error -->
+  <section data-state="error">
+    <h2>Something went wrong</h2>
+    <pre class="alert error" id="error-msg"></pre>
+    <div class="row">
+      <button class="primary" data-action="retry">Retry</button>
+      <button data-action="logs">Open logs</button>
+      <button data-action="whatsapp">WhatsApp support</button>
+    </div>
+  </section>
+</main>
+<script src="launcher.js"></script>
+</body>
+</html>

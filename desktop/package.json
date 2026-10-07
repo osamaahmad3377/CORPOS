@@ -1,0 +1,76 @@
+{
+  "name": "corepos-desktop",
+  "productName": "CorePOS",
+  "version": "1.0.0",
+  "description": "CorePOS - offline point of sale for retail shops",
+  "author": "CorePOS",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "prepare:php": "node scripts/prepare-php.mjs",
+    "prepare:app": "node scripts/prepare-app.mjs",
+    "prepare": "npm run prepare:php && npm run prepare:app",
+    "start": "electron .",
+    "dist:win": "npm run prepare && electron-builder --win nsis --x64",
+    "dist:win:mac": "npm run prepare && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
+    "test:license": "node scripts/test-license.mjs"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "pk.corepos.desktop",
+    "productName": "CorePOS",
+    "copyright": "CorePOS",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "ui/**/*",
+      "app.config.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/php",
+        "to": "php"
+      },
+      {
+        "from": "resources/backend",
+        "to": "backend"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "extraResources": [
+        {
+          "from": "resources/vc_redist.x64.exe",
+          "to": "vc_redist.x64.exe"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "CorePOS",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "artifactName": "CorePOS-Setup-${version}.exe"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "corepos-license-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Product-key license server for CorePOS (Next.js, Vercel, Postgres)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "gen-keys": "node scripts/generate-keys.mjs",
+    "smoke-test": "node scripts/smoke-test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@neondatabase/serverless": "^1.2.0",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

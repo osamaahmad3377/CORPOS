@@ -1,0 +1,12 @@
+# This folder holds the Laravel application core (source code, vendor
+# libraries, .env with database credentials). It must NEVER be reachable
+# directly from the browser — only public_html/api/index.php should load it.
+# This rule blocks any direct HTTP request that somehow reaches this folder.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

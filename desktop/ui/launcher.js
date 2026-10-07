@@ -1,0 +1,91 @@
+const $ = (sel) => document.querySelector(sel);
+
+function render(s) {
+  document.querySelectorAll('section').forEach((el) => {
+    el.classList.toggle('active', el.dataset.state.split(' ').includes(s.state));
+  });
+  $('#version').textContent = `Version ${s.version}`;
+  $('#machine-id').textContent = s.machineId;
+  $('#support-phone').textContent = s.supportPhone ? `· ${s.supportPhone}` : '';
+  $('#busy-text').textContent = s.state === 'checking' ? 'Checking your license online…' : 'Starting CorePOS…';
+
+  const msg = $('#activate-msg');
+  msg.hidden = !(s.state === 'activate' && s.message);
+  msg.textContent = s.message || '';
+
+  $('#offline-msg').textContent = s.message || '';
+  $('#error-msg').textContent = s.message || '';
+
+  if (s.state === 'activate') setTimeout(() => $('#key').focus(), 50);
+  if (s.state === 'setup') setTimeout(() => $('[name=shop_name]').focus(), 50);
+}
+
+$('#key').addEventListener('input', (e) => {
+  // Auto-format as CPOS-XXXXX-XXXXX-XXXXX-XXXXX while typing/pasting.
+  let raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (raw.startsWith('CPOS')) raw = raw.slice(4);
+  raw = raw.slice(0, 20);
+  e.target.value = raw ? `CPOS-${raw.match(/.{1,5}/g).join('-')}` : '';
+});
+
+$('#activate-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#activate-btn');
+  const msg = $('#activate-msg');
+  btn.disabled = true;
+  btn.textContent = 'Activating…';
+  msg.hidden = true;
+  try {
+    const res = await window.corepos.activate($('#key').value);
+    if (!res.ok) {
+      msg.textContent = res.message;
+      msg.hidden = false;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Activate';
+  }
+});
+
+$('#setup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const data = Object.fromEntries(form.entries());
+  const msg = $('#setup-msg');
+  msg.hidden = true;
+
+  if (data.admin_password !== data.confirm) {
+    msg.textContent = 'Passwords do not match.';
+    msg.hidden = false;
+    return;
+  }
+  delete data.confirm;
+
+  const btn = $('#setup-btn');
+  btn.disabled = true;
+  btn.textContent = 'Setting up…';
+  try {
+    const res = await window.corepos.setup(data);
+    if (!res.ok) {
+      msg.textContent = (res.errors || ['Setup failed.']).join('\n');
+      msg.hidden = false;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create shop & start';
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const action = e.target.closest('[data-action]')?.dataset.action;
+  if (!action) return;
+  e.preventDefault();
+  if (action === 'retry') window.corepos.retry();
+  if (action === 'logs') window.corepos.openLogs();
+  if (action === 'whatsapp') window.corepos.openWhatsApp();
+  if (action === 'change-key') render({ ...current, state: 'activate', message: '' });
+});
+
+let current = null;
+window.corepos.onState((s) => { current = s; render(s); });
+window.corepos.state().then((s) => { current = s; render(s); });

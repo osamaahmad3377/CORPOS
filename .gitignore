@@ -1,0 +1,27 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Old Hostinger deployment: server copy of the backend + live DB credentials.
+# (backend/ is the maintained copy; public_html/ keeps only the prebuilt frontend.)
+public_html/clothing-shop-api/
+public_html/api/
+DEPLOY_README.txt
+database.sql
+
+# Dependencies / build output
+node_modules/
+frontend/dist/
+
+# Laravel runtime files
+backend/storage/logs/*.log
+backend/storage/framework/
+backend/bootstrap/cache/*.php
+backend/database/*.sqlite*

@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Leave /api/ requests alone — the api/ subfolder's own .htaccess
+    # (Laravel's default) handles routing those to index.php.
+    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteRule ^ - [L]
+
+    # Serve real files/folders as-is (JS, CSS, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else is a client-side route — let React Router handle it.
+    RewriteRule ^ index.html [L]
+</IfModule>

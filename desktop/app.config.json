@@ -1,0 +1,8 @@
+{
+  "licenseServerUrl": "https://YOUR-LICENSE-SERVER.vercel.app",
+  "licensePublicKey": "PASTE_LICENSE_PUBLIC_KEY_HERE",
+  "supportPhone": "+92 300 0000000",
+  "supportWhatsApp": "923000000000",
+  "revalidateHours": 4,
+  "preferredPort": 47321
+}

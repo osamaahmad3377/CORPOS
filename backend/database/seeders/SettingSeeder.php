@@ -1,0 +1,48 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Setting;
+use Illuminate\Database\Seeder;
+
+class SettingSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $defaults = [
+            'shop' => [
+                'name' => 'My Shop',
+                'phone' => '',
+                'address' => '',
+                'email' => '',
+                'website' => '',
+                'logo' => '',
+            ],
+            'receipt' => [
+                'header' => 'Thank you for shopping with us!',
+                'footer' => 'All sales are final after 7 days.',
+                'show_tax_line' => '1',
+                'paper_width' => '80mm',
+            ],
+            'barcode' => [
+                'default_format' => 'code128',
+                'default_label_size' => 'small',
+                'show_shop_name' => '1',
+            ],
+            'tax' => [
+                'enabled' => '0',
+                'label' => 'GST',
+                'percentage' => '0',
+            ],
+        ];
+
+        foreach ($defaults as $group => $values) {
+            foreach ($values as $key => $value) {
+                Setting::updateOrCreate(
+                    ['key' => "{$group}.{$key}"],
+                    ['value' => $value, 'group' => $group]
+                );
+            }
+        }
+    }
+}
