@@ -10,6 +10,8 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Services\BarcodeGenerator;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\SkuGenerator;
 use App\Services\StockService;
 use Illuminate\Http\Request;
@@ -37,8 +39,11 @@ class ProductController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->string('search');
-            $query->where('name', 'like', "%{$search}%");
+            $search = (string) $request->string('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('variants', fn ($v) => $v->where('barcode', $search)->orWhere('sku', 'like', "%{$search}%"));
+            });
         }
 
         $products = $query->orderByDesc('id')->paginate($request->integer('per_page', 20));
@@ -57,6 +62,10 @@ class ProductController extends Controller
                 'category_id' => $validated['category_id'],
                 'brand_id' => $validated['brand_id'] ?? null,
                 'description' => $validated['description'] ?? null,
+                'unit' => $validated['unit'] ?? 'pcs',
+                'track_serial' => $validated['track_serial'] ?? false,
+                'track_expiry' => $validated['track_expiry'] ?? false,
+                'warranty_months' => $validated['warranty_months'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
             ]);
 
@@ -134,6 +143,13 @@ class ProductController extends Controller
         return new ProductResource($product->load(['category', 'brand', 'images', 'variants']));
     }
 
+    private function blankToNull(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
     private function uniqueSlug(string $name, ?int $ignoreId = null): string
     {
         $base = Str::slug($name);
@@ -181,8 +197,12 @@ class ProductController extends Controller
         if (! empty($validated['variants'])) {
             foreach ($validated['variants'] as $variant) {
                 $specs[] = [
-                    'color' => $variant['color'],
-                    'size' => $variant['size'],
+                    'color' => $this->blankToNull($variant['color'] ?? null),
+                    'size' => $this->blankToNull($variant['size'] ?? null),
+                    'barcode' => $this->blankToNull($variant['barcode'] ?? null),
+                    'serials' => $variant['serials'] ?? [],
+                    'batch_no' => $this->blankToNull($variant['batch_no'] ?? null),
+                    'expiry_date' => $variant['expiry_date'] ?? null,
                     'purchase_price' => $variant['purchase_price'],
                     'selling_price' => $variant['selling_price'],
                     'stock_qty' => $variant['stock_qty'],
@@ -195,6 +215,10 @@ class ProductController extends Controller
                     $specs[] = [
                         'color' => $color,
                         'size' => $size,
+                        'barcode' => null,
+                        'serials' => [],
+                        'batch_no' => null,
+                        'expiry_date' => null,
                         'purchase_price' => $validated['purchase_price'],
                         'selling_price' => $validated['selling_price'],
                         'stock_qty' => $validated['stock_qty'],
@@ -206,16 +230,17 @@ class ProductController extends Controller
 
         $seen = [];
         foreach ($specs as $spec) {
-            $comboKey = mb_strtolower($spec['color']).'|'.mb_strtolower($spec['size']);
+            $comboKey = mb_strtolower((string) $spec['color']).'|'.mb_strtolower((string) $spec['size']);
             if (isset($seen[$comboKey])) {
+                $label = trim(($spec['color'] ?? '').' / '.($spec['size'] ?? ''), ' /') ?: 'no options';
                 throw ValidationException::withMessages([
-                    'colors' => ["Duplicate color/size combination: \"{$spec['color']} / {$spec['size']}\"."],
+                    'variants' => ["Two variants have the same options: \"{$label}\"."],
                 ]);
             }
             $seen[$comboKey] = true;
         }
 
-        foreach ($specs as $spec) {
+        foreach ($specs as $i => $spec) {
             $variant = ProductVariant::create([
                 'product_id' => $product->id,
                 'color' => $spec['color'],
@@ -228,9 +253,16 @@ class ProductController extends Controller
                 'low_stock_threshold' => $spec['low_stock_threshold'],
             ]);
 
-            BarcodeGenerator::assignToVariant($product, $variant);
+            if ($spec['barcode']) {
+                BarcodeGenerator::assignCustom($variant, $spec['barcode']);
+            } else {
+                BarcodeGenerator::assignToVariant($product, $variant);
+            }
 
             if ($spec['stock_qty'] > 0) {
+                $variant->setRelation('product', $product);
+                SerialService::receive($variant, SerialService::clean($spec['serials'], "variants.{$i}.serials"), (float) $spec['stock_qty'], "variants.{$i}.serials");
+                BatchService::receive($variant, (float) $spec['stock_qty'], $spec['batch_no'], $spec['expiry_date'], (float) $spec['purchase_price']);
                 StockService::increment($variant, $spec['stock_qty'], 'in', $user, null, 'Initial stock on variant creation');
             }
         }

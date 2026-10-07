@@ -80,12 +80,28 @@ class ReportController extends Controller
             $query->where('products.category_id', $request->integer('category_id'));
         }
 
-        $data = $query->groupBy('products.id', 'products.name')
-            ->selectRaw('products.id, products.name,
+        $data = $query->groupBy('products.id', 'products.name', 'products.unit')
+            ->selectRaw('products.id, products.name, products.unit,
                 SUM(sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) as quantity_sold,
-                SUM(sale_items.total_price - COALESCE(returns_agg.amount_returned, 0)) as revenue')
+                SUM(sale_items.total_price - COALESCE(returns_agg.amount_returned, 0)) as revenue,
+                SUM((sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) * COALESCE(sale_items.cost_price, 0)) as cost')
             ->orderByDesc('revenue')
             ->get();
+
+        // Cost and profit are margin data — only for staff who may see cost prices.
+        $canSeeCost = $request->user()->hasPermission('purchases.view');
+        $data->transform(function ($row) use ($canSeeCost) {
+            $row->quantity_sold = round((float) $row->quantity_sold, 3);
+            $row->revenue = round((float) $row->revenue, 2);
+            if ($canSeeCost) {
+                $row->cost = round((float) $row->cost, 2);
+                $row->profit = round($row->revenue - $row->cost, 2);
+            } else {
+                unset($row->cost);
+            }
+
+            return $row;
+        });
 
         return response()->json($data);
     }
@@ -146,7 +162,14 @@ class ReportController extends Controller
 
     public function customers()
     {
+        // Outstanding balance per customer = unpaid part of their completed
+        // bills (same rule as Sale::due_amount: grand_total - paid_amount, floored at 0).
         $customers = Customer::withCount('sales')
+            ->addSelect(['due_amount' => Sale::query()
+                ->selectRaw('COALESCE(SUM(CASE WHEN grand_total > paid_amount THEN grand_total - paid_amount ELSE 0 END), 0)')
+                ->whereColumn('sales.customer_id', 'customers.id')
+                ->where('status', 'completed'),
+            ])
             ->orderByDesc('total_purchases')
             ->get();
 
@@ -156,6 +179,7 @@ class ReportController extends Controller
             'phone' => $customer->phone,
             'total_purchases' => $customer->total_purchases,
             'sales_count' => $customer->sales_count,
+            'due_amount' => round((float) $customer->due_amount, 2),
         ]));
     }
 }

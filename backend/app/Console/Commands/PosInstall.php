@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Category;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -12,6 +13,8 @@ use Database\Seeders\SettingSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -20,7 +23,7 @@ use Illuminate\Validation\Rules\Password;
  *
  * The desktop launcher pipes the owner's details in as JSON on stdin (so the
  * password never shows up in the process list):
- *   {"shop_name": "...", "shop_phone": "...", "shop_address": "...",
+ *   {"shop_name": "...", "shop_phone": "...", "shop_address": "...", "business_type": "grocery",
  *    "admin_name": "...", "admin_email": "...", "admin_password": "..."}
  */
 class PosInstall extends Command
@@ -32,7 +35,11 @@ class PosInstall extends Command
     public function handle(): int
     {
         if ($this->option('status')) {
-            $this->line(json_encode(['installed' => $this->isInstalled()]));
+            $this->line(json_encode([
+                'installed' => $this->isInstalled(),
+                'business_types' => collect(config('pos.business_types'))
+                    ->map(fn ($t, $code) => ['code' => $code, 'label' => $t['label']])->values(),
+            ]));
 
             return self::SUCCESS;
         }
@@ -49,6 +56,7 @@ class PosInstall extends Command
 
         $validator = Validator::make($input, [
             'shop_name' => ['required', 'string', 'max:255'],
+            'business_type' => ['nullable', 'string', Rule::in(array_keys(config('pos.business_types')))],
             'shop_phone' => ['nullable', 'string', 'max:50'],
             'shop_address' => ['nullable', 'string', 'max:500'],
             'admin_name' => ['required', 'string', 'max:255'],
@@ -77,6 +85,8 @@ class PosInstall extends Command
                 );
             }
 
+            $this->applyBusinessType($data['business_type'] ?? 'general');
+
             User::create([
                 'name' => $data['admin_name'],
                 'email' => strtolower($data['admin_email']),
@@ -89,6 +99,43 @@ class PosInstall extends Command
         $this->line(json_encode(['ok' => true]));
 
         return self::SUCCESS;
+    }
+
+    /** Starter categories + option labels/unit that suit the trade. */
+    private function applyBusinessType(string $type): void
+    {
+        $preset = config("pos.business_types.{$type}");
+
+        $settings = [
+            'business.type' => $type,
+            'product.option1_label' => $preset['options'][0],
+            'product.option2_label' => $preset['options'][1],
+            'product.default_unit' => $preset['unit'],
+        ];
+        foreach (config('pos.features') as $feature) {
+            $settings["features.{$feature}"] = in_array($feature, $preset['features'] ?? [], true) ? '1' : '0';
+        }
+        foreach ($settings as $key => $value) {
+            Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => Str::before($key, '.')]);
+        }
+
+        foreach ($preset['categories'] as $parent => $children) {
+            $root = Category::create(['name' => $parent, 'slug' => $this->slug($parent), 'is_active' => true]);
+            foreach ($children as $child) {
+                Category::create(['name' => $child, 'slug' => $this->slug("{$parent} {$child}"), 'parent_id' => $root->id, 'is_active' => true]);
+            }
+        }
+    }
+
+    private function slug(string $name): string
+    {
+        $base = Str::slug($name) ?: 'category';
+        $slug = $base;
+        for ($i = 2; Category::withTrashed()->where('slug', $slug)->exists(); $i++) {
+            $slug = "{$base}-{$i}";
+        }
+
+        return $slug;
     }
 
     private function isInstalled(): bool

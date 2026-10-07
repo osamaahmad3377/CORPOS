@@ -4,3 +4,4 @@ resources/php/
 resources/backend/
 resources/vc_redist.x64.exe
 .cache/
+resources/php-mac-*/

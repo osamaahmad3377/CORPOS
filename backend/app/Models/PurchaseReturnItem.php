@@ -18,6 +18,7 @@ class PurchaseReturnItem extends Model
     protected function casts(): array
     {
         return [
+            'quantity_returned' => 'float',
             'refund_amount' => 'decimal:2',
         ];
     }

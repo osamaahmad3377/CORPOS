@@ -18,6 +18,7 @@ class PurchaseItem extends Model
     protected function casts(): array
     {
         return [
+            'quantity' => 'float',
             'unit_price' => 'decimal:2',
             'total_price' => 'decimal:2',
         ];

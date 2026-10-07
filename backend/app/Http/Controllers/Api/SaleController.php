@@ -12,9 +12,12 @@ use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\ActivityLogger;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\StockService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use App\Support\Qty;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -32,8 +35,20 @@ class SaleController extends Controller
             $query->where('status', $request->string('status'));
         }
 
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->string('payment_status'));
+        }
+
         if ($request->filled('customer_id')) {
             $query->where('customer_id', $request->integer('customer_id'));
+        }
+
+        if ($request->filled('search')) {
+            $term = '%'.$request->string('search')->trim().'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('invoice_number', 'like', $term)
+                    ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $term)->orWhere('phone', 'like', $term));
+            });
         }
 
         if ($request->filled('start_date')) {
@@ -91,13 +106,13 @@ class SaleController extends Controller
             if ($status === 'completed') {
                 $requestedByVariant = collect($validated['items'])
                     ->groupBy('variant_id')
-                    ->map(fn ($rows) => $rows->sum('quantity'));
+                    ->map(fn ($rows) => Qty::round($rows->sum('quantity')));
 
                 foreach ($requestedByVariant as $variantId => $requestedQty) {
                     $variant = $variants[$variantId];
-                    if ($variant->stock_qty < $requestedQty) {
+                    if (Qty::round($variant->stock_qty) < $requestedQty) {
                         throw ValidationException::withMessages([
-                            'items' => ["Insufficient stock for {$variant->sku}. Available: {$variant->stock_qty}."],
+                            'items' => ["Insufficient stock for {$variant->sku}. Available: ".Qty::format($variant->stock_qty).'.'],
                         ]);
                     }
                 }
@@ -166,26 +181,33 @@ class SaleController extends Controller
                 'change_amount' => $changeAmount,
                 'paid_amount' => $paidAmount,
                 'status' => $status,
+                'order_type' => $validated['order_type'] ?? null,
+                'table_no' => $validated['table_no'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
             $sale->syncPaymentStatus();
             $sale->save();
 
-            foreach ($validated['items'] as $item) {
+            foreach ($validated['items'] as $i => $item) {
                 $variant = $variants[$item['variant_id']];
                 $unitPrice = (float) $variant->selling_price;
                 $lineTotal = ($unitPrice * $item['quantity']) - ($item['discount_per_item'] ?? 0);
+                $serials = SerialService::clean($item['serials'] ?? [], "items.{$i}.serials");
 
-                SaleItem::create([
+                $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
                     'variant_id' => $item['variant_id'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $unitPrice,
+                    'cost_price' => $variant->purchase_price,
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
                     'total_price' => $lineTotal,
+                    'pending_serials' => $status === 'held' && $serials ? $serials : null,
                 ]);
 
                 if ($status === 'completed') {
+                    SerialService::sell($variant, $saleItem, $serials, "items.{$i}.serials");
+                    BatchService::consumeForSale($variant, $saleItem);
                     StockService::decrement($variant, $item['quantity'], 'out', $user, $sale, 'Sale '.$sale->invoice_number);
                 }
             }
@@ -225,7 +247,7 @@ class SaleController extends Controller
             abort(403);
         }
 
-        return new SaleResource($sale->load(['customer', 'cashier', 'items.variant.product']));
+        return new SaleResource($sale->load(['customer', 'cashier', 'items.variant.product', 'returns.items', 'returns.processor']));
     }
 
     public function resume(ResumeSaleRequest $request, Sale $sale)
@@ -257,19 +279,23 @@ class SaleController extends Controller
                 ->get()
                 ->keyBy('id');
 
-            $requestedByVariant = $sale->items->groupBy('variant_id')->map(fn ($rows) => $rows->sum('quantity'));
+            $requestedByVariant = $sale->items->groupBy('variant_id')->map(fn ($rows) => Qty::round($rows->sum('quantity')));
 
             foreach ($requestedByVariant as $variantId => $requestedQty) {
                 $variant = $variants[$variantId];
-                if ($variant->stock_qty < $requestedQty) {
+                if (Qty::round($variant->stock_qty) < $requestedQty) {
                     throw ValidationException::withMessages([
-                        'items' => ["Insufficient stock for {$variant->sku}. Available: {$variant->stock_qty}."],
+                        'items' => ["Insufficient stock for {$variant->sku}. Available: ".Qty::format($variant->stock_qty).'.'],
                     ]);
                 }
             }
 
-            foreach ($sale->items as $item) {
-                StockService::decrement($variants[$item->variant_id], $item->quantity, 'out', $user, $sale, 'Resumed sale '.$sale->invoice_number);
+            foreach ($sale->items as $i => $item) {
+                $variant = $variants[$item->variant_id];
+                SerialService::sell($variant, $item, $item->pending_serials ?? [], "items.{$i}.serials");
+                BatchService::consumeForSale($variant, $item);
+                StockService::decrement($variant, $item->quantity, 'out', $user, $sale, 'Resumed sale '.$sale->invoice_number);
+                $item->update(['pending_serials' => null]);
             }
 
             $paymentReceived = $validated['payment_received'] ?? $sale->grand_total;
@@ -289,6 +315,28 @@ class SaleController extends Controller
         });
 
         return new SaleResource($sale->fresh(['customer', 'cashier', 'items.variant.product']));
+    }
+
+    /**
+     * Discard a held (unpaid) bill — nothing was taken from stock yet. The
+     * POS uses this to reopen an open restaurant order into the cart.
+     */
+    public function destroy(Request $request, Sale $sale)
+    {
+        if (! $request->user()->hasPermission('sales.view_all') && $sale->cashier_id !== $request->user()->id) {
+            abort(403);
+        }
+        if ($sale->status !== 'held') {
+            return response()->json(['message' => 'Only held bills can be discarded. Use a return for completed sales.'], 422);
+        }
+
+        DB::transaction(function () use ($sale) {
+            $sale->items()->delete();
+            $sale->delete();
+        });
+        ActivityLogger::log($request->user(), 'delete', 'sales', "Discarded held bill {$sale->invoice_number}.");
+
+        return response()->json(['message' => 'Held bill discarded.']);
     }
 
     public function recordPayment(RecordSalePaymentRequest $request, Sale $sale)
@@ -314,7 +362,8 @@ class SaleController extends Controller
             $locked->syncPaymentStatus();
             $locked->save();
 
-            ActivityLogger::log($user, 'payment', 'sales', "Recorded payment of {$validated['amount']} against sale {$locked->invoice_number}.");
+            $via = ! empty($validated['payment_method']) ? " via {$validated['payment_method']}" : '';
+            ActivityLogger::log($user, 'payment', 'sales', "Recorded payment of {$validated['amount']}{$via} against sale {$locked->invoice_number}.");
         });
 
         return new SaleResource($sale->fresh(['customer', 'cashier', 'items.variant.product']));

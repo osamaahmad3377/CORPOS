@@ -16,9 +16,13 @@ class StoreStockAdjustmentRequest extends FormRequest
         return [
             'variant_id' => ['required', 'integer', 'exists:product_variants,id'],
             'type' => ['required', 'string', 'in:in,out,damaged,count'],
-            'quantity' => ['required_unless:type,count', 'integer', 'min:1'],
-            'new_quantity' => ['required_if:type,count', 'integer', 'min:0'],
+            'quantity' => ['required_unless:type,count', 'numeric', 'gt:0', 'max:9999999'],
+            'new_quantity' => ['required_if:type,count', 'numeric', 'min:0', 'max:9999999'],
             'reason' => ['nullable', 'string'],
+            'serials' => ['nullable', 'array'],
+            'serials.*' => ['string', 'max:100'],
+            'batch_no' => ['nullable', 'string', 'max:100'],
+            'expiry_date' => ['nullable', 'date'],
         ];
     }
 }

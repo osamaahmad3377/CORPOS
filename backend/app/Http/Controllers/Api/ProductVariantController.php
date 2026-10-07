@@ -9,6 +9,8 @@ use App\Http\Resources\ProductVariantResource;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\BarcodeGenerator;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\SkuGenerator;
 use App\Services\StockService;
 use Illuminate\Http\Request;
@@ -31,6 +33,8 @@ class ProductVariantController extends Controller
             ->where(function ($query) use ($term) {
                 $query->where('sku', 'like', "%{$term}%")
                     ->orWhere('barcode', 'like', "%{$term}%")
+                    ->orWhere('color', 'like', "%{$term}%")
+                    ->orWhere('size', 'like', "%{$term}%")
                     ->orWhereHas('product', function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%");
                     });
@@ -46,42 +50,83 @@ class ProductVariantController extends Controller
         $validated = $request->validated();
         $user = $request->user();
 
-        $variants = DB::transaction(function () use ($validated, $product, $user) {
-            $created = [];
-
+        $specs = [];
+        if (! empty($validated['variants'])) {
+            foreach ($validated['variants'] as $v) {
+                $specs[] = [
+                    'color' => trim((string) ($v['color'] ?? '')) ?: null,
+                    'size' => trim((string) ($v['size'] ?? '')) ?: null,
+                    'barcode' => trim((string) ($v['barcode'] ?? '')) ?: null,
+                    'serials' => $v['serials'] ?? [],
+                    'batch_no' => trim((string) ($v['batch_no'] ?? '')) ?: null,
+                    'expiry_date' => $v['expiry_date'] ?? null,
+                    'purchase_price' => $v['purchase_price'],
+                    'selling_price' => $v['selling_price'],
+                    'stock_qty' => $v['stock_qty'],
+                    'low_stock_threshold' => $v['low_stock_threshold'] ?? 5,
+                ];
+            }
+        } else {
             foreach ($validated['colors'] as $color) {
                 foreach ($validated['sizes'] as $size) {
-                    $exists = ProductVariant::where('product_id', $product->id)
-                        ->where('color', $color)
-                        ->where('size', $size)
-                        ->exists();
-
-                    if ($exists) {
-                        throw ValidationException::withMessages([
-                            'colors' => ["A variant with color \"{$color}\" and size \"{$size}\" already exists for this product."],
-                        ]);
-                    }
-
-                    $variant = ProductVariant::create([
-                        'product_id' => $product->id,
+                    $specs[] = [
                         'color' => $color,
                         'size' => $size,
-                        'sku' => SkuGenerator::generate($product, $color, $size),
-                        'barcode' => 'TMP-'.Str::random(10),
+                        'barcode' => null,
+                        'serials' => [],
+                        'batch_no' => null,
+                        'expiry_date' => null,
                         'purchase_price' => $validated['purchase_price'],
                         'selling_price' => $validated['selling_price'],
-                        'stock_qty' => 0,
+                        'stock_qty' => $validated['stock_qty'],
                         'low_stock_threshold' => $validated['low_stock_threshold'] ?? 5,
-                    ]);
-
-                    BarcodeGenerator::assignToVariant($product, $variant);
-
-                    if ($validated['stock_qty'] > 0) {
-                        StockService::increment($variant, $validated['stock_qty'], 'in', $user, null, 'Initial stock on variant creation');
-                    }
-
-                    $created[] = $variant;
+                    ];
                 }
+            }
+        }
+
+        $variants = DB::transaction(function () use ($specs, $product, $user) {
+            $created = [];
+
+            foreach ($specs as $i => $spec) {
+                $exists = ProductVariant::where('product_id', $product->id)
+                    ->where(fn ($q) => $spec['color'] === null ? $q->whereNull('color') : $q->where('color', $spec['color']))
+                    ->where(fn ($q) => $spec['size'] === null ? $q->whereNull('size') : $q->where('size', $spec['size']))
+                    ->exists();
+
+                if ($exists) {
+                    $label = trim(($spec['color'] ?? '').' / '.($spec['size'] ?? ''), ' /') ?: 'no options';
+                    throw ValidationException::withMessages([
+                        'variants' => ["This product already has a variant with \"{$label}\"."],
+                    ]);
+                }
+
+                $variant = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'color' => $spec['color'],
+                    'size' => $spec['size'],
+                    'sku' => SkuGenerator::generate($product, $spec['color'], $spec['size']),
+                    'barcode' => 'TMP-'.Str::random(10),
+                    'purchase_price' => $spec['purchase_price'],
+                    'selling_price' => $spec['selling_price'],
+                    'stock_qty' => 0,
+                    'low_stock_threshold' => $spec['low_stock_threshold'],
+                ]);
+
+                if ($spec['barcode']) {
+                    BarcodeGenerator::assignCustom($variant, $spec['barcode']);
+                } else {
+                    BarcodeGenerator::assignToVariant($product, $variant);
+                }
+
+                if ($spec['stock_qty'] > 0) {
+                    $variant->setRelation('product', $product);
+                    SerialService::receive($variant, SerialService::clean($spec['serials'], "variants.{$i}.serials"), (float) $spec['stock_qty'], "variants.{$i}.serials");
+                    BatchService::receive($variant, (float) $spec['stock_qty'], $spec['batch_no'], $spec['expiry_date'], (float) $spec['purchase_price']);
+                    StockService::increment($variant, $spec['stock_qty'], 'in', $user, null, 'Initial stock on variant creation');
+                }
+
+                $created[] = $variant;
             }
 
             return $created;

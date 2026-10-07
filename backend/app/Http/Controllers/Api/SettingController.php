@@ -37,6 +37,19 @@ class SettingController extends Controller
             'default_label_size' => ['nullable', 'in:small,large'],
             'show_shop_name' => ['nullable', 'in:0,1'],
         ],
+        'business' => [
+            'type' => ['nullable', 'string', 'max:50'],
+        ],
+        'product' => [
+            'option1_label' => ['nullable', 'string', 'max:40'],
+            'option2_label' => ['nullable', 'string', 'max:40'],
+            'default_unit' => ['nullable', 'string', 'max:20'],
+        ],
+        'features' => [
+            'restaurant' => ['nullable', 'in:0,1'],
+            'serials' => ['nullable', 'in:0,1'],
+            'expiry' => ['nullable', 'in:0,1'],
+        ],
         'tax' => [
             'enabled' => ['nullable', 'in:0,1'],
             'label' => ['nullable', 'string', 'max:50'],
@@ -76,9 +89,14 @@ class SettingController extends Controller
 
         foreach ($validated as $group => $values) {
             foreach ($values as $key => $value) {
+                // A cleared field arrives as null (ConvertEmptyStringsToNull);
+                // store it as an empty string, not the literal text "null"
+                // that would then print on receipts and labels.
+                $stored = $value === null ? '' : (is_scalar($value) ? (string) $value : json_encode($value));
+
                 Setting::updateOrCreate(
                     ['key' => "{$group}.{$key}"],
-                    ['value' => is_scalar($value) ? (string) $value : json_encode($value), 'group' => $group]
+                    ['value' => $stored, 'group' => $group]
                 );
             }
         }

@@ -5,24 +5,25 @@ namespace App\Services;
 use App\Models\ProductVariant;
 use App\Models\StockAdjustment;
 use App\Models\User;
+use App\Support\Qty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class StockService
 {
     /**
-     * Increase stock by $quantity (positive integer) and record the movement.
+     * Increase stock by $quantity (positive; fractional for kg/litre/metre units) and record the movement.
      * Caller is responsible for any row locking within its own transaction.
      */
-    public static function increment(ProductVariant $variant, int $quantity, string $type, ?User $user, ?Model $reference = null, ?string $reason = null): StockAdjustment
+    public static function increment(ProductVariant $variant, float $quantity, string $type, ?User $user, ?Model $reference = null, ?string $reason = null): StockAdjustment
     {
         return self::move($variant, abs($quantity), $type, $user, $reference, $reason);
     }
 
     /**
-     * Decrease stock by $quantity (positive integer) and record the movement.
+     * Decrease stock by $quantity (positive; fractional for kg/litre/metre units) and record the movement.
      */
-    public static function decrement(ProductVariant $variant, int $quantity, string $type, ?User $user, ?Model $reference = null, ?string $reason = null): StockAdjustment
+    public static function decrement(ProductVariant $variant, float $quantity, string $type, ?User $user, ?Model $reference = null, ?string $reason = null): StockAdjustment
     {
         return self::move($variant, -abs($quantity), $type, $user, $reference, $reason);
     }
@@ -31,19 +32,22 @@ class StockService
      * Apply a raw signed delta (used for manual "count" reconciliation, where
      * the delta may be positive or negative depending on the counted value).
      */
-    public static function adjust(ProductVariant $variant, int $delta, string $type, ?User $user, ?string $reason = null): StockAdjustment
+    public static function adjust(ProductVariant $variant, float $delta, string $type, ?User $user, ?string $reason = null): StockAdjustment
     {
         return self::move($variant, $delta, $type, $user, null, $reason);
     }
 
-    private static function move(ProductVariant $variant, int $delta, string $type, ?User $user, ?Model $reference, ?string $reason): StockAdjustment
+    private static function move(ProductVariant $variant, float $delta, string $type, ?User $user, ?Model $reference, ?string $reason): StockAdjustment
     {
-        $before = $variant->stock_qty;
-        $after = $before + $delta;
+        Qty::assertAllowed($variant, $delta);
+
+        $before = Qty::round($variant->stock_qty);
+        $delta = Qty::round($delta);
+        $after = Qty::round($before + $delta);
 
         if ($after < 0) {
             throw ValidationException::withMessages([
-                'quantity' => ["Stock for {$variant->sku} cannot go below zero (currently {$before})."],
+                'quantity' => ['Stock for '.$variant->sku.' cannot go below zero (currently '.Qty::format($before).').'],
             ]);
         }
 

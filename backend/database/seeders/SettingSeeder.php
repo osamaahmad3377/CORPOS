@@ -29,6 +29,19 @@ class SettingSeeder extends Seeder
                 'default_label_size' => 'small',
                 'show_shop_name' => '1',
             ],
+            'business' => [
+                'type' => 'general',
+            ],
+            'product' => [
+                'option1_label' => 'Variant',
+                'option2_label' => 'Size',
+                'default_unit' => 'pcs',
+            ],
+            'features' => [
+                'restaurant' => '0',
+                'serials' => '0',
+                'expiry' => '0',
+            ],
             'tax' => [
                 'enabled' => '0',
                 'label' => 'GST',

@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 class Backend {
   constructor({ resourcesDir, dataDir, preferredPort = 47321, log = console.log }) {
@@ -22,10 +22,9 @@ class Backend {
     this.backendDir = path.join(resourcesDir, 'backend');
     this.publicDir = path.join(this.backendDir, 'public');
     this.phpBin = this.findPhp();
-    // The bundled php.ini only suits the bundled (Windows) PHP build.
-    this.phpIni = path.dirname(this.phpBin) === path.join(resourcesDir, 'php')
-      ? path.join(resourcesDir, 'php', 'php.ini')
-      : '';
+    // Our php.ini sits next to the bundled PHP; a system PHP keeps its own.
+    const bundledIni = path.join(path.dirname(this.phpBin), 'php.ini');
+    this.phpIni = this.phpBin.startsWith(resourcesDir) && fs.existsSync(bundledIni) ? bundledIni : '';
 
     this.dbFile = path.join(dataDir, 'database', 'corepos.sqlite');
     this.storageDir = path.join(dataDir, 'storage');
@@ -33,10 +32,14 @@ class Backend {
   }
 
   findPhp() {
-    const bundled = path.join(this.resourcesDir, 'php', process.platform === 'win32' ? 'php.exe' : 'php');
-    if (fs.existsSync(bundled)) return bundled;
-    // Development on a Mac/Linux box: allow an explicit or system PHP.
-    return process.env.COREPOS_PHP || 'php';
+    if (process.env.COREPOS_PHP) return process.env.COREPOS_PHP;
+    const candidates = process.platform === 'win32'
+      ? [path.join(this.resourcesDir, 'php', 'php.exe')]
+      : [
+        path.join(this.resourcesDir, 'php', 'php'), // packaged app
+        path.join(this.resourcesDir, `php-mac-${process.arch}`, 'php'), // development
+      ];
+    return candidates.find((p) => fs.existsSync(p)) || 'php';
   }
 
   ensureDirs() {
@@ -94,11 +97,14 @@ class Backend {
       FILESYSTEM_DISK: 'public',
       MAIL_MAILER: 'log',
       SANCTUM_TOKEN_IDLE_MINUTES: '720',
+      // The built-in server can fork workers everywhere except Windows.
+      ...(process.platform === 'win32' ? {} : { PHP_CLI_SERVER_WORKERS: '4' }),
     };
   }
 
   phpArgs(args) {
-    if (!fs.existsSync(this.phpIni)) return args;
+    if (!this.phpIni || !fs.existsSync(this.phpIni)) return args;
+    if (process.platform !== 'win32') return ['-c', this.phpIni, ...args]; // static build: no ext dir
     // A relative extension_dir is resolved against the working directory on
     // Windows, not php.exe's folder — so always pass it absolutely.
     return ['-c', this.phpIni, '-d', `extension_dir=${path.join(path.dirname(this.phpIni), 'ext')}`, ...args];
@@ -133,6 +139,7 @@ class Backend {
     const res = await this.artisan(['pos:install', '--status']);
     const data = this.lastJsonLine(res.stdout);
     if (!data) throw new Error(`Could not start PHP.\n${res.stderr || res.stdout}`);
+    this.businessTypes = data.business_types || [];
     return !!data.installed;
   }
 
@@ -176,11 +183,16 @@ class Backend {
     await this.prepare();
 
     const router = path.join(this.backendDir, 'vendor', 'laravel', 'framework', 'src', 'Illuminate', 'Foundation', 'resources', 'server.php');
+    this.killStale();
     this.proc = spawn(this.phpBin, this.phpArgs(['-S', `127.0.0.1:${this.port}`, '-t', this.publicDir, router]), {
       cwd: this.publicDir, // Laravel's router uses getcwd() as the public dir
       env: this.env(),
       windowsHide: true,
+      // macOS/Linux: own process group, so stop() also ends the worker
+      // processes PHP forks (PHP_CLI_SERVER_WORKERS) — not just the parent.
+      detached: process.platform !== 'win32',
     });
+    fs.writeFileSync(this.pidFile(), String(this.proc.pid));
 
     const logFile = fs.createWriteStream(path.join(this.storageDir, 'logs', 'php-server.log'), { flags: 'a' });
     this.proc.stdout.pipe(logFile);
@@ -214,20 +226,43 @@ class Backend {
     throw new Error('PHP server did not start in time.');
   }
 
+  pidFile() {
+    return path.join(this.dataDir, 'php-server.pid');
+  }
+
+  killTree(pid) {
+    try {
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/pid', String(pid), '/f', '/t'], { windowsHide: true });
+      } else {
+        process.kill(-pid, 'SIGTERM'); // the whole process group
+      }
+    } catch {
+      // already gone
+    }
+  }
+
+  // A previous run that was force-closed (crash, Task Manager, power cut)
+  // can leave its PHP server behind; end it, but only if that PID is still
+  // our own bundled PHP and not some unrelated process that reused the PID.
+  killStale() {
+    let pid;
+    try { pid = Number(fs.readFileSync(this.pidFile(), 'utf8')); } catch { return; }
+    fs.rmSync(this.pidFile(), { force: true });
+    if (!Number.isInteger(pid) || pid <= 0) return;
+    const probe = process.platform === 'win32'
+      ? spawnSync('tasklist', ['/fi', `PID eq ${pid}`, '/fo', 'csv', '/nh'], { encoding: 'utf8', windowsHide: true }).stdout
+      : spawnSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8' }).stdout;
+    if (probe && probe.toLowerCase().includes(path.basename(this.phpBin).toLowerCase())) this.killTree(pid);
+  }
+
   stop() {
     if (!this.proc) return;
     const proc = this.proc;
     this.onExit = null;
     this.proc = null;
-    try {
-      if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(proc.pid), '/f', '/t'], { windowsHide: true });
-      } else {
-        proc.kill();
-      }
-    } catch {
-      // already gone
-    }
+    this.killTree(proc.pid);
+    fs.rmSync(this.pidFile(), { force: true });
   }
 }
 

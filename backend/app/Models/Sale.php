@@ -12,6 +12,8 @@ class Sale extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'order_type',
+        'table_no',
         'invoice_number',
         'idempotency_key',
         'customer_id',

@@ -8,12 +8,14 @@
   "private": true,
   "main": "src/main.js",
   "scripts": {
-    "prepare:php": "node scripts/prepare-php.mjs",
+    "prepare:php:win": "node scripts/prepare-php.mjs",
+    "prepare:php:mac": "node scripts/prepare-php-mac.mjs",
     "prepare:app": "node scripts/prepare-app.mjs",
-    "prepare": "npm run prepare:php && npm run prepare:app",
     "start": "electron .",
-    "dist:win": "npm run prepare && electron-builder --win nsis --x64",
-    "dist:win:mac": "npm run prepare && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
+    "dist:win": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64",
+    "dist:win:mac": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
+    "dist:mac": "npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal",
+    "dist:all": "npm run prepare:php:win && npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
     "test:license": "node scripts/test-license.mjs"
   },
   "devDependencies": {
@@ -36,10 +38,6 @@
     ],
     "extraResources": [
       {
-        "from": "resources/php",
-        "to": "php"
-      },
-      {
         "from": "resources/backend",
         "to": "backend"
       }
@@ -56,6 +54,10 @@
       "icon": "build/icon.ico",
       "extraResources": [
         {
+          "from": "resources/php",
+          "to": "php"
+        },
+        {
           "from": "resources/vc_redist.x64.exe",
           "to": "vc_redist.x64.exe"
         }
@@ -71,6 +73,33 @@
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
       "artifactName": "CorePOS-Setup-${version}.exe"
-    }
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.business",
+      "extraResources": [
+        {
+          "from": "resources/php-mac-${arch}",
+          "to": "php"
+        }
+      ],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "artifactName": "CorePOS-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "CorePOS ${version}",
+      "artifactName": "CorePOS-${version}-mac-${arch}.${ext}"
+    },
+    "afterPack": "build/after-pack.cjs"
   }
 }

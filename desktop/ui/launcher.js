@@ -17,6 +17,12 @@ function render(s) {
   $('#error-msg').textContent = s.message || '';
 
   if (s.state === 'activate') setTimeout(() => $('#key').focus(), 50);
+  const types = $('#business-type');
+  if (s.businessTypes?.length && !types.options.length) {
+    for (const t of s.businessTypes) types.add(new Option(t.label, t.code));
+    types.value = 'general';
+  }
+
   if (s.state === 'setup') setTimeout(() => $('[name=shop_name]').focus(), 50);
 }
 

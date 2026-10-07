@@ -29,10 +29,13 @@ class SaleResource extends JsonResource
             'refunded_amount' => $this->refunded_amount,
             'net_revenue' => $this->net_revenue,
             'status' => $this->status,
+            'order_type' => $this->order_type,
+            'table_no' => $this->table_no,
             'payment_status' => $this->payment_status,
             'notes' => $this->notes,
             'items_count' => $this->whenCounted('items'),
             'items' => SaleItemResource::collection($this->whenLoaded('items')),
+            'returns' => SaleReturnResource::collection($this->whenLoaded('returns')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

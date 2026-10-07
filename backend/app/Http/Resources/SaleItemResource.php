@@ -16,6 +16,10 @@ class SaleItemResource extends JsonResource
             'color' => $this->whenLoaded('variant', fn () => $this->variant?->color),
             'size' => $this->whenLoaded('variant', fn () => $this->variant?->size),
             'sku' => $this->whenLoaded('variant', fn () => $this->variant?->sku),
+            'unit' => $this->whenLoaded('variant', fn () => $this->variant?->product?->unit ?? 'pcs'),
+            'warranty_months' => $this->whenLoaded('variant', fn () => $this->variant?->product?->warranty_months),
+            // sold serials, or the ones chosen for a still-held bill
+            'serials' => $this->pending_serials ?: $this->serialNumbers()->pluck('serial')->all(),
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'discount_per_item' => $this->discount_per_item,

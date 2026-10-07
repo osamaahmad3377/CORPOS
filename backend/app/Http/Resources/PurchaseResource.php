@@ -28,6 +28,7 @@ class PurchaseResource extends JsonResource
             'creator' => $this->whenLoaded('creator', fn () => $this->creator?->name),
             'items_count' => $this->whenCounted('items'),
             'items' => PurchaseItemResource::collection($this->whenLoaded('items')),
+            'returns' => PurchaseReturnResource::collection($this->whenLoaded('returns')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

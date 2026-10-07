@@ -64,7 +64,13 @@ input {
   padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px;
   background: transparent; color: var(--text); font: inherit;
 }
-input:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: transparent; }
+select {
+  display: block; width: 100%; margin-top: 6px;
+  padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); color: var(--text); font: inherit;
+}
+label .small { display: block; font-weight: 400; margin: 6px 0 0; }
+input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: transparent; }
 #key { font-family: Consolas, ui-monospace, monospace; font-size: 18px; letter-spacing: 1px; text-transform: uppercase; }
 button {
   padding: 11px 18px; border-radius: 10px; border: 1px solid var(--border);

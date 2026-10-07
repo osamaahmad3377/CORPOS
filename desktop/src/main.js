@@ -22,10 +22,14 @@ function log(...args) {
   if (!app.isPackaged) process.stdout.write(line);
 }
 
+// Overrides are for development only — honouring them in a shipped app would
+// let anyone point it at their own key server and self-sign a license.
+const devOverride = (name) => (app.isPackaged ? undefined : process.env[name]);
+
 const license = new LicenseManager({
   dataDir,
-  serverUrl: process.env.COREPOS_LICENSE_SERVER || config.licenseServerUrl,
-  publicKey: process.env.COREPOS_LICENSE_PUBLIC_KEY || config.licensePublicKey,
+  serverUrl: devOverride('COREPOS_LICENSE_SERVER') || config.licenseServerUrl,
+  publicKey: devOverride('COREPOS_LICENSE_PUBLIC_KEY') || config.licensePublicKey,
   appVersion: app.getVersion(),
 });
 const backend = new Backend({ resourcesDir, dataDir, preferredPort: config.preferredPort, log });
@@ -102,6 +106,7 @@ function publicState() {
     machineId: license.machineId,
     supportPhone: config.supportPhone,
     supportWhatsApp: config.supportWhatsApp,
+    businessTypes: backend.businessTypes || [],
     license: p ? {
       key: maskKey(local.key),
       shopName: p.shop_name,
@@ -342,15 +347,18 @@ async function showLicenseInfo() {
 }
 
 function buildMenu() {
+  const isMac = process.platform === 'darwin';
   const template = [
+    // macOS: app menu (About/Hide/Quit) and an Edit menu — without the Edit
+    // menu Cmd+C / Cmd+V / Cmd+A don't work in text fields.
+    ...(isMac ? [{ role: 'appMenu' }, { role: 'editMenu' }] : []),
     {
       label: 'File',
       submenu: [
         { label: 'Backup now…', click: backupNow },
         { label: 'Restore backup…', click: restoreBackup },
         { label: 'Open automatic backups folder', click: () => shell.openPath(backups.dir) },
-        { type: 'separator' },
-        { role: 'quit' },
+        ...(isMac ? [] : [{ type: 'separator' }, { role: 'quit' }]),
       ],
     },
     {
@@ -399,6 +407,8 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
+// Closed by the system/another process: still shut the PHP server down.
+for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(sig, () => app.quit());
 app.on('before-quit', () => {
   stopRevalidation();
   backend.stop();

@@ -64,4 +64,23 @@ class BarcodeGenerator
             return $variant;
         });
     }
+
+    /** Use a code that's already on the item (scanned from its packaging). */
+    public static function assignCustom(ProductVariant $variant, string $code): ProductVariant
+    {
+        return DB::transaction(function () use ($variant, $code) {
+            $variant->update(['barcode' => $code]);
+
+            if (! Barcode::where('barcode_number', $code)->where('variant_id', $variant->id)->exists()) {
+                Barcode::create([
+                    'variant_id' => $variant->id,
+                    'barcode_number' => $code,
+                    'barcode_type' => preg_match('/^\d{13}$/', $code) ? 'ean13' : 'code128',
+                    'is_custom' => true,
+                ]);
+            }
+
+            return $variant;
+        });
+    }
 }

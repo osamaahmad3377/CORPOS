@@ -12,7 +12,10 @@ use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Services\ActivityLogger;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\StockService;
+use App\Support\Qty;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -50,7 +53,7 @@ class SaleReturnController extends Controller
             // check individually and cumulatively over-return.
             $requestedBySaleItem = collect($validated['items'])
                 ->groupBy('sale_item_id')
-                ->map(fn ($rows) => $rows->sum('quantity_returned'));
+                ->map(fn ($rows) => Qty::round($rows->sum('quantity_returned')));
 
             foreach ($requestedBySaleItem as $saleItemId => $requestedQty) {
                 if (! $saleItems->has($saleItemId)) {
@@ -62,7 +65,7 @@ class SaleReturnController extends Controller
                 $saleItem = $saleItems[$saleItemId];
                 $alreadyReturned = SaleReturnItem::where('sale_item_id', $saleItem->id)->sum('quantity_returned');
 
-                if ($requestedQty > ($saleItem->quantity - $alreadyReturned)) {
+                if ($requestedQty > Qty::round($saleItem->quantity - $alreadyReturned)) {
                     throw ValidationException::withMessages([
                         'items' => ["Cannot return more than the remaining quantity for item #{$saleItem->id}."],
                     ]);
@@ -101,6 +104,9 @@ class SaleReturnController extends Controller
                     'refund_amount' => $refundAmount,
                 ]);
 
+                $saleItem->setRelation('variant', $variants[$saleItem->variant_id]);
+                SerialService::returnFromCustomer($saleItem, SerialService::clean($item['serials'] ?? [], 'items.serials'), (float) $item['quantity_returned'], 'items.serials');
+                BatchService::returnForSale($saleItem, (float) $item['quantity_returned']);
                 StockService::increment($variants[$saleItem->variant_id], $item['quantity_returned'], 'in', $user, $saleReturn, 'Return for '.$sale->invoice_number);
             }
 
@@ -109,7 +115,7 @@ class SaleReturnController extends Controller
             $allItemsFullyReturned = $sale->items()->get()->every(function (SaleItem $saleItem) {
                 $returned = SaleReturnItem::where('sale_item_id', $saleItem->id)->sum('quantity_returned');
 
-                return $returned >= $saleItem->quantity;
+                return Qty::round($returned) >= Qty::round($saleItem->quantity);
             });
 
             // Returned goods no longer need to be paid for — credit the refunded

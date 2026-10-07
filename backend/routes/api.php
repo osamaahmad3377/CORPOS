@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductVariantController;
 use App\Http\Controllers\Api\PurchaseController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SaleReturnController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +28,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/meta', [MetaController::class, 'index']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
@@ -78,6 +81,9 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
         Route::get('products', [ProductController::class, 'index']);
         Route::get('products/{product}', [ProductController::class, 'show']);
         Route::get('product-variants/search', [ProductVariantController::class, 'search']);
+        Route::get('product-variants/{variant}/serials', [TrackingController::class, 'variantSerials']);
+        Route::get('product-variants/{variant}/batches', [TrackingController::class, 'variantBatches']);
+        Route::get('serials/{serial}', [TrackingController::class, 'serial']);
     });
     Route::middleware('permission:products.create')->post('products', [ProductController::class, 'store']);
     Route::middleware('permission:products.edit')->group(function () {
@@ -107,6 +113,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
         Route::post('sales', [SaleController::class, 'store']);
         Route::post('sales/{sale}/resume', [SaleController::class, 'resume']);
         Route::post('sales/{sale}/payments', [SaleController::class, 'recordPayment']);
+        Route::delete('sales/{sale}', [SaleController::class, 'destroy']);
     });
     Route::middleware('permission:sales.return')->post('sales/{sale}/returns', [SaleReturnController::class, 'store']);
 
@@ -140,6 +147,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
         Route::get('product-sales', [ReportController::class, 'productSales']);
         Route::get('inventory', [ReportController::class, 'inventory']);
         Route::get('low-stock', [ReportController::class, 'lowStock']);
+        Route::get('expiring', [TrackingController::class, 'expiring']);
         Route::get('purchases', [ReportController::class, 'purchases']);
         Route::get('customers', [ReportController::class, 'customers']);
     });

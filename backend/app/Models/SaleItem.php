@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SaleItem extends Model
 {
     protected $fillable = [
+        'pending_serials',
+        'cost_price',
         'sale_id',
         'variant_id',
         'quantity',
@@ -19,6 +21,8 @@ class SaleItem extends Model
     protected function casts(): array
     {
         return [
+            'quantity' => 'float',
+            'pending_serials' => 'array',
             'unit_price' => 'decimal:2',
             'discount_per_item' => 'decimal:2',
             'total_price' => 'decimal:2',
@@ -35,5 +39,10 @@ class SaleItem extends Model
         // withTrashed so a discontinued/deleted variant still resolves its
         // name on historical invoices instead of showing blank.
         return $this->belongsTo(ProductVariant::class, 'variant_id')->withTrashed();
+    }
+
+    public function serialNumbers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductSerial::class, 'sale_item_id');
     }
 }

@@ -11,7 +11,10 @@ use App\Models\PurchaseReturn;
 use App\Models\PurchaseReturnItem;
 use App\Models\ProductVariant;
 use App\Services\ActivityLogger;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\StockService;
+use App\Support\Qty;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -33,7 +36,7 @@ class PurchaseReturnController extends Controller
             // individually and cumulatively over-return.
             $requestedByPurchaseItem = collect($validated['items'])
                 ->groupBy('purchase_item_id')
-                ->map(fn ($rows) => $rows->sum('quantity_returned'));
+                ->map(fn ($rows) => Qty::round($rows->sum('quantity_returned')));
 
             foreach ($requestedByPurchaseItem as $purchaseItemId => $requestedQty) {
                 if (! $purchaseItems->has($purchaseItemId)) {
@@ -45,7 +48,7 @@ class PurchaseReturnController extends Controller
                 $purchaseItem = $purchaseItems[$purchaseItemId];
                 $alreadyReturned = PurchaseReturnItem::where('purchase_item_id', $purchaseItem->id)->sum('quantity_returned');
 
-                if ($requestedQty > ($purchaseItem->quantity - $alreadyReturned)) {
+                if ($requestedQty > Qty::round($purchaseItem->quantity - $alreadyReturned)) {
                     throw ValidationException::withMessages([
                         'items' => ["Cannot return more than the remaining quantity for item #{$purchaseItem->id}."],
                     ]);
@@ -93,7 +96,12 @@ class PurchaseReturnController extends Controller
                     'refund_amount' => $refundAmount,
                 ]);
 
-                StockService::decrement($variants[$purchaseItem->variant_id], $item['quantity_returned'], 'out', $user, $purchaseReturn, 'Return to supplier for '.$purchase->po_number);
+                $variant = $variants[$purchaseItem->variant_id];
+                SerialService::remove($variant, SerialService::clean($item['serials'] ?? [], 'items.serials'), (float) $item['quantity_returned'], 'items.serials', 'returned_to_supplier');
+                // goods go back from the batch this purchase created, if any
+                $batchId = \App\Models\ProductBatch::where('purchase_item_id', $purchaseItem->id)->value('id');
+                BatchService::consume($variant, (float) $item['quantity_returned'], $batchId);
+                StockService::decrement($variant, $item['quantity_returned'], 'out', $user, $purchaseReturn, 'Return to supplier for '.$purchase->po_number);
             }
 
             $purchaseReturn->update(['total_refund' => $totalRefund]);

@@ -18,7 +18,9 @@ class StorePurchaseReturnRequest extends FormRequest
             'reason' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.purchase_item_id' => ['required', 'integer', 'exists:purchase_items,id'],
-            'items.*.quantity_returned' => ['required', 'integer', 'min:1'],
+            'items.*.quantity_returned' => ['required', 'numeric', 'gt:0', 'max:9999999'],
+            'items.*.serials' => ['nullable', 'array'],
+            'items.*.serials.*' => ['string', 'max:100'],
         ];
     }
 }

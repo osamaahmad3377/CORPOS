@@ -7,7 +7,7 @@ your own license server on Vercel.
 ```
 COREPOS/
 ├── backend/         Laravel 12 API (desktop edition: SQLite, pos:install command)
-├── frontend/        React source  ← ADD THIS (see "Frontend" below)
+├── frontend/        React app (universal POS screens)
 ├── desktop/         Electron shell + Windows installer (bundles PHP 8.4 + the app)
 ├── license-server/  Next.js app for Vercel: admin panel, activate/validate/revoke API
 └── public_html/     Old Hostinger deployment (left untouched; contains live DB password)
@@ -71,10 +71,11 @@ Edit [desktop/app.config.json](desktop/app.config.json):
 ```bash
 cd desktop
 npm install
-npm run dist:win:mac   # on a Mac  (exe keeps the default Electron icon)
-npm run dist:win       # on a Windows PC (proper icon/metadata; add code signing here later)
+npm run dist:all       # on a Mac: Windows .exe + one Universal Mac .dmg (Intel + Apple Silicon)
+npm run dist:win       # on a Windows PC (proper exe icon/metadata; add code signing here later)
+npm run dist:mac       # Mac .dmg only
 ```
-Output: `desktop/dist/CorePOS-Setup-<version>.exe`. Upload it wherever shops download it
+Output: `desktop/dist/CorePOS-Setup-<version>.exe` and `desktop/dist/CorePOS-<version>-mac-universal.dmg`. Upload it wherever shops download it
 (your website, Google Drive, and so on) and put that link in `DOWNLOAD_URL`.
 
 `npm run prepare` (part of `dist:*`) does the following:
@@ -100,16 +101,33 @@ Output: `desktop/dist/CorePOS-Setup-<version>.exe`. Upload it wherever shops dow
    the shop PC at the next launch, and the daily backup is taken first.
 3. Rebuild and send the new `.exe`. Installing over the old version keeps all the data.
 
-## Frontend
+## Frontend (frontend/)
 
-The React **source** isn't in this folder yet. Copy the React/Vite project into `frontend/`
-(it needs `package.json`, `src/` and `vite.config.*`) and make sure the API base URL comes from
-`import.meta.env.VITE_API_URL`. The desktop build sets it to `/api/v1`. The build fails if
-the old `itartificer.com` URL is still hardcoded.
+A React 19 + Vite 6 + Tailwind app built for **every kind of shop**: grocery/karyana, clothing, shoes,
+electronics/mobile, hardware, pharmacy, cosmetics, restaurant, auto parts and books.
 
-Until then, the desktop build uses the prebuilt bundle from `public_html/assets` and rewrites
-its API URL to `/api/v1`. That works, but the UI still shows the old "Thread & Co. / Clothing
-POS" branding.
+- **Setup.** The owner picks a business type in the setup wizard. That creates starter categories, names
+  the two product options (Color/Size, Storage/Model, Pack size …) and sets the default unit.
+  Everything stays editable in **Settings → Business & products**.
+- **Units.** Products are sold by piece, kg, gram, litre, metre, dozen, box and so on. Quantities like
+  1.5 kg are allowed wherever stock moves.
+- **Scan to add.** Scan a barcode in **Products**, **POS** or **New purchase**. If it isn't in the catalog,
+  CorePOS offers to add it, with the scanned barcode already filled in.
+- **Payments.** Cash, card, JazzCash, Easypaisa, bank transfer and cheque, plus customer credit (udhaar)
+  with statements.
+- **Optional features** (**Settings → Features**; the defaults follow the business type):
+  - **Serial / IMEI.** Each unit is tracked. Serials are recorded on purchases, picked or scanned at
+    the POS, printed with the warranty on the receipt, and checked on returns.
+  - **Batches & expiry.** Batch and expiry are recorded on purchases. Sales use the earliest-expiring
+    stock first, and the Dashboard lists batches that are about to expire.
+  - **Restaurant mode.** Dine-in, takeaway or delivery, table numbers, kitchen order slips and open
+    orders.
+- **Profit.** Each sale records the cost price at the moment of sale, so the Product sales report can
+  show cost, profit and margin. These columns only appear for staff allowed to see cost prices.
+
+`npm run dev` in `frontend/` proxies `/api` to a backend on `127.0.0.1:8766` (override with `BACKEND_URL`).
+The desktop build (`desktop/scripts/prepare-app.mjs`) builds this folder with `VITE_API_URL=/api/v1` and
+puts the output in Laravel's `public/` folder.
 
 ## Developing / testing locally
 

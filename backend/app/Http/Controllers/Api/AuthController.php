@@ -9,6 +9,7 @@ use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -89,11 +90,25 @@ class AuthController extends Controller
 
     public function updateProfile(Request $request)
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'current_password' => ['nullable', 'string'],
         ]);
 
-        $user = $request->user();
+        // The email is the login name — changing it requires the current
+        // password so an unattended, signed-in till can't be hijacked.
+        if (isset($validated['email']) && strcasecmp($validated['email'], $user->email) !== 0) {
+            if (! Hash::check((string) ($validated['current_password'] ?? ''), $user->password)) {
+                throw ValidationException::withMessages([
+                    'current_password' => ['Enter your current password to change your email.'],
+                ]);
+            }
+        }
+
+        unset($validated['current_password']);
         $user->update($validated);
 
         return new UserResource($user->load('role.permissions'));

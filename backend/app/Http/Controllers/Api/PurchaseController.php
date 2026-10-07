@@ -11,6 +11,8 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
 use App\Services\ActivityLogger;
+use App\Services\BatchService;
+use App\Services\SerialService;
 use App\Services\StockService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -25,6 +27,11 @@ class PurchaseController extends Controller
 
         if ($request->filled('supplier_id')) {
             $query->where('supplier_id', $request->integer('supplier_id'));
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->string('search')->trim()->toString();
+            $query->where(fn ($q) => $q->where('po_number', 'like', "%{$term}%")->orWhere('invoice_number', 'like', "%{$term}%"));
         }
 
         if ($request->filled('payment_status')) {
@@ -105,10 +112,10 @@ class PurchaseController extends Controller
                 ]);
             }
 
-            foreach ($validated['items'] as $item) {
+            foreach ($validated['items'] as $i => $item) {
                 $variant = $variants[$item['variant_id']];
 
-                PurchaseItem::create([
+                $purchaseItem = PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'variant_id' => $item['variant_id'],
                     'quantity' => $item['quantity'],
@@ -116,6 +123,8 @@ class PurchaseController extends Controller
                     'total_price' => $item['unit_price'] * $item['quantity'],
                 ]);
 
+                SerialService::receive($variant, SerialService::clean($item['serials'] ?? [], "items.{$i}.serials"), (float) $item['quantity'], "items.{$i}.serials", $purchase->id);
+                BatchService::receive($variant, (float) $item['quantity'], trim((string) ($item['batch_no'] ?? '')) ?: null, $item['expiry_date'] ?? null, (float) $item['unit_price'], $purchaseItem->id);
                 StockService::increment($variant, $item['quantity'], 'in', $user, $purchase, 'Purchase '.$purchase->po_number);
             }
 
@@ -143,7 +152,7 @@ class PurchaseController extends Controller
 
     public function show(Purchase $purchase)
     {
-        return new PurchaseResource($purchase->load(['supplier', 'creator', 'items.variant.product']));
+        return new PurchaseResource($purchase->load(['supplier', 'creator', 'items.variant.product', 'returns.items', 'returns.processor']));
     }
 
     public function recordPayment(RecordPurchasePaymentRequest $request, Purchase $purchase)
@@ -168,7 +177,7 @@ class PurchaseController extends Controller
             ActivityLogger::log($user, 'payment', 'purchases', "Recorded payment of {$validated['amount']} against purchase {$locked->po_number}.");
         });
 
-        return new PurchaseResource($purchase->fresh(['supplier', 'creator', 'items.variant.product']));
+        return new PurchaseResource($purchase->fresh(['supplier', 'creator', 'items.variant.product', 'returns.items', 'returns.processor']));
     }
 
     private function nextPoNumber(): string
