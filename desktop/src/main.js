@@ -104,8 +104,7 @@ function publicState() {
     ...launcher,
     version: app.getVersion(),
     machineId: license.machineId,
-    supportPhone: config.supportPhone,
-    supportWhatsApp: config.supportWhatsApp,
+    supportEmail: config.supportEmail,
     businessTypes: backend.businessTypes || [],
     license: p ? {
       key: maskKey(local.key),
@@ -266,10 +265,12 @@ handle('setup', async (details) => {
 
 handle('retry', () => { boot(); return true; });
 handle('open-logs', () => shell.openPath(path.join(backend.storageDir, 'logs')));
-handle('open-whatsapp', () => {
-  const text = encodeURIComponent(`Assalam o Alaikum, I need help with CorePOS.\nMachine ID: ${license.machineId}`);
-  shell.openExternal(`https://wa.me/${config.supportWhatsApp}?text=${text}`);
-});
+// Support by email: opens the user's mail app with the Machine ID filled in.
+function supportMailto(subject = 'CorePOS help') {
+  const body = `Assalam o Alaikum,\n\nI need help with CorePOS.\n\nShop: ${license.localStatus().payload?.shop_name || ''}\nMachine ID: ${license.machineId}\nVersion: ${app.getVersion()}\n`;
+  return `mailto:${config.supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+handle('open-support', () => shell.openExternal(supportMailto()));
 handle('quit', () => app.quit());
 
 // ---------------------------------------------------------------- menu
@@ -378,8 +379,8 @@ function buildMenu() {
       submenu: [
         { label: 'License…', click: showLicenseInfo },
         {
-          label: 'Contact support on WhatsApp',
-          click: () => shell.openExternal(`https://wa.me/${config.supportWhatsApp}?text=${encodeURIComponent(`CorePOS help. Machine ID: ${license.machineId}`)}`),
+          label: `Email support (${config.supportEmail})`,
+          click: () => shell.openExternal(supportMailto()),
         },
         { label: 'Open logs folder', click: () => shell.openPath(path.join(backend.storageDir, 'logs')) },
       ],

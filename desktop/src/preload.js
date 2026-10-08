@@ -9,7 +9,7 @@ if (location.protocol === 'file:') {
     setup: (details) => ipcRenderer.invoke('setup', details),
     retry: () => ipcRenderer.invoke('retry'),
     openLogs: () => ipcRenderer.invoke('open-logs'),
-    openWhatsApp: () => ipcRenderer.invoke('open-whatsapp'),
+    openSupport: () => ipcRenderer.invoke('open-support'),
     quit: () => ipcRenderer.invoke('quit'),
     onState: (cb) => ipcRenderer.on('launcher-state', (_e, s) => cb(s)),
   });

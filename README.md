@@ -36,7 +36,7 @@ COREPOS/
      all fail the check.
 7. **Menu:**
    - *File:* Backup now / Restore backup
-   - *Help:* License… (shows key and expiry; "Deactivate this computer" moves the key to a new PC), WhatsApp support
+   - *Help:* License… (shows key and expiry; "Deactivate this computer" moves the key to a new PC), Email support (info@nextcore.com.pk)
 
 ## One-time setup
 
@@ -62,8 +62,7 @@ Edit [desktop/app.config.json](desktop/app.config.json):
 {
   "licenseServerUrl": "https://your-project.vercel.app",
   "licensePublicKey": "<LICENSE_PUBLIC_KEY from step 1>",
-  "supportPhone": "+92 3xx xxxxxxx",
-  "supportWhatsApp": "923xxxxxxxxx"
+  "supportEmail": "info@nextcore.com.pk"
 }
 ```
 

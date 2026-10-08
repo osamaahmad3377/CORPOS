@@ -6,7 +6,7 @@ function render(s) {
   });
   $('#version').textContent = `Version ${s.version}`;
   $('#machine-id').textContent = s.machineId;
-  $('#support-phone').textContent = s.supportPhone ? `· ${s.supportPhone}` : '';
+  document.querySelectorAll('#support-email, .support-email').forEach((el) => { el.textContent = s.supportEmail || 'info@nextcore.com.pk'; });
   $('#busy-text').textContent = s.state === 'checking' ? 'Checking your license online…' : 'Starting CorePOS…';
 
   const msg = $('#activate-msg');
@@ -88,7 +88,7 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   if (action === 'retry') window.corepos.retry();
   if (action === 'logs') window.corepos.openLogs();
-  if (action === 'whatsapp') window.corepos.openWhatsApp();
+  if (action === 'support') window.corepos.openSupport();
   if (action === 'change-key') render({ ...current, state: 'activate', message: '' });
 });
 

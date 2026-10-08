@@ -1,8 +1,7 @@
 {
   "licenseServerUrl": "https://corpos-license-server.vercel.app",
   "licensePublicKey": "AKJw/2hXxo5EB1oCxgxtP8aNpTbVVzBIfC4d99bWPjQ=",
-  "supportPhone": "+92 300 0000000",
-  "supportWhatsApp": "923000000000",
   "revalidateHours": 4,
-  "preferredPort": 47321
+  "preferredPort": 47321,
+  "supportEmail": "info@nextcore.com.pk"
 }
