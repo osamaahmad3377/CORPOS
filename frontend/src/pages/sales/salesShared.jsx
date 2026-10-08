@@ -13,7 +13,11 @@ const r2 = (v) => Math.round(n(v) * 100) / 100;
 // Put React nodes (e.g. <span className="num">) into a translated sentence:
 //   rich(t('Customer since {date}'), { date: <span className="num">{date(x)}</span> })
 // t() is called without vars so the {placeholders} survive for us to fill.
+// Wrapped in one <span> so spaces survive inside flex containers (Badge, headers).
 export function rich(str, vars) {
+  return <span>{richParts(str, vars)}</span>;
+}
+function richParts(str, vars) {
   return String(str).split(/(\{\w+\})/).map((part, i) => {
     const m = /^\{(\w+)\}$/.exec(part);
     // eslint-disable-next-line react/no-array-index-key

@@ -45,7 +45,8 @@ export const Input = forwardRef(function Input({ className, ...props }, ref) {
 });
 
 export const Select = forwardRef(function Select({ className, children, ...props }, ref) {
-  return <select ref={ref} className={cx(FIELD, 'h-11 pe-8', className)} {...props}>{children}</select>;
+  // Urdu (Nastaliq) letters overhang — extra start padding stops clipping.
+  return <select ref={ref} className={cx(FIELD, 'h-11 pe-8 rtl:ps-5', className)} {...props}>{children}</select>;
 });
 
 export const Textarea = forwardRef(function Textarea({ className, ...props }, ref) {
@@ -115,11 +116,13 @@ export function EmptyState({ icon: Icon, title, children, action }) {
 }
 
 export function ErrorBox({ error }) {
+  const t = useT();
   if (!error) return null;
   return (
     <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
       <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-      <span>{error.message || String(error)}</span>
+      {/* server messages get Urdu too when the dictionary has them */}
+      <span>{t(error.message || String(error))}</span>
     </div>
   );
 }
@@ -137,6 +140,7 @@ export function PageHeader({ title, subtitle, actions }) {
 }
 
 export function Modal({ open, onClose, title, size = 'md', children, footer }) {
+  const t = useT();
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
@@ -150,7 +154,7 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }) {
       <div className={cx('w-full rounded-xl bg-white shadow-xl', width)}>
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close"><X className="size-6" /></button>
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label={t('Close')}><X className="size-6" /></button>
         </div>
         <div className="px-5 py-5">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3 rounded-b-xl">{footer}</div>}
@@ -202,6 +206,7 @@ export function StatCard({ icon: Icon, label, value, tone = 'brand' }) {
 const ToastContext = createContext(() => {});
 
 export function ToastProvider({ children }) {
+  const tr = useT();
   const [toasts, setToasts] = useState([]);
   const push = useCallback((message, type = 'success') => {
     const id = Math.random();
@@ -219,7 +224,7 @@ export function ToastProvider({ children }) {
           return (
             <div key={t.id} className="pointer-events-auto flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base shadow-lg">
               <Icon className={cx('mt-0.5 size-5 shrink-0', colors[t.type])} />
-              <span className="text-slate-700">{t.message}</span>
+              <span className="text-slate-700">{tr(t.message)}</span>
             </div>
           );
         })}

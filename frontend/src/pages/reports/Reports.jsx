@@ -384,7 +384,7 @@ function InventoryReport() {
       </div>
     ) },
     { key: 'variant', label: optLabel, csvLabel: `${shop.option1} / ${shop.option2}`, csv: (v) => variantLabel(v), hidden: true },
-    { key: 'sku', en: 'SKU / Barcode', csvLabel: 'SKU', render: (v) => <div className="num block text-xs text-slate-500"><div>{v.sku}</div><div>{v.barcode}</div></div>, csv: (v) => v.sku },
+    { key: 'sku', en: 'SKU / Barcode', csvLabel: 'SKU', render: (v) => <div className="text-xs text-slate-500"><div><Num>{v.sku}</Num></div><div><Num>{v.barcode}</Num></div></div>, csv: (v) => v.sku },
     { key: 'barcode', en: 'Barcode', hidden: true },
     { key: 'stock_qty', en: 'In stock', align: 'end', raw: true, render: (v) => (
       <span className={cx(n(v.stock_qty) <= 0 ? 'text-red-600' : n(v.stock_qty) <= n(v.low_stock_threshold) ? 'text-amber-700' : 'text-slate-800', 'whitespace-nowrap font-medium')}>

@@ -15,20 +15,29 @@ const parseDay = (s) => {
   return new Date(y, m - 1, d);
 };
 
-// Date helpers that follow the chosen language (Urdu month names in Urdu mode).
-//   const d = useDates(); d.prettyDate('2026-10-08') -> "08 Oct 2026" / "08 اکتوبر، 2026"
+// Date helpers that follow the chosen language. Urdu mode uses all-number dates
+// ("08/10/2026") and Urdu times ("4:05 شام") so mixed scripts never jumble;
+// month names (prettyMonth) are in Urdu.
 export function useDates() {
   const { lang, t } = useLang();
-  const loc = lang === 'ur' ? 'ur-PK' : 'en-PK';
-  const prettyDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' }) : '');
-  const shortDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, { day: 'numeric', month: 'short' }) : '');
+  const ur = lang === 'ur';
+  const loc = ur ? 'en-GB' : 'en-PK';
+  const prettyDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, ur ? { day: '2-digit', month: '2-digit', year: 'numeric' } : { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+  const shortDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, ur ? { day: '2-digit', month: '2-digit' } : { day: 'numeric', month: 'short' }) : '');
   const prettyMonth = (s) => {
     if (!s) return '';
     const [y, m] = s.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(loc, { month: 'long', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(ur ? 'ur-PK' : 'en-PK', { month: 'long', year: 'numeric' });
   };
-  const dateTime = (v) => (v ? new Date(v).toLocaleString(loc, { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
-  const time = (v) => (v ? new Date(v).toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit' }) : '');
+  const time = (v) => {
+    if (!v) return '';
+    const dt = new Date(v);
+    if (!ur) return dt.toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' });
+    const h = dt.getHours();
+    const part = h >= 5 && h < 12 ? t('morning') : h >= 12 && h < 16 ? t('afternoon') : h >= 16 && h < 19 ? t('evening') : t('night');
+    return `${h % 12 || 12}:${pad(dt.getMinutes())} ${part}`;
+  };
+  const dateTime = (v) => (v ? `${prettyDate(ymd(new Date(v)))} ${ur ? '' : '· '}${time(v)}` : '');
   const rangeLabel = (start, end) => {
     if (start && end) return start === end ? prettyDate(start) : `${prettyDate(start)} – ${prettyDate(end)}`;
     if (start) return t('From {date}', { date: prettyDate(start) });

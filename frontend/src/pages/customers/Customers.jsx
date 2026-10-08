@@ -313,7 +313,7 @@ function CustomerDetail() {
                 <Card>
                   <CardHeader
                     title={t('Unpaid bills')}
-                    subtitle={rich(t('{n} bills · {amount} still owed'), {
+                    subtitle={rich(unpaid.length === 1 ? t('1 bill · {amount} still owed') : t('{n} bills · {amount} still owed'), {
                       n: <span className="num">{unpaid.length}</span>,
                       amount: <span className="num">{money(unpaid.reduce((a, s) => a + saleDue(s), 0))}</span>,
                     })}
@@ -337,7 +337,7 @@ function CustomerDetail() {
               )}
 
               <Card>
-                <CardHeader title={t('All bills')} subtitle={sales.length ? rich(t('{n} bills'), { n: <span className="num">{sales.length}</span> }) : null} />
+                <CardHeader title={t('All bills')} subtitle={sales.length === 1 ? t('1 bill') : sales.length ? rich(t('{n} bills'), { n: <span className="num">{sales.length}</span> }) : null} />
                 {!sales.length ? (
                   <EmptyState icon={ReceiptText} title={t('No bills yet')}>{t('Choose this customer on the Sell screen to add bills to their account.')}</EmptyState>
                 ) : (

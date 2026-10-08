@@ -4,7 +4,7 @@
 // expiry tracking live under "More options" so the form stays simple.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
+import { ChevronDown, ImagePlus, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShop } from '../lib/shop';
 import { useT } from '../lib/i18n';
@@ -20,8 +20,8 @@ function CheckRow({ checked, onChange, title, hint }) {
     <label className="flex cursor-pointer items-start gap-3 rounded-lg p-2 text-sm hover:bg-slate-50">
       <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-brand-600" checked={checked} onChange={onChange} />
       <span>
-        <span className="block font-medium text-slate-800">{title}</span>
-        {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+        <span className="block font-medium leading-relaxed text-slate-800">{title}</span>
+        {hint && <span className="mt-1 block text-xs leading-relaxed text-slate-500">{hint}</span>}
       </span>
     </label>
   );
@@ -173,7 +173,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
               <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className={hideStock || form.track_serial ? 'sm:col-span-2' : undefined}>
                 <div className="relative">
                   <ScanBarcode className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                  <Input className="h-12 ps-10 font-mono" dir="ltr" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={noEnter} placeholder={t('Scan or type barcode')} />
+                  <Input className="h-12 ps-10 font-mono" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={noEnter} placeholder={t('Scan or type barcode')} />
                 </div>
               </Field>
               {form.track_expiry && !hideStock && (
@@ -220,7 +220,11 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                   </Select>
                 </Field>
                 <Field label={t('Photo')}>
-                  <Input type="file" accept="image/png,image/jpeg,image/webp" className="pt-2" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                  <span className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-[15px] text-slate-700 hover:bg-slate-50">
+                    <ImagePlus className="size-5 shrink-0 text-slate-400" />
+                    <span className="truncate">{image ? image.name : t('Choose a photo')}</span>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                  </span>
                 </Field>
                 {!hasOptions && (
                   <Field label={t('Warn me when stock is below')} hint={t('Leave empty to use 5')}>
@@ -280,7 +284,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                           <tr key={i} className="border-t border-slate-100">
                             <td className="p-1.5"><Input value={r.color} onChange={(e) => setRow(i, 'color', e.target.value)} /></td>
                             <td className="p-1.5"><Input value={r.size} onChange={(e) => setRow(i, 'size', e.target.value)} /></td>
-                            <td className="p-1.5"><Input className="font-mono" dir="ltr" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
+                            <td className="p-1.5"><Input className="font-mono" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>

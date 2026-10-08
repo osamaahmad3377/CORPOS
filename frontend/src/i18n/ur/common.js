@@ -133,4 +133,13 @@ export default {
   TOTAL: 'کل رقم',
   'Warranty: {n} months': 'وارنٹی: {n} مہینے',
   'KITCHEN ORDER': 'کچن آرڈر',
+  // shared between Old bills and Reports
+  "Print": "پرنٹ کریں",
+  "Paid by": "کیسے ادا کیا",
+  "Still owed": "باقی اُدھار",
+  "Returns": "واپسی",
+  "Part paid": "کچھ ادا کیا",
+  "All customers": "سب گاہک",
+  "Nobody owes you money right now.": "ابھی کسی پر آپ کا اُدھار نہیں۔",
+  "Received {amount} for bill {inv}": "بل {inv} کے {amount} وصول ہو گئے",
 };

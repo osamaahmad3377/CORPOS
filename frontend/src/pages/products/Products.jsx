@@ -82,7 +82,7 @@ export default function Products() {
             {(categories.data || []).map((c) => <option key={c.id} value={c.id}>{c.path}</option>)}
           </Select></div>
           <div className="w-full sm:w-52"><Select className="h-12" value={active} onChange={(e) => { setActive(e.target.value); setPage(1); }}>
-            <option value="">{t('Shown and hidden items')}</option>
+            <option value="">{t('All items')}</option>
             <option value="1">{t('Shown items only')}</option>
             <option value="0">{t('Hidden items only')}</option>
           </Select></div>

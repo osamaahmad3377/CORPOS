@@ -96,7 +96,7 @@ function SupplierList() {
         ) : (
           <Table>
             <thead>
-              <tr><Th>{t('Supplier')}</Th><Th>{t('Phone')}</Th><Th className="hidden md:table-cell">{t('City')}</Th><Th className="text-end">{t('You owe')}</Th><Th /></tr>
+              <tr><Th className="text-start">{t('Supplier')}</Th><Th className="text-start">{t('Phone')}</Th><Th className="text-start hidden md:table-cell">{t('City')}</Th><Th className="text-end">{t('You owe')}</Th><Th /></tr>
             </thead>
             <tbody>
               {rows.map((s) => {
@@ -287,7 +287,7 @@ function SupplierDetail() {
               {(s.address || s.city || s.country) && (
                 <div className="flex items-start gap-2 text-slate-700"><MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />{[s.address, s.city, s.country].filter(Boolean).join(', ')}</div>
               )}
-              {s.notes && <div className="whitespace-pre-line rounded-lg bg-slate-50 px-3 py-2 text-slate-600">{s.notes}</div>}
+              {s.notes && <div dir="auto" className="text-start whitespace-pre-line rounded-lg bg-slate-50 px-3 py-2 text-slate-600">{s.notes}</div>}
               <div className="text-xs text-slate-400">{t('Added on {date}', { date: date(s.created_at) })}</div>
             </dl>
           </Card>
@@ -316,7 +316,7 @@ function SupplierDetail() {
             </EmptyState>
           ) : (
             <Table>
-              <thead><tr><Th>{t('Purchase')}</Th><Th>{t('Date')}</Th><Th className="text-end">{t('Total')}</Th><Th className="text-end">{t('Still owed')}</Th><Th>{t('Payment')}</Th></tr></thead>
+              <thead><tr><Th className="text-start">{t('Purchase')}</Th><Th className="text-start">{t('Date')}</Th><Th className="text-end">{t('Total')}</Th><Th className="text-end">{t('Still owed')}</Th><Th className="text-start">{t('Payment')}</Th></tr></thead>
               <tbody>
                 {rows.map((p) => {
                   const st = PAY_STATUS[p.payment_status] || { label: p.payment_status, color: 'gray' };

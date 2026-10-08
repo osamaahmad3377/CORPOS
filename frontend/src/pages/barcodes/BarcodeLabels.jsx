@@ -221,15 +221,14 @@ export default function BarcodeLabels() {
               </EmptyState>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-start text-[15px]">
+                <table className="w-full min-w-[600px] text-start text-[15px]">
                   <thead>
                     <tr className="bg-slate-50 text-sm text-slate-500">
-                      <th className="px-4 py-3 text-start font-semibold">{t('Item')}</th>
-                      <th className="px-4 py-3 text-start font-semibold">{t('Barcode')}</th>
-                      <th className="px-4 py-3 text-end font-semibold">{t('Price')}</th>
-                      <th className="px-4 py-3 text-end font-semibold">{t('In stock')}</th>
-                      <th className="px-4 py-3 text-center font-semibold">{t('Stickers')}</th>
-                      <th className="px-2 py-3"><span className="sr-only">{t('Remove')}</span></th>
+                      <th className="px-3 py-3 text-start font-semibold">{t('Item')}</th>
+                      <th className="px-3 py-3 text-start font-semibold">{t('Barcode')}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-end font-semibold">{t('Price')}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-end font-semibold">{t('In stock')}</th>
+                      <th className="px-3 py-3 text-center font-semibold">{t('Stickers')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -237,28 +236,26 @@ export default function BarcodeLabels() {
                       const noCode = needsBarcode(v.barcode);
                       return (
                         <tr key={v.id} className="border-t border-slate-100">
-                          <td className="px-4 py-3">
+                          <td className="min-w-32 px-3 py-3">
                             <div className="font-medium text-slate-900">{v.product_name}</div>
                             {variantLabel(v) && <div className="text-sm text-slate-500">{variantLabel(v)}</div>}
+                            <button type="button" onClick={() => remove(v.id)} className="-ms-2 mt-1 inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-lg px-2 text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="size-4" />{t('Remove')}</button>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3">
                             {noCode ? (
                               can('barcodes.manage') ? (
                                 <Button size="sm" variant="secondary" icon={Wand2} loading={generating === v.id} onClick={() => generate(v)}>{t('Make a barcode')}</Button>
                               ) : <Badge color="amber">{t('No barcode')}</Badge>
                             ) : <span className="num font-mono text-slate-700">{v.barcode}</span>}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-end"><span className="num">{money(v.selling_price)}</span></td>
-                          <td className="whitespace-nowrap px-4 py-3 text-end text-slate-600"><span className="num">{qty(v.stock_qty)}</span> {t(shop.unitLabel(v.unit))}</td>
-                          <td className="px-4 py-3">
-                            <div className="mx-auto flex w-40 items-center gap-1.5" dir="ltr">
-                              <button type="button" className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={noCode || copies <= 0} onClick={() => setCopies(v.id, copies - 1)} aria-label={t('One less')}><Minus className="size-5" /></button>
-                              <Input className="text-center" type="number" min="0" step="1" disabled={noCode} value={copies} onChange={(e) => setCopies(v.id, e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
-                              <button type="button" className="grid size-11 shrink-0 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={noCode} onClick={() => setCopies(v.id, copies + 1)} aria-label={t('One more')}><Plus className="size-5" /></button>
+                          <td className="whitespace-nowrap px-3 py-3 text-end"><span className="num">{money(v.selling_price)}</span></td>
+                          <td className="whitespace-nowrap px-3 py-3 text-end text-slate-600"><span className="num">{qty(v.stock_qty)}</span> {t(shop.unitLabel(v.unit))}</td>
+                          <td className="px-3 py-3">
+                            <div className="mx-auto flex w-36 items-center gap-1" dir="ltr">
+                              <button type="button" className="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={noCode || copies <= 0} onClick={() => setCopies(v.id, copies - 1)} aria-label={t('One less')}><Minus className="size-5" /></button>
+                              <Input className="h-10 min-w-0 px-1 text-center" type="number" min="0" step="1" disabled={noCode} value={copies} onChange={(e) => setCopies(v.id, e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                              <button type="button" className="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={noCode} onClick={() => setCopies(v.id, copies + 1)} aria-label={t('One more')}><Plus className="size-5" /></button>
                             </div>
-                          </td>
-                          <td className="px-2 py-3 text-end">
-                            <button type="button" onClick={() => remove(v.id)} className="inline-flex h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="size-5" />{t('Remove')}</button>
                           </td>
                         </tr>
                       );

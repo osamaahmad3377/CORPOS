@@ -156,8 +156,8 @@ function StaffList() {
                       </div>
                       <div className="text-xs text-slate-500">{u.email}</div>
                     </Td>
-                    <Td><Badge color={roleColor(u.role)}>{u.role ? t(u.role) : '—'}</Badge></Td>
-                    <Td>{u.is_active ? <Badge color="green">{t('Can sign in')}</Badge> : <Badge color="red">{t('Stopped')}</Badge>}</Td>
+                    <Td><Badge color={roleColor(u.role)} className="whitespace-nowrap">{u.role ? t(u.role) : '—'}</Badge></Td>
+                    <Td>{u.is_active ? <Badge color="green" className="whitespace-nowrap">{t('Can sign in')}</Badge> : <Badge color="red" className="whitespace-nowrap">{t('Stopped')}</Badge>}</Td>
                     <Td className="text-slate-600">{u.last_login_at ? <span className="num">{d.dateTime(u.last_login_at)}</span> : <span className="text-slate-400">{t('Never')}</span>}</Td>
                     <Td>
                       <div className="flex justify-end gap-1">

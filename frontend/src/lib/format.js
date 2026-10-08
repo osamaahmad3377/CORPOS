@@ -19,14 +19,23 @@ export function round3(v) {
   return Math.round(Number(v || 0) * 1000) / 1000;
 }
 
+// In Urdu mode dates are all digits (08/10/2026, 16:32) — no English month names.
+const isUrdu = () => typeof document !== 'undefined' && document.documentElement.lang === 'ur';
+
 export function date(v) {
   if (!v) return '';
-  return new Date(v).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+  const d = new Date(v);
+  return isUrdu()
+    ? d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : d.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function dateTime(v) {
   if (!v) return '';
-  return new Date(v).toLocaleString('en-PK', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const d = new Date(v);
+  return isUrdu()
+    ? d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+    : d.toLocaleString('en-PK', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 export function today() {

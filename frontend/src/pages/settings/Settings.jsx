@@ -207,7 +207,8 @@ function Toggle({ checked, onChange, label, hint }) {
         onClick={() => onChange(!checked)}
         className={cx('relative mt-0.5 inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50', checked ? 'bg-brand-600' : 'bg-slate-300')}
       >
-        <span className={cx('absolute start-0.5 top-0.5 size-6 rounded-full bg-white shadow transition-transform', checked ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0')} />
+        {/* inset-inline-start (not translate-x) so the knob also moves the right way in Urdu (RTL) */}
+        <span className="absolute top-0.5 size-6 rounded-full bg-white shadow transition-all" style={{ insetInlineStart: checked ? 'calc(100% - 1.5rem - 2px)' : 2 }} />
       </button>
       <span>
         <span className="block text-[15px] font-medium text-slate-800">{label}</span>

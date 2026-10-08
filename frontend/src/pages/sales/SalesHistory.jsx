@@ -156,9 +156,9 @@ function SalesList() {
             <thead>
               <tr>
                 <Th className="text-start">{t('Bill #')}</Th><Th className="text-start">{t('Date')}</Th><Th className="text-start">{t('Customer')}</Th>
-                <Th className="hidden text-start xl:table-cell">{t('Cashier')}</Th><Th className="text-end">{t('Items')}</Th>
+                <Th className="hidden text-start 2xl:table-cell">{t('Cashier')}</Th><Th className="hidden text-end 2xl:table-cell">{t('Items')}</Th>
                 <Th className="text-end">{t('Total')}</Th><Th className="text-end">{t('Paid')}</Th><Th className="text-end">{t('Still owed')}</Th>
-                <Th className="text-start">{t('Payment')}</Th><Th className="text-start">{t('Status')}</Th><Th />
+                <Th className="hidden text-start xl:table-cell">{t('Payment')}</Th><Th className="text-start">{t('Status')}</Th><Th />
               </tr>
             </thead>
             <tbody>
@@ -170,15 +170,15 @@ function SalesList() {
                     <Td className="whitespace-nowrap py-4 font-medium text-slate-900"><span className="num">{s.invoice_number}</span></Td>
                     <Td className="whitespace-nowrap text-slate-600"><span className="num">{dateTime(s.sale_date)}</span></Td>
                     <Td className="max-w-44 truncate">{s.customer || <span className="text-slate-400">{t('Walk-in')}</span>}</Td>
-                    <Td className="hidden whitespace-nowrap text-slate-600 xl:table-cell">{s.cashier}</Td>
-                    <Td className="text-end text-slate-600"><span className="num">{s.items_count}</span></Td>
+                    <Td className="hidden whitespace-nowrap text-slate-600 2xl:table-cell">{s.cashier}</Td>
+                    <Td className="hidden text-end text-slate-600 2xl:table-cell"><span className="num">{s.items_count}</span></Td>
                     <Td className="whitespace-nowrap text-end font-medium">
                       <span className="num">{money(saleNet(s))}</span>
                       {Number(s.refunded_amount) > 0 && <div className="num text-xs font-normal text-slate-400 line-through">{money(s.grand_total)}</div>}
                     </Td>
                     <Td className="whitespace-nowrap text-end text-slate-600">{isH ? '—' : <span className="num">{money(salePaid(s))}</span>}</Td>
                     <Td className={cx('whitespace-nowrap text-end', due > 0 ? 'font-semibold text-red-600' : 'text-slate-400')}>{isH || !(due > 0) ? '—' : <span className="num">{money(due)}</span>}</Td>
-                    <Td className="whitespace-nowrap text-slate-600">{isH ? '—' : t(shop.paymentLabel(s.payment_method))}</Td>
+                    <Td className="hidden whitespace-nowrap text-slate-600 xl:table-cell">{isH ? '—' : t(shop.paymentLabel(s.payment_method))}</Td>
                     <Td><StatusBadges sale={s} /></Td>
                     <Td className="text-end"><ChevronRight className="ms-auto size-5 text-slate-400 rtl:rotate-180" /></Td>
                   </tr>
@@ -263,7 +263,7 @@ function SaleDetail() {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <Card>
-            <CardHeader title={t('Items')} subtitle={rich(t('{n} items'), { n: <span className="num">{sale.items?.length || 0}</span> })} />
+            <CardHeader title={t('Items')} subtitle={sale.items?.length === 1 ? t('1 item') : rich(t('{n} items'), { n: <span className="num">{sale.items?.length || 0}</span> })} />
             <Table>
               <thead><tr><Th className="text-start">{t('Item')}</Th><Th className="text-end">{t('Qty')}</Th><Th className="text-end">{t('Price')}</Th><Th className="text-end">{t('Discount')}</Th><Th className="text-end">{t('Total')}</Th></tr></thead>
               <tbody>

@@ -3,24 +3,18 @@ export default {
   // ---------- shared by both pages
   'Saved for later': 'بعد کے لیے رکھا',
   'Part returned': 'کچھ واپس',
-  'Part paid': 'کچھ ادا',
   Unpaid: 'ادا نہیں',
-  'Received {amount} for bill {inv}': 'بل {inv} کے {amount} وصول ہو گئے',
   'Receive payment — bill {inv}': 'پیسے وصول کریں — بل {inv}',
   Receive: 'وصول کریں',
   'Bill total': 'بل کی رقم',
   'Paid so far': 'اب تک ادا',
-  'Still owed': 'باقی اُدھار',
   'How much money did you get?': 'کتنے پیسے ملے؟',
   'Cannot be more than {amount}': '{amount} سے زیادہ نہیں ہو سکتے',
   'Full amount': 'پوری رقم',
-  'Paid by': 'کیسے ادا کیا',
-  'All customers': 'سب گاہک',
   'All bills': 'سب بل',
   'No bills yet': 'ابھی کوئی بل نہیں',
   Payment: 'ادائیگی',
   Status: 'حالت',
-  Print: 'پرنٹ کریں',
   'Customer since {date}': '{date} سے گاہک',
 
   // ---------- Old bills list
@@ -58,7 +52,6 @@ export default {
   Qty: 'تعداد',
   'Deleted item': 'ہٹایا گیا مال',
   '{n} {unit} returned': '{n} {unit} واپس',
-  Returns: 'واپسیاں',
   'Items the customer brought back from this bill': 'اس بل کا جو مال گاہک واپس لایا',
   'by {name}': '{name} نے',
   'Reason: {reason}': 'وجہ: {reason}',
@@ -104,7 +97,6 @@ export default {
   'No matching customers': 'ایسا کوئی گاہک نہیں ملا',
   'No customers yet': 'ابھی کوئی گاہک نہیں',
   'Add your first customer': 'پہلا گاہک شامل کریں',
-  'Nobody owes you money right now.': 'ابھی کسی پر اُدھار نہیں۔',
   'Try a different name or phone number.': 'کوئی اور نام یا فون نمبر لکھ کر دیکھیں۔',
   'Save your regular customers so you can give them udhaar and keep track of what they owe.':
     'اپنے مستقل گاہک محفوظ کریں تاکہ انہیں اُدھار دے سکیں اور حساب رکھ سکیں۔',
@@ -145,6 +137,9 @@ export default {
   '{n} bills · {amount} still owed': '{n} بل · {amount} اُدھار باقی',
   Bill: 'بل',
   '{n} bills': '{n} بل',
+  '1 bill': '1 بل',
+  '1 bill · {amount} still owed': '1 بل · {amount} اُدھار باقی',
+  '1 item': '1 چیز',
   'Choose this customer on the Sell screen to add bills to their account.': 'بیچیں والی اسکرین پر یہ گاہک چُنیں تو بل اس کے کھاتے میں آئیں گے۔',
 
   // ---------- take udhaar payment

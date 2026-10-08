@@ -15,8 +15,8 @@ export const LABEL_SIZES = {
 };
 
 export const FORMATS = {
-  code128: 'CODE128 — works for every item',
-  ean13: 'EAN-13 — for 13-digit pack barcodes (CODE128 for the rest)',
+  code128: 'CODE128 — for every item',
+  ean13: 'EAN-13 — for 13-digit pack codes',
 };
 
 // A barcode that is missing or still a placeholder from product creation.

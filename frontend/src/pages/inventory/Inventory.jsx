@@ -25,11 +25,29 @@ const TYPES = [
 ];
 
 const MOVE_TYPES = {
-  in: { label: 'Added', color: 'green' },
-  out: { label: 'Removed', color: 'gray' },
+  in: { label: 'Stock added', color: 'green' },
+  out: { label: 'Stock removed', color: 'gray' },
   damaged: { label: 'Damaged', color: 'red' },
   adjustment: { label: 'Counted', color: 'amber' },
 };
+
+// Reasons the system writes itself (sales, purchases, returns) — shown in the user's language.
+const AUTO_REASONS = [
+  [/^Purchase (\S+)$/, 'Stock bought {no}'],
+  [/^Sale (\S+)$/, 'Sold on bill {no}'],
+  [/^Resumed sale (\S+)$/, 'Sold on bill {no}'],
+  [/^Return for (\S+)$/, 'Customer returned (bill {no})'],
+  [/^Return to supplier for (\S+)$/, 'Sent back to supplier ({no})'],
+  [/^Initial stock on variant creation$/, 'Opening stock'],
+];
+function reasonText(t, reason) {
+  if (!reason) return '—';
+  for (const [re, key] of AUTO_REASONS) {
+    const m = reason.match(re);
+    if (m) return t(key, { no: m[1] });
+  }
+  return reason;
+}
 
 function Tabs() {
   const t = useT();
@@ -139,10 +157,10 @@ function StockList({ onAdjust }) {
           <Table>
             <thead>
               <tr>
-                <Th>{t('Item')}</Th>
+                <Th className="text-start">{t('Item')}</Th>
                 <Th className="text-end">{t('In stock')}</Th>
-                <Th className="hidden text-end md:table-cell">{t('Warn below')}</Th>
-                {showCost && <Th className="hidden text-end lg:table-cell">{t('Buying price')}</Th>}
+                <Th className="hidden text-end xl:table-cell">{t('Warn below')}</Th>
+                {showCost && <Th className="hidden text-end 2xl:table-cell">{t('Buying price')}</Th>}
                 <Th className="hidden text-end sm:table-cell">{t('Selling price')}</Th>
                 {showCost && <Th className="text-end">{t('Stock value')}</Th>}
                 <Th />
@@ -167,8 +185,8 @@ function StockList({ onAdjust }) {
                         <span className="num">{qty(stockQty)}</span> {unit}
                       </Badge>
                     </Td>
-                    <Td className="hidden whitespace-nowrap text-end text-slate-500 md:table-cell"><span className="num">{qty(v.low_stock_threshold)}</span> {unit}</Td>
-                    {showCost && <Td className="hidden whitespace-nowrap text-end text-slate-600 lg:table-cell"><span className="num">{money(v.purchase_price)}</span></Td>}
+                    <Td className="hidden whitespace-nowrap text-end text-slate-500 xl:table-cell"><span className="num">{qty(v.low_stock_threshold)}</span> {unit}</Td>
+                    {showCost && <Td className="hidden whitespace-nowrap text-end text-slate-600 2xl:table-cell"><span className="num">{money(v.purchase_price)}</span></Td>}
                     <Td className="hidden whitespace-nowrap text-end text-slate-600 sm:table-cell"><span className="num">{money(v.selling_price)}</span> <span className="text-xs text-slate-400">/ {unit}</span></Td>
                     {showCost && <Td className="whitespace-nowrap text-end font-medium text-slate-900"><span className="num">{money(Math.max(stockQty, 0) * Number(v.purchase_price || 0))}</span></Td>}
                     <Td className="whitespace-nowrap text-end">
@@ -178,7 +196,7 @@ function StockList({ onAdjust }) {
                           className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                           title={t('Stock history')}
                         >
-                          <History className="size-4" /><span className="hidden xl:inline">{t('History')}</span>
+                          <History className="size-4" /><span className="hidden 2xl:inline">{t('History')}</span>
                         </NavLink>
                         {can('inventory.adjust') && <Button size="sm" variant="secondary" icon={SlidersHorizontal} onClick={() => onAdjust(v)}>{t('Change stock')}</Button>}
                       </div>
@@ -424,9 +442,9 @@ function Movements() {
         <Table>
           <thead>
             <tr>
-              <Th>{t('Date')}</Th><Th>{t('Item')}</Th><Th>{t('What happened')}</Th>
+              <Th className="text-start">{t('Date')}</Th><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('What happened')}</Th>
               <Th className="text-end">{t('Before')}</Th><Th className="text-end">{t('Added / removed')}</Th><Th className="text-end">{t('After')}</Th>
-              <Th>{t('Why')}</Th><Th>{t('By')}</Th>
+              <Th className="text-start">{t('Why')}</Th><Th className="text-start">{t('By')}</Th>
             </tr>
           </thead>
           <tbody>
@@ -448,7 +466,7 @@ function Movements() {
                     <span className="num">{change > 0 ? '+' : ''}{qty(change)}</span>
                   </Td>
                   <Td className="whitespace-nowrap text-end font-medium text-slate-900"><span className="num">{qty(m.quantity_after)}</span> <span className="text-xs font-normal text-slate-400">{m.unit ? unitText(m.unit) : ''}</span></Td>
-                  <Td className="max-w-xs text-slate-600"><span className="line-clamp-2">{m.reason || '—'}</span></Td>
+                  <Td className="max-w-xs text-slate-600"><span className="line-clamp-2" dir="auto">{reasonText(t, m.reason)}</span></Td>
                   <Td className="whitespace-nowrap text-slate-600">{m.adjusted_by || '—'}</Td>
                 </tr>
               );

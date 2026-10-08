@@ -1,4 +1,4 @@
-// English / Urdu. Every visible string goes through t('English text'); the
+// English / Urdu. Every visible string goes through t() with its English text; the
 // English text is the key, and src/i18n/ur/*.js map it to Urdu. Missing
 // translations fall back to English, so nothing ever shows blank.
 //   t('Today\'s sale')                 -> "آج کی سیل"
@@ -47,7 +47,10 @@ export function LanguageProvider({ children }) {
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
-export const useLang = () => useContext(LangContext);
+// Fallback (English, no-op switch) if a component ever renders outside the provider.
+const FALLBACK = { lang: 'en', setLang: () => {}, isUrdu: false, dir: 'ltr', t: (s, v) => interpolate(s ?? '', v) };
+
+export const useLang = () => useContext(LangContext) || FALLBACK;
 
 // const t = useT();
-export const useT = () => useContext(LangContext).t;
+export const useT = () => (useContext(LangContext) || FALLBACK).t;
