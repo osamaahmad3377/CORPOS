@@ -154,6 +154,9 @@ class Backend {
     this.ensureDirs();
     const mig = await this.artisan(['migrate', '--force']);
     if (mig.code !== 0) throw new Error(`Database update failed.\n${mig.stderr || mig.stdout}`);
+    // the same updates for every extra business (mart + restaurant…)
+    const more = await this.artisan(['pos:migrate-businesses']);
+    if (more.code !== 0) throw new Error(`Database update failed.\n${more.stderr || more.stdout}`);
     await this.artisan(['optimize:clear']);
     await this.artisan(['config:cache']);
     await this.artisan(['route:cache']);

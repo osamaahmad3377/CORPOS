@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::get('/businesses/list', [\App\Http\Controllers\Api\BusinessController::class, 'publicList']);
 
 Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);

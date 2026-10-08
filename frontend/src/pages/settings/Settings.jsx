@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Check, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
+import { Briefcase, Building2, Check, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
 import { BRAND_PRESETS } from '../../lib/theme';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
-import { api } from '../../lib/api';
+import { api, switchBusiness } from '../../lib/api';
+import { BusinessBadge, useBusinesses } from '../../components/BusinessSwitcher';
 import { useAuth } from '../../lib/auth';
 import { tableAreas, useShop } from '../../lib/shop';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
 import {
-  Button, Card, CardHeader, Field, Input, Loading, PageHeader, Select, Textarea, cx, useConfirm, useToast,
+  Button, Card, CardHeader, Field, Input, Loading, Modal, PageHeader, Select, Textarea, cx, useConfirm, useToast,
 } from '../../components/ui';
 import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
@@ -39,6 +40,7 @@ const SECTIONS = [
   { key: 'business', label: 'Your business & items', icon: Briefcase, groups: ['business', 'product'] },
   { key: 'features', label: 'Extra tools', icon: Puzzle, groups: ['features'] },
   { key: 'restaurant', label: 'Restaurant', icon: UtensilsCrossed, groups: ['restaurant'], onlyRestaurant: true },
+  { key: 'businesses', label: 'My businesses', icon: Building2, groups: [], adminOnly: true },
   { key: 'printers', label: 'Printers', icon: Printer, groups: [] },
   { key: 'language', label: 'Language', icon: Languages, groups: [] },
 ];
@@ -60,6 +62,7 @@ const sameGroups = (a, b, groups) => groups.every((g) => Object.keys(DEFAULTS[g]
 export default function Settings() {
   const shop = useShop();
   const t = useT();
+  const { can } = useAuth();
   const qc = useQueryClient();
   const [saved, setSaved] = useState(null); // last values from the server
   const [draft, setDraft] = useState(null); // what's on screen
@@ -101,7 +104,7 @@ export default function Settings() {
       <PageHeader title={t('Settings')} subtitle={t('Set up your shop name, bill, tax, barcode stickers and language.')} />
       <div className="grid gap-6 lg:grid-cols-[minmax(200px,max-content)_1fr]">
         <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
-          {SECTIONS.filter((x) => !x.onlyRestaurant || shop.isRestaurant).map(({ key, label, icon: Icon, groups }) => {
+          {SECTIONS.filter((x) => (!x.onlyRestaurant || shop.isRestaurant) && (!x.adminOnly || can('settings.manage'))).map(({ key, label, icon: Icon, groups }) => {
             const dirty = !sameGroups(draft, saved, groups);
             return (
               <NavLink
@@ -147,6 +150,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
   if (!meta) return <Navigate to="/settings/shop" replace />;
   if (section === 'language') return <LanguageCard />;
   if (section === 'printers') return <PrintersCard />;
+  if (section === 'businesses') return <BusinessesCard />;
 
   const canEdit = can('settings.manage');
   const dirty = !sameGroups(draft, saved, meta.groups);
@@ -785,6 +789,132 @@ function LabelPreview({ d }) {
         <BarcodeLabel item={item} size={d.barcode.default_label_size} showShop={d.barcode.show_shop_name === '1'} shopName={d.shop.name || shop.shopName} format={d.barcode.default_format} className="shadow-md" />
       </div>
       <p className="mt-2 text-sm text-slate-500">{t('Shown at real size on most screens.')}</p>
+    </div>
+  );
+}
+
+// Several businesses on one computer — e.g. a mart and a restaurant. Each
+// has its own items, bills, customers, staff, settings, logo and colours.
+function BusinessesCard() {
+  const t = useT();
+  const shop = useShop();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const qc = useQueryClient();
+  const { can } = useAuth();
+  const { data, isLoading } = useBusinesses();
+  const types = shop.meta.business_types || [];
+  const [name, setName] = useState('');
+  const [type, setType] = useState('restaurant');
+  const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState(null);
+  const [typed, setTyped] = useState('');
+  const list = data?.data || [];
+  const manage = can('settings.manage');
+
+  const add = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      const res = await api.post('/businesses', { name: name.trim(), type });
+      await qc.invalidateQueries({ queryKey: ['businesses'] });
+      setName('');
+      const ok = await confirm({
+        title: t('{name} is ready', { name: res.data.name }),
+        message: t('It starts empty, with its own items, bills, customers and settings. You and the other admins can open it with the same email and password. Open it now?'),
+        confirmLabel: t('Open it now'),
+        cancelLabel: t('Later'),
+      });
+      if (ok) await switchBusiness(res.data.id);
+    } catch (ex) {
+      toast(ex.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await api.del(`/businesses/${removing.id}`, { confirm: typed });
+      await qc.invalidateQueries({ queryKey: ['businesses'] });
+      toast(t('{name} removed', { name: removing.name }));
+      setRemoving(null);
+    } catch (ex) {
+      toast(ex.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <Card>
+        <CardHeader title={t('My businesses')} subtitle={t('Run more than one business from this computer — e.g. a mart and a restaurant. Each one has its own items, bills, customers, staff, logo and colours. Switch with the button at the top of the screen.')} />
+        <div className="divide-y divide-slate-100">
+          {isLoading && <div className="p-5"><Loading /></div>}
+          {list.map((b) => (
+            <div key={b.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
+              <BusinessBadge b={b} className="size-12" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-base font-bold text-slate-900">{b.name}</div>
+                <div className="truncate text-sm text-slate-500">{t(b.type_label)}</div>
+              </div>
+              {b.current ? (
+                <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-700">{t('Open now')}</span>
+              ) : (
+                <>
+                  <Button variant="secondary" disabled={!b.can_open} onClick={() => switchBusiness(b.id).catch((ex) => toast(ex.message, 'error'))}>{t('Open')}</Button>
+                  {manage && !b.is_home && (
+                    <Button variant="ghost" icon={Trash2} className="text-red-600" onClick={() => { setTyped(''); setRemoving(b); }} aria-label={t('Remove')}>{t('Remove')}</Button>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {manage && (
+        <Card>
+          <form onSubmit={add}>
+            <CardHeader title={t('Add another business')} subtitle={t('For example your restaurant next to your mart. It gets its own menu or items, bills, customers and look.')} />
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <Field label={t('Business name')}>
+                <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={255} placeholder={t('e.g. Madina Restaurant')} required />
+              </Field>
+              <Field label={t('What kind of business?')}>
+                <Select value={type} onChange={(e) => setType(e.target.value)}>
+                  {types.map((x) => <option key={x.code} value={x.code}>{t(x.label)}</option>)}
+                </Select>
+              </Field>
+            </div>
+            <div className="flex justify-end rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-3">
+              <Button type="submit" size="lg" icon={Plus} loading={busy} disabled={!name.trim() || list.length >= 10}>{t('Add business')}</Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      <Modal
+        open={!!removing}
+        onClose={() => setRemoving(null)}
+        title={removing ? t('Remove {name}?', { name: removing.name }) : ''}
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>{t('Cancel')}</Button>
+            <Button variant="danger" loading={busy} disabled={typed.trim().toLowerCase() !== (removing?.name || '').trim().toLowerCase()} onClick={remove}>{t('Remove')}</Button>
+          </>
+        )}
+      >
+        <div className="space-y-3">
+          <p className="text-slate-600">{t('It disappears from the switch at the top. Its data is not wiped — a copy is kept in the CorePOS data folder (businesses/removed) in case you need it back.')}</p>
+          <Field label={t('Type the business name to confirm')}>
+            <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={removing?.name} autoFocus />
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
 import { cx } from './ui';
 import { NextcoreLogo } from './Brand';
+import BusinessSwitcher from './BusinessSwitcher';
 
 // Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
@@ -192,6 +193,7 @@ export default function Layout() {
                 <Home className="size-5" /><span className="hidden sm:inline">{t('Home')}</span>
               </button>
             )}
+            <BusinessSwitcher />
           </div>
 
           {/* centre: developer logo */}

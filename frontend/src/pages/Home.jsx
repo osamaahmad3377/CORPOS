@@ -14,7 +14,7 @@ import { Page } from '../components/Layout';
 import { cx } from '../components/ui';
 
 const TONES = {
-  green: 'bg-emerald-600 text-white hover:bg-emerald-700',
+  green: 'bg-brand-600 text-white hover:bg-brand-700', // the shop's own brand colour
   brand: 'bg-white text-slate-900 hover:border-brand-400 border-2 border-slate-200',
 };
 const ICON_BG = {

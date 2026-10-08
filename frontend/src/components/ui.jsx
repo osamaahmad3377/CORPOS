@@ -259,7 +259,7 @@ export function ConfirmProvider({ children }) {
         title={state?.title || t('Are you sure?')}
         footer={(
           <>
-            <Button variant="secondary" onClick={() => close(false)}>{t('Cancel')}</Button>
+            <Button variant="secondary" onClick={() => close(false)}>{state?.cancelLabel || t('Cancel')}</Button>
             <Button variant={state?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>{state?.confirmLabel || t('Confirm')}</Button>
           </>
         )}

@@ -1,0 +1,33 @@
+// Urdu for "several businesses on one computer" (top-bar switch, sign-in
+// picker, Settings → My businesses) and the matching engine messages.
+export default {
+  'You do not have an account in that business. Ask the owner to add you there.': 'اس کاروبار میں آپ کا اکاؤنٹ نہیں ہے۔ مالک سے کہیں کہ آپ کو وہاں شامل کرے۔',
+  'Opening {name}…': '{name} کھل رہا ہے…',
+  'Switch business': 'کاروبار بدلیں',
+  'Manage businesses': 'کاروبار سنبھالیں',
+  'Which business?': 'کون سا کاروبار؟',
+  Business: 'کاروبار',
+  '{name} is ready': '{name} تیار ہے',
+  'It starts empty, with its own items, bills, customers and settings. You and the other admins can open it with the same email and password. Open it now?': 'یہ خالی شروع ہوتا ہے، اپنی چیزوں، بلوں، گاہکوں اور سیٹنگز کے ساتھ۔ آپ اور دوسرے ایڈمن اسی ای میل اور پاس ورڈ سے اسے کھول سکتے ہیں۔ ابھی کھولیں؟',
+  'Open it now': 'ابھی کھولیں',
+  Later: 'بعد میں',
+  '{name} removed': '{name} ہٹا دیا گیا',
+  'My businesses': 'میرے کاروبار',
+  'Run more than one business from this computer — e.g. a mart and a restaurant. Each one has its own items, bills, customers, staff, logo and colours. Switch with the button at the top of the screen.': 'اس کمپیوٹر سے ایک سے زیادہ کاروبار چلائیں — جیسے مارٹ اور ریسٹورنٹ۔ ہر ایک کی اپنی چیزیں، بل، گاہک، عملہ، لوگو اور رنگ ہیں۔ اسکرین کے اوپر والے بٹن سے بدلیں۔',
+  'Open now': 'ابھی کھلا ہے',
+  'Add another business': 'ایک اور کاروبار شامل کریں',
+  'For example your restaurant next to your mart. It gets its own menu or items, bills, customers and look.': 'مثلاً آپ کے مارٹ کے ساتھ آپ کا ریسٹورنٹ۔ اس کا اپنا مینو یا چیزیں، بل، گاہک اور شکل ہوگی۔',
+  'Business name': 'کاروبار کا نام',
+  'e.g. Madina Restaurant': 'مثلاً مدینہ ریسٹورنٹ',
+  'What kind of business?': 'کس قسم کا کاروبار؟',
+  'Add business': 'کاروبار شامل کریں',
+  'Remove {name}?': '{name} ہٹائیں؟',
+  'It disappears from the switch at the top. Its data is not wiped — a copy is kept in the CorePOS data folder (businesses/removed) in case you need it back.': 'یہ اوپر والے بٹن سے ہٹ جائے گا۔ اس کا ڈیٹا مٹایا نہیں جاتا — ضرورت پڑنے پر واپس لانے کے لیے ایک کاپی CorePOS ڈیٹا فولڈر (businesses/removed) میں رکھی جاتی ہے۔',
+  'Type the business name to confirm': 'تصدیق کے لیے کاروبار کا نام لکھیں',
+  // engine messages
+  'This business was not found on this computer.': 'یہ کاروبار اس کمپیوٹر پر نہیں ملا۔',
+  'Switch to another business first, then remove this one.': 'پہلے کسی دوسرے کاروبار پر جائیں، پھر اسے ہٹائیں۔',
+  'The first business cannot be removed.': 'پہلا کاروبار ہٹایا نہیں جا سکتا۔',
+  'Type the business name exactly to confirm.': 'تصدیق کے لیے کاروبار کا نام بالکل درست لکھیں۔',
+  'At most 10 businesses on one computer.': 'ایک کمپیوٹر پر زیادہ سے زیادہ 10 کاروبار۔',
+};

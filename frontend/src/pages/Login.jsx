@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Check } from 'lucide-react';
+import { api, business } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useT } from '../lib/i18n';
 import { LanguageSwitch } from '../components/Layout';
 import { NEXTCORE, NextcoreLogo } from '../components/Brand';
-import { Button, ErrorBox, Field, Input } from '../components/ui';
+import { Button, ErrorBox, Field, Input, cx } from '../components/ui';
+import { BusinessBadge } from '../components/BusinessSwitcher';
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -13,6 +17,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [picked, setPicked] = useState(business.get());
+  const list = useQuery({ queryKey: ['businesses', 'public'], queryFn: () => api.get('/businesses/list'), staleTime: 60_000 });
+  const businesses = list.data?.data || [];
+
+  // the remembered business was removed from this computer
+  useEffect(() => {
+    if (businesses.length && !businesses.some((b) => b.id === picked)) { business.set(1); setPicked(1); }
+  }, [businesses, picked]);
+
+  const pick = (id) => { business.set(id); setPicked(id); setError(null); };
 
   if (user) return <Navigate to="/" replace />;
 
@@ -38,6 +52,23 @@ export default function Login() {
           <p className="mt-4 text-base text-slate-500">{t('Sign in to continue')}</p>
         </div>
         <div className="space-y-4">
+          {businesses.length > 1 && (
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">{t('Which business?')}</p>
+              <div className="grid gap-2">
+                {businesses.map((b) => (
+                  <button key={b.id} type="button" onClick={() => pick(b.id)} className={cx('flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-start transition', picked === b.id ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-slate-300')}>
+                    <BusinessBadge b={b} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-slate-900">{b.name}</span>
+                      <span className="block truncate text-xs text-slate-500">{t(b.type_label)}</span>
+                    </span>
+                    {picked === b.id && <Check className="size-5 text-brand-600" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <ErrorBox error={error} />
           <Field label={t('Email')}>
             <Input type="email" autoFocus required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -52,3 +83,4 @@ export default function Login() {
     </div>
   );
 }
+

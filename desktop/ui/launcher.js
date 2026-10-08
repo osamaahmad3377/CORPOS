@@ -21,6 +21,9 @@ function render(s) {
   if (s.businessTypes?.length && !types.options.length) {
     for (const t of s.businessTypes) types.add(new Option(t.label, t.code));
     types.value = 'general';
+    const second = $('#second-type');
+    for (const t of s.businessTypes) second.add(new Option(t.label, t.code));
+    second.value = 'restaurant';
   }
 
   if (s.state === 'setup') setTimeout(() => $('[name=shop_name]').focus(), 50);
@@ -53,12 +56,25 @@ $('#activate-form').addEventListener('submit', async (e) => {
   }
 });
 
+$('#has-second').addEventListener('change', (e) => {
+  $('#second-biz').hidden = !e.target.checked;
+  $('[name=second_name]').required = e.target.checked;
+  if (e.target.checked) $('[name=second_name]').focus();
+});
+
 $('#setup-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
   const data = Object.fromEntries(form.entries());
   const msg = $('#setup-msg');
   msg.hidden = true;
+
+  // optional second business (e.g. a restaurant next to the mart)
+  if ($('#has-second').checked && data.second_name.trim()) {
+    data.second_business = { name: data.second_name.trim(), type: data.second_type };
+  }
+  delete data.second_name;
+  delete data.second_type;
 
   if (data.admin_password !== data.confirm) {
     msg.textContent = 'Passwords do not match.';

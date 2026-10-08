@@ -310,8 +310,12 @@ async function backupNow() {
   });
   if (canceled || !filePath) return;
   try {
-    await backups.backupTo(filePath);
-    dialog.showMessageBox(win, { type: 'info', message: 'Backup saved.', detail: filePath });
+    const files = await backups.backupTo(filePath);
+    dialog.showMessageBox(win, {
+      type: 'info',
+      message: 'Backup saved.',
+      detail: files.length > 1 ? `One file for each business:\n${files.join('\n')}` : filePath,
+    });
   } catch (e) {
     dialog.showErrorBox('Backup failed', e.message);
   }
@@ -330,7 +334,7 @@ async function restoreBackup() {
     defaultId: 1,
     cancelId: 1,
     message: 'Replace ALL current data with this backup?',
-    detail: 'Everything entered after the backup was made will be lost. (A safety copy of the current data is saved first.)',
+    detail: `${/__business_/i.test(path.basename(filePaths[0])) ? 'This backup is of one of your extra businesses; only that business is replaced. ' : 'This backup is of your first business; your other businesses are not touched. '}Everything entered after the backup was made will be lost. (A safety copy of the current data is saved first.)`,
   });
   if (response !== 0) return;
   stopRevalidation();

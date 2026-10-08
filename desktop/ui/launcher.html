@@ -45,6 +45,12 @@
       <label class="full">Shop name * <span class="ur-inline">دکان کا نام</span><input name="shop_name" required maxlength="255"></label>
       <label class="full">Type of business * <span class="ur-inline">کاروبار کی قسم</span><select name="business_type" id="business-type" required></select>
         <span class="muted small">Sets up starter categories and product options for your trade. You can change everything later.</span></label>
+      <label class="full check"><input type="checkbox" id="has-second"> I also run another business — e.g. a restaurant next to my mart <span class="ur-inline">میرا ایک اور کاروبار بھی ہے</span></label>
+      <div class="full grid second" id="second-biz" hidden>
+        <label>Second business name <span class="ur-inline">دوسرے کاروبار کا نام</span><input name="second_name" maxlength="255" placeholder="e.g. Madina Restaurant"></label>
+        <label>Its type <span class="ur-inline">اس کی قسم</span><select name="second_type" id="second-type"></select></label>
+        <span class="muted small full">Kept completely separate — its own items, bills, customers, logo and colours. Switch between them with the button at the top of the POS.<br><span class="ur-line">یہ بالکل الگ رہے گا — اپنی چیزیں، بل، گاہک، لوگو اور رنگ۔ POS کے اوپر والے بٹن سے بدلیں۔</span></span>
+      </div>
       <label>Shop phone <span class="ur-inline">دکان کا فون</span><input name="shop_phone" maxlength="50"></label>
       <label>Shop address <span class="ur-inline">پتہ</span><input name="shop_address" maxlength="500"></label>
       <label class="full">Owner name * <span class="ur-inline">مالک کا نام</span><input name="admin_name" required maxlength="255"></label>

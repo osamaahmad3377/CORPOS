@@ -62,6 +62,10 @@ class PosInstall extends Command
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255'],
             'admin_password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()],
+            // optional second business run from the same computer (e.g. mart + restaurant)
+            'second_business' => ['nullable', 'array'],
+            'second_business.name' => ['required_with:second_business', 'string', 'max:255'],
+            'second_business.type' => ['required_with:second_business', 'string', Rule::in(array_keys(config('pos.business_types')))],
         ]);
 
         if ($validator->fails()) {
@@ -72,7 +76,7 @@ class PosInstall extends Command
 
         $data = $validator->validated();
 
-        DB::transaction(function () use ($data) {
+        $adminId = DB::transaction(function () use ($data) {
             $this->callSilently('db:seed', ['--class' => RoleSeeder::class, '--force' => true]);
             $this->callSilently('db:seed', ['--class' => PermissionSeeder::class, '--force' => true]);
             $this->callSilently('db:seed', ['--class' => RolePermissionSeeder::class, '--force' => true]);
@@ -87,14 +91,19 @@ class PosInstall extends Command
 
             \App\Services\BusinessTypeService::apply($data['business_type'] ?? 'general');
 
-            User::create([
+            return User::create([
                 'name' => $data['admin_name'],
                 'email' => strtolower($data['admin_email']),
                 'password' => $data['admin_password'],
                 'role_id' => Role::where('name', 'Admin')->value('id'),
                 'is_active' => true,
-            ]);
+            ])->id;
         });
+
+        // Its own database, same owner login; switched from the POS top bar.
+        if (! empty($data['second_business'])) {
+            \App\Support\Businesses::create($data['second_business']['name'], $data['second_business']['type'], [$adminId]);
+        }
 
         $this->line(json_encode(['ok' => true]));
 

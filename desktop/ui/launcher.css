@@ -105,3 +105,9 @@ a { color: var(--primary); }
 .brand { flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .brand-logo { height: 54px; width: auto; }
 @media (prefers-color-scheme: dark) { .brand-logo { background: #fff; border-radius: 12px; padding: 6px 12px; } }
+
+/* "I also run another business" */
+.grid .check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; }
+.grid .check input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--primary, #1bd173); }
+.grid .second { padding: 14px; border: 1px dashed #cbd5e1; border-radius: 12px; }
+.grid .second[hidden] { display: none; }

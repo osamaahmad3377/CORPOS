@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { api, setUnauthorizedHandler, token } from './api';
+import { api, business, setUnauthorizedHandler, token } from './api';
 
 const AuthContext = createContext(null);
 
@@ -24,7 +24,11 @@ export function AuthProvider({ children }) {
     api.get('/auth/me')
       .then((res) => setUser(res.user || res.data || res))
       // only a real "not signed in" clears the session — not a busy/slow engine
-      .catch((err) => { if (err.status === 401) token.clear(); })
+      .catch((err) => {
+        if (err.status === 401) token.clear();
+        // the business this computer last used was removed: go back to the first one
+        if (err.status === 404 && business.get() !== 1) { business.set(1); window.location.reload(); }
+      })
       .finally(() => setReady(true));
   }, [logoutLocal]);
 
@@ -37,6 +41,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try { await api.post('/auth/logout'); } catch { /* token may already be gone */ }
+    token.clearAll();
     logoutLocal();
   }, [logoutLocal]);
 
