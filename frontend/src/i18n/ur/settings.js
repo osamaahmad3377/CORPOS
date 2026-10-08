@@ -219,4 +219,16 @@ export default {
   'Test page': 'ٹیسٹ صفحہ',
   'Printer test': 'پرنٹر ٹیسٹ',
   '1 copy': '1 کاپی',
+  // sidebar colour
+  'Sidebar colour': 'سائیڈ بار کا رنگ',
+  'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'آپ کا لوگو اسی رنگ پر نظر آئے گا۔ اگر لوگو گہرا ہے تو ہلکا سائیڈ بار چنیں؛ اگر ہلکا ہے تو گہرا۔',
+  Midnight: 'گہرا نیلا سیاہ',
+  Charcoal: 'کوئلہ',
+  Navy: 'نیوی',
+  Forest: 'گہرا سبز',
+  Plum: 'جامنی',
+  Maroon: 'مہرون',
+  Coffee: 'کافی',
+  'Soft grey': 'ہلکا سرمئی',
+  White: 'سفید',
 };

@@ -39,6 +39,7 @@ class SettingSeeder extends Seeder
             ],
             'brand' => [
                 'primary_color' => '#1bd173',
+                'sidebar_color' => '#0f1626',
                 'theme' => 'light',
                 'logo' => '',
                 'show_logo_on_receipt' => '1',

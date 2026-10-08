@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
-import { DEFAULT_BRAND, applyBrand, applyMode, setStoredMode, storedMode } from './theme';
+import { DEFAULT_BRAND, applyBrand, applyMode, applySidebar, setStoredMode, storedMode } from './theme';
 
 // Shop-wide configuration: settings (shop/receipt/tax/business/product) and
 // the static lists from /meta (units, payment methods, business types).
@@ -21,6 +21,8 @@ export function ShopProvider({ children }) {
     applyMode(mode);
     applyBrand(brandColor);
   }, [mode, brandColor]);
+  const sidebarColor = settings.data?.brand?.sidebar_color;
+  useEffect(() => { applySidebar(sidebarColor); }, [sidebarColor]);
   const setMode = useCallback((m) => { setStoredMode(m); setModeState(m); }, []);
 
   const value = useMemo(() => {

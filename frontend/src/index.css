@@ -34,7 +34,13 @@
 }
 
 html, body, #root { height: 100%; }
-:root { --chart-surface: #ffffff; }
+:root {
+  --chart-surface: #ffffff;
+  /* sidebar colours (replaced by applySidebar() from the shop's setting) */
+  --sb-bg: #0f1626; --sb-text: #ffffff; --sb-muted: rgb(255 255 255 / 0.68); --sb-label: rgb(255 255 255 / 0.4);
+  --sb-icon: rgb(255 255 255 / 0.5); --sb-hover: rgb(255 255 255 / 0.06); --sb-active: rgb(255 255 255 / 0.1);
+  --sb-line: rgb(255 255 255 / 0.08); --sb-accent: var(--color-brand-500);
+}
 html.dark { --chart-surface: #111a2b; }
 /* Slightly larger everything — easier to read for every user. */
 html { font-size: 17px; }

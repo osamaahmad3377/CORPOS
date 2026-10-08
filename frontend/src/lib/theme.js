@@ -102,6 +102,49 @@ export function applyBrand(hex) {
   root.style.setProperty('--color-brand-ink', onBrand(hex));
 }
 
+// ---------------------------------------------------------------- sidebar
+// The menu's background is the shop's choice too (Settings → Brand & look).
+// Text, icons and highlights are worked out from it: light text on a dark
+// sidebar, dark text on a light one.
+
+export const DEFAULT_SIDEBAR = '#0f1626';
+
+export const SIDEBAR_PRESETS = [
+  { name: 'Midnight', hex: '#0f1626' },
+  { name: 'Charcoal', hex: '#202326' },
+  { name: 'Navy', hex: '#0c2340' },
+  { name: 'Forest', hex: '#0e3a2c' },
+  { name: 'Plum', hex: '#2c1838' },
+  { name: 'Maroon', hex: '#3d1416' },
+  { name: 'Coffee', hex: '#3a2a1f' },
+  { name: 'Soft grey', hex: '#eef1f5' },
+  { name: 'White', hex: '#ffffff' },
+];
+
+export function sidebarTheme(hex) {
+  const bg = /^#[0-9a-f]{6}$/i.test(hex || '') ? hex : DEFAULT_SIDEBAR;
+  const light = luminance(bg) > 0.35;
+  const ink = light ? '15 23 42' : '255 255 255';
+  return {
+    light,
+    bg,
+    text: light ? '#0f172a' : '#ffffff',
+    muted: `rgb(${ink} / ${light ? 0.72 : 0.68})`,
+    label: `rgb(${ink} / ${light ? 0.45 : 0.4})`,
+    icon: `rgb(${ink} / ${light ? 0.5 : 0.5})`,
+    hover: `rgb(${ink} / ${light ? 0.05 : 0.06})`,
+    active: `rgb(${ink} / ${light ? 0.07 : 0.1})`,
+    line: `rgb(${ink} / ${light ? 0.08 : 0.08})`,
+    accent: light ? 'var(--color-brand-700)' : 'var(--color-brand-500)',
+  };
+}
+
+export function applySidebar(hex) {
+  const th = sidebarTheme(hex);
+  const root = document.documentElement;
+  for (const k of ['bg', 'text', 'muted', 'label', 'icon', 'hover', 'active', 'line', 'accent']) root.style.setProperty(`--sb-${k}`, th[k]);
+}
+
 const MODE_KEY = 'corepos_theme';
 
 export function storedMode() {

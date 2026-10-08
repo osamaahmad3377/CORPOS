@@ -89,30 +89,32 @@ function Sidebar({ onNavigate }) {
   useEffect(() => setLogoBroken(false), [shop.logoUrl]);
   const hasLogo = shop.logoUrl && !logoBroken;
   return (
-    // Fixed dark colours (not the slate scale), so it stays the same in light and dark mode.
-    <nav className="flex h-full flex-col overflow-y-auto bg-ink-900 text-white [scrollbar-color:#2a3550_transparent]">
-      {/* Shop branding: the uploaded logo on a white card, or the shop name */}
-      <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block">
+    // Colours come from the shop's sidebar setting (--sb-* variables), so
+    // the menu looks the same in light and dark mode.
+    <nav className="flex h-full flex-col overflow-y-auto bg-[var(--sb-bg)] text-[var(--sb-text)] [scrollbar-color:var(--sb-line)_transparent]">
+      {/* Shop branding: the uploaded logo right on the sidebar colour, or the shop name */}
+      <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block rounded-2xl transition hover:bg-[var(--sb-hover)]">
         {hasLogo ? (
-          <span className="flex min-h-[76px] items-center justify-center rounded-2xl bg-[#fff] px-4 py-3 shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]">
-            <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-14 w-auto max-w-full object-contain" />
+          <span className="flex min-h-[84px] items-center justify-center px-4 py-3">
+            <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-16 w-auto max-w-full object-contain" />
           </span>
         ) : (
-          <span className="flex items-center gap-3 rounded-2xl bg-[rgb(255_255_255/0.05)] px-3 py-3 ring-1 ring-inset ring-[rgb(255_255_255/0.08)]">
+          <span className="flex items-center gap-3 px-3 py-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
               {(shop.shopName || 'C').trim().charAt(0).toUpperCase()}
             </span>
-            <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-white">{shop.shopName}</span>
+            <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{shop.shopName}</span>
           </span>
         )}
       </NavLink>
+      <div className="mx-5 mt-2 h-px bg-[var(--sb-line)]" />
       <div className="flex-1 space-y-6 px-3 py-5">
         {navSections(shop).map((section) => {
           const items = section.items.filter((i) => !i.perm || can(i.perm));
           if (!items.length) return null;
           return (
             <div key={section.title || 'main'}>
-              {section.title && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64708a]">{t(section.title)}</div>}
+              {section.title && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--sb-label)]">{t(section.title)}</div>}
               <div className="space-y-0.5">
                 {items.map(({ to, label, icon: Icon, end }) => (
                   <NavLink
@@ -122,13 +124,13 @@ function Sidebar({ onNavigate }) {
                     onClick={onNavigate}
                     className={({ isActive }) => cx(
                       'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
-                      isActive ? 'bg-[rgb(255_255_255/0.09)] text-white' : 'text-[#aab3c5] hover:bg-[rgb(255_255_255/0.05)] hover:text-white',
+                      isActive ? 'bg-[var(--sb-active)] text-[var(--sb-text)]' : 'text-[var(--sb-muted)] hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)]',
                     )}
                   >
                     {({ isActive }) => (
                       <>
-                        {isActive && <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-brand-500" />}
-                        <Icon className={cx('size-5 shrink-0 transition-colors', isActive ? 'text-brand-500' : 'text-[#7c879d] group-hover:text-white')} />
+                        {isActive && <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-[var(--sb-accent)]" />}
+                        <Icon className={cx('size-5 shrink-0 transition-colors', isActive ? 'text-[var(--sb-accent)]' : 'text-[var(--sb-icon)] group-hover:text-[var(--sb-text)]')} />
                         {t(label)}
                       </>
                     )}
@@ -139,8 +141,8 @@ function Sidebar({ onNavigate }) {
           );
         })}
       </div>
-      <div className="mx-3 mb-3 rounded-xl bg-[rgb(255_255_255/0.04)] px-3 py-2.5 text-center text-[11px] text-[#7c879d]" dir="ltr">
-        CorePOS by <span className="font-semibold text-[#c3cad8]">NextCore</span>
+      <div className="mx-3 mb-3 rounded-xl bg-[var(--sb-hover)] px-3 py-2.5 text-center text-[11px] text-[var(--sb-label)]" dir="ltr">
+        CorePOS by <span className="font-semibold text-[var(--sb-muted)]">NextCore</span>
       </div>
     </nav>
   );
@@ -186,13 +188,13 @@ export default function Layout() {
 
   return (
     <div className="flex h-full bg-canvas">
-      <aside className="hidden w-64 shrink-0 bg-ink-900 lg:block"><Sidebar /></aside>
+      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[var(--sb-bg)] lg:block"><Sidebar /></aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 start-0 w-72 bg-ink-900 shadow-xl">
-            <button type="button" className="absolute end-2 top-4 z-10 rounded-lg p-2 text-[#aab3c5] hover:text-white" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
+          <aside className="absolute inset-y-0 start-0 w-72 bg-[var(--sb-bg)] shadow-xl">
+            <button type="button" className="absolute end-2 top-4 z-10 rounded-lg p-2 text-[var(--sb-muted)] hover:text-[var(--sb-text)]" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
             <Sidebar onNavigate={() => setOpen(false)} />
           </aside>
         </div>
