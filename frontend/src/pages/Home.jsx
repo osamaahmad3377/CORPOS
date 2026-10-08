@@ -31,7 +31,7 @@ function Tile({ to, icon: Icon, title, hint, color }) {
   return (
     <Link
       to={to}
-      className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 text-center shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift active:translate-y-0 sm:p-6"
+      className="glass glass-lift group flex flex-col items-center justify-center gap-3 rounded-2xl p-5 text-center sm:p-6"
     >
       <span className={cx('grid size-16 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105', ICON_BG[color])}><Icon className="size-8" strokeWidth={1.75} /></span>
       <span className="text-[17px] font-semibold leading-tight tracking-tight text-slate-900">{title}</span>
@@ -105,14 +105,14 @@ export default function Home() {
           </Link>
         )}
         <div className={cx('grid gap-4', can('sales.create') ? 'grid-cols-2 lg:grid-cols-1' : 'grid-cols-2 sm:max-w-xl')}>
-          <div className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-card">
+          <div className="glass rounded-3xl p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-slate-500">{t('Today\'s sale')}</span>
               <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/10"><TrendingUp className="size-5" /></span>
             </div>
             <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{money(s.today_revenue)}</div>
           </div>
-          <div className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-card">
+          <div className="glass rounded-3xl p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-slate-500">{t('Bills today')}</span>
               <span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10"><ReceiptText className="size-5" /></span>
@@ -146,7 +146,7 @@ const PAY_SLOT = { cash: 0, card: 1, jazzcash: 2, easypaisa: 3, bank_transfer: 4
 
 function Kpi({ label, value, icon: Icon, tone, foot }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-card sm:p-5">
+    <div className="glass rounded-2xl p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-slate-500">{label}</span>
         <span className={cx('grid size-9 place-items-center rounded-xl ring-1 ring-inset', tone)}><Icon className="size-[18px]" /></span>
@@ -221,7 +221,7 @@ function Overview() {
           <h2 className="text-[17px] font-semibold tracking-tight text-slate-900">{t('Business overview')}</h2>
           <p className="text-sm text-slate-500">{t('How your sales are going')}</p>
         </div>
-        <div className="flex rounded-xl bg-slate-200/60 p-1 text-sm font-semibold" role="radiogroup" aria-label={t('Period')}>
+        <div className="glass flex rounded-xl p-1 text-sm font-semibold" role="radiogroup" aria-label={t('Period')}>
           {[7, 30].map((n) => (
             <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => pick(n)} className={cx('rounded-lg px-3.5 py-1.5 transition', days === n ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800')}>
               {t('Last {n} days', { n })}

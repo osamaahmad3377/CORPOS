@@ -56,7 +56,7 @@ function Tooltip({ x, y, width, children }) {
   // keep the box inside the chart
   const left = Math.min(Math.max(x, 80), Math.max(80, width - 80));
   return (
-    <div className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-sm shadow-lift" style={{ left, top: y - 10 }}>
+    <div className="glass-strong pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-xl px-3 py-2 text-sm" style={{ left, top: y - 10 }}>
       {children}
     </div>
   );

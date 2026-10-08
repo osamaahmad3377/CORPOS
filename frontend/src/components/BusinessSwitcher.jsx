@@ -70,7 +70,7 @@ export default function BusinessSwitcher() {
   if (list.length === 2) {
     return (
       <>
-        <div className="flex h-11 items-center gap-1 rounded-xl bg-slate-100 p-1" role="radiogroup" aria-label={t('Business')}>
+        <div className="flex h-11 items-center gap-1 rounded-xl bg-slate-500/[0.08] p-1 ring-1 ring-inset ring-slate-900/[0.05]" role="radiogroup" aria-label={t('Business')}>
           {list.map((b) => (
             <button
               key={b.id}
@@ -81,7 +81,7 @@ export default function BusinessSwitcher() {
               title={b.name}
               className={cx(
                 'flex h-9 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold transition sm:px-2',
-                b.current ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:bg-white/60 hover:text-slate-800',
+                b.current ? 'glass-tile text-slate-900' : 'text-slate-500 hover:bg-slate-500/10 hover:text-slate-800',
               )}
             >
               <BusinessBadge b={b} className={cx('size-7', !b.current && 'opacity-70')} />
@@ -103,7 +103,7 @@ export default function BusinessSwitcher() {
         <ChevronDown className="size-4 text-slate-400" />
       </button>
       {menu && (
-        <div className="absolute start-0 top-12 z-50 w-72 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <div className="glass-strong absolute start-0 top-12 z-50 w-72 animate-pop-in rounded-2xl p-1.5">
           <p className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(list.length > 1 ? 'Switch business' : 'Your business')}</p>
           {list.map((b) => (
             <button key={b.id} type="button" onClick={() => open(b)} className={cx('flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start hover:bg-slate-50', b.current && 'bg-brand-50')}>

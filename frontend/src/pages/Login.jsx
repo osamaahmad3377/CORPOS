@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-full bg-canvas">
+    <div className="app-canvas flex min-h-full">
       {/* brand panel (large screens) */}
       <aside className="relative hidden w-[44%] max-w-xl flex-col justify-between overflow-hidden bg-ink-900 p-10 text-white lg:flex xl:p-12">
         <span aria-hidden className="absolute -start-24 -top-24 size-96 rounded-full bg-brand-600 opacity-25 blur-3xl" />
@@ -75,7 +75,7 @@ export default function Login() {
       {/* sign-in form */}
       <main className="relative flex flex-1 flex-col items-center justify-center px-4 py-16">
         <LanguageSwitch className="absolute end-4 top-4" />
-        <form onSubmit={submit} className="w-full max-w-[26rem]">
+        <form onSubmit={submit} className="glass-strong w-full max-w-[28rem] rounded-3xl p-7 sm:p-9">
           <div className="mb-8 text-center lg:text-start">
             <NextcoreLogo className="mx-auto mb-8 h-12 lg:hidden" />
             <h1 className="text-[30px] font-bold leading-tight tracking-[-0.02em] text-slate-900">{t('Welcome back')}</h1>
@@ -87,7 +87,7 @@ export default function Login() {
                 <p className="mb-2 text-sm font-semibold text-slate-700">{t('Which business?')}</p>
                 <div className="grid gap-2">
                   {businesses.map((b) => (
-                    <button key={b.id} type="button" onClick={() => pick(b.id)} className={cx('flex items-center gap-3 rounded-2xl border bg-white px-3 py-2.5 text-start shadow-xs transition', picked === b.id ? 'border-brand-500 ring-4 ring-brand-500/15' : 'border-slate-200 hover:border-slate-300')}>
+                    <button key={b.id} type="button" onClick={() => pick(b.id)} className={cx('flex items-center gap-3 rounded-2xl border bg-white/70 px-3 py-2.5 text-start shadow-xs transition', picked === b.id ? 'border-brand-500 ring-4 ring-brand-500/15' : 'border-slate-200 hover:border-slate-300')}>
                       <BusinessBadge b={b} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold text-slate-900">{b.name}</span>

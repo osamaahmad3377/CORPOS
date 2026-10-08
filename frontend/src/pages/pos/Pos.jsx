@@ -392,7 +392,7 @@ export default function Pos() {
       {/* ------------------------------------------------ items */}
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         {restaurant && (
-          <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 pt-3">
+          <div className="flex items-center gap-2 border-b border-[var(--glass-edge)] bg-[var(--glass-bg)] px-4 pt-3 backdrop-blur-xl">
             {[['tables', 'Tables', LayoutGrid], ['menu', 'Menu', UtensilsCrossed]].map(([k, label, Icon]) => (
               <button key={k} type="button" onClick={() => setView(k)} className={cx('-mb-px flex items-center gap-2 border-b-[3px] px-4 pb-3 pt-1 text-base font-bold transition', view === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800')}>
                 <Icon className="size-5" />{t(label)}
@@ -415,7 +415,7 @@ export default function Pos() {
           />
         ) : (
         <>
-        <div className="border-b border-slate-200 bg-white p-4">
+        <div className="border-b border-[var(--glass-edge)] bg-[var(--glass-bg)] p-4 shadow-[0_1px_0_var(--glass-ring)] backdrop-blur-xl">
           <form onSubmit={onScan} className="relative">
             <ScanBarcode className="pointer-events-none absolute start-4 top-1/2 size-6 -translate-y-1/2 text-brand-700" />
             <Input
@@ -455,7 +455,7 @@ export default function Pos() {
                 const stock = tracked ? (p.variants || []).reduce((a, v) => a + Number(v.stock_qty), 0) : Infinity;
                 const prices = (p.variants || []).map((v) => Number(v.selling_price));
                 return (
-                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-start shadow-card transition duration-150 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift active:translate-y-0 active:scale-[0.98] disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none">
+                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="glass-tile glass-lift group flex flex-col overflow-hidden rounded-2xl text-start active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50">
                     {img ? (
                       <div className="aspect-[4/3] bg-slate-100"><img src={img} alt="" className="size-full object-cover" /></div>
                     ) : (
@@ -483,7 +483,7 @@ export default function Pos() {
       </section>
 
       {/* ------------------------------------------------ bill */}
-      <aside className="flex min-h-0 w-full flex-col border-s border-slate-200/80 bg-white shadow-[-8px_0_24px_-16px_rgb(16_24_40/0.12)] lg:w-[440px]">
+      <aside className="flex min-h-0 w-full flex-col border-s border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] shadow-[-1px_0_0_var(--glass-ring),-16px_0_40px_-24px_rgb(16_24_40/0.3)] backdrop-blur-2xl backdrop-saturate-150 lg:w-[440px]">
         <div className="space-y-2 border-b border-slate-200 p-3">
           {drawerClosed && (
             <Link to="/cash" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
@@ -581,7 +581,7 @@ export default function Pos() {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-slate-200/80 bg-slate-50/60 p-4 text-base">
+        <div className="space-y-2 border-t border-slate-900/[0.06] bg-slate-500/[0.04] p-4 text-base dark:border-white/[0.06]">
           <div className="flex justify-between text-slate-600"><span>{t('Subtotal ({n} items)', { n: totals.items })}</span><span className="num">{money(totals.subtotal)}</span></div>
           <div className="flex items-center justify-between gap-2 text-slate-600">
             <span>{t('Discount')}</span>
@@ -610,7 +610,7 @@ export default function Pos() {
             </div>
           )}
           {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span className="num">{money(totals.tax)}</span></div>}
-          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-xs ring-1 ring-slate-200/80">
+          <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
             <span className="text-lg font-semibold text-slate-600">{t('Total')}</span>
             <span className="num text-[32px] font-bold leading-none tracking-tight text-slate-900">{money(totals.total)}</span>
           </div>
@@ -1051,13 +1051,13 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
       {(takeaway || delivery) && (
         <div className={cx('mb-4 grid gap-3', takeaway && delivery && 'sm:grid-cols-2')}>
           {takeaway && (
-            <button type="button" onClick={() => onNew('takeaway')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+            <button type="button" onClick={() => onNew('takeaway')} className="glass-tile glass-lift flex items-center gap-3 rounded-2xl p-4 text-start">
               <span className="grid size-12 place-items-center rounded-xl bg-orange-100 text-orange-700"><ShoppingBag className="size-6" /></span>
               <span><span className="block text-lg font-bold text-slate-900">{t('Takeaway')}</span><span className="text-sm text-slate-500">{t('New takeaway order')}</span></span>
             </button>
           )}
           {delivery && (
-            <button type="button" onClick={() => onNew('delivery')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+            <button type="button" onClick={() => onNew('delivery')} className="glass-tile glass-lift flex items-center gap-3 rounded-2xl p-4 text-start">
               <span className="grid size-12 place-items-center rounded-xl bg-blue-100 text-blue-700"><Truck className="size-6" /></span>
               <span><span className="block text-lg font-bold text-slate-900">{t('Delivery')}</span><span className="text-sm text-slate-500">{t('New delivery order')}</span></span>
             </button>
@@ -1097,8 +1097,8 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                   type="button"
                   onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
                   className={cx(
-                    'relative flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition active:scale-[0.97]',
-                    busy ? 'border-brand-600 bg-brand-600 text-brand-ink' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
+                    'relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 text-center transition active:scale-[0.97]',
+                    busy ? 'border border-brand-600 bg-brand-600 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_12px_28px_-12px_var(--color-brand-700)]' : 'glass-tile glass-lift text-slate-700',
                     selected && !busy && 'ring-4 ring-brand-200',
                   )}
                 >
@@ -1127,7 +1127,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
           <h2 className="mb-2 mt-6 text-base font-bold text-slate-800">{t('Other open orders')}</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {others.map((o) => (
-              <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-start hover:border-brand-400">
+              <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="glass-tile glass-lift flex items-center justify-between rounded-xl px-4 py-3 text-start hover:border-brand-400">
                 <span>
                   <span className="block font-bold text-slate-900">{o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
                   <span className="text-sm text-slate-500">{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>

@@ -91,7 +91,7 @@ function Sidebar({ onNavigate }) {
   return (
     // Colours come from the shop's sidebar setting (--sb-* variables), so
     // the menu looks the same in light and dark mode.
-    <nav className="flex h-full flex-col overflow-y-auto bg-[var(--sb-bg)] text-[var(--sb-text)] [scrollbar-color:var(--sb-line)_transparent]">
+    <nav className="flex h-full flex-col overflow-y-auto text-[var(--sb-text)] [scrollbar-color:var(--sb-line)_transparent]">
       {/* Shop branding: the uploaded logo right on the sidebar colour, or the shop name */}
       <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block rounded-2xl transition hover:bg-[var(--sb-hover)]">
         {hasLogo ? (
@@ -154,7 +154,7 @@ export function LanguageSwitch({ className }) {
     <button
       type="button"
       onClick={() => setLang(lang === 'ur' ? 'en' : 'ur')}
-      className={cx('flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[15px] font-semibold text-slate-700 hover:bg-slate-50', className)}
+      className={cx('flex h-10 items-center gap-2 rounded-xl border border-slate-900/10 bg-white/60 px-3 text-[15px] font-semibold text-slate-700 transition hover:bg-white/90', className)}
       title="English / اردو"
     >
       <Languages className="size-5 text-brand-700" />
@@ -170,7 +170,7 @@ export function ThemeSwitch({ className }) {
     <button
       type="button"
       onClick={() => shop.setMode(shop.isDark ? 'light' : 'dark')}
-      className={cx('grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50', className)}
+      className={cx('grid size-10 place-items-center rounded-xl border border-slate-900/10 bg-white/60 text-slate-600 transition hover:bg-white/90', className)}
       title={shop.isDark ? t('Light mode') : t('Dark mode')}
       aria-label={shop.isDark ? t('Light mode') : t('Dark mode')}
     >
@@ -187,8 +187,8 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex h-full bg-canvas">
-      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[var(--sb-bg)] lg:block"><Sidebar /></aside>
+    <div className="app-canvas flex h-full">
+      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-2xl lg:block"><Sidebar /></aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -201,7 +201,7 @@ export default function Layout() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative z-20 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-slate-200/70 bg-white/85 px-3 shadow-[0_1px_0_rgb(16_24_40/0.02)] backdrop-blur-xl sm:px-5">
+        <header className="relative z-20 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] px-3 shadow-[0_1px_0_var(--glass-ring),0_8px_24px_-18px_rgb(16_24_40/0.25)] backdrop-blur-2xl backdrop-saturate-150 sm:px-5">
           {/* start: menu + home */}
           <div className="flex items-center gap-2">
             <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-7" /></button>

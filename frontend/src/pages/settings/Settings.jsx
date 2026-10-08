@@ -112,7 +112,7 @@ export default function Settings() {
                 to={`/settings/${key}`}
                 className={({ isActive }) => cx(
                   'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors',
-                  isActive ? 'bg-white text-brand-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70 hover:text-slate-900',
+                  isActive ? 'glass-tile text-brand-700' : 'text-slate-600 hover:bg-slate-500/10 hover:text-slate-900',
                 )}
               >
                 <Icon className="size-5 shrink-0" />

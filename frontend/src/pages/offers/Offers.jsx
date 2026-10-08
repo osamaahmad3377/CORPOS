@@ -21,7 +21,7 @@ export default function Offers() {
   const t = useT();
   const tab = ({ isActive }) => cx(
     'inline-flex min-h-12 items-center gap-2 rounded-lg px-4 text-base font-medium transition-colors',
-    isActive ? 'bg-white text-brand-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60',
+    isActive ? 'glass-tile text-brand-700' : 'text-slate-600 hover:bg-slate-500/10',
   );
   return (
     <Page>

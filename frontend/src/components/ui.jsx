@@ -12,7 +12,7 @@ export function cx(...c) {
 const RAISED = 'shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_1px_2px_rgb(16_24_40/0.12)] hover:brightness-[0.96] active:brightness-[0.92]';
 const BTN = {
   primary: `bg-brand-600 text-brand-ink ${RAISED} shadow-brand-600/30`,
-  secondary: 'bg-white text-slate-700 border border-slate-200 shadow-xs hover:bg-slate-50 hover:border-slate-300',
+  secondary: 'bg-white/80 text-slate-700 border border-slate-900/10 shadow-xs backdrop-blur hover:bg-white/95 hover:border-slate-900/15',
   danger: `bg-red-600 text-white ${RAISED}`,
   ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   success: `bg-emerald-600 text-white ${RAISED}`,
@@ -72,12 +72,12 @@ export function Field({ label, hint, error, required, className, children }) {
 }
 
 export function Card({ className, children, ...props }) {
-  return <div className={cx('rounded-2xl border border-slate-200/70 bg-white shadow-card', className)} {...props}>{children}</div>;
+  return <div className={cx('glass rounded-2xl', className)} {...props}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, action }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+    <div className="flex items-start justify-between gap-4 border-b border-slate-900/[0.06] px-5 py-4 sm:px-6 dark:border-white/[0.06]">
       <div>
         <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
         {subtitle && <p className="mt-1 text-sm leading-relaxed text-slate-500">{subtitle}</p>}
@@ -153,14 +153,14 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }) {
   if (!open) return null;
   const width = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl' }[size];
   return (
-    <div role="dialog" aria-modal="true" data-modal-open="true" className="fixed inset-0 z-50 flex animate-fade-in items-start justify-center overflow-y-auto bg-[rgb(10_15_28/0.45)] p-4 backdrop-blur-[3px] sm:p-8 sm:pt-[8vh]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
-      <div className={cx('w-full animate-pop-in rounded-2xl bg-white shadow-pop ring-1 ring-slate-900/5', width)}>
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+    <div role="dialog" aria-modal="true" data-modal-open="true" className="fixed inset-0 z-50 flex animate-fade-in items-start justify-center overflow-y-auto bg-[rgb(10_15_28/0.38)] p-4 backdrop-blur-md sm:p-8 sm:pt-[8vh]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className={cx('glass-strong glass-dialog w-full animate-pop-in rounded-2xl', width)}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-4 dark:border-white/[0.06]">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <button type="button" onClick={onClose} className="-me-2 grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label={t('Close')}><X className="size-5" /></button>
         </div>
         <div className="px-6 py-5">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-2 rounded-b-2xl border-t border-slate-100 bg-slate-50/80 px-6 py-3.5">{footer}</div>}
+        {footer && <div className="flex flex-wrap justify-end gap-2 rounded-b-2xl border-t border-slate-900/[0.06] bg-slate-500/[0.04] px-6 py-3.5 dark:border-white/[0.06]">{footer}</div>}
       </div>
     </div>
   );
@@ -171,17 +171,17 @@ export function Table({ children, className }) {
   return <div className={cx('overflow-x-auto', className)}><table className="data-table w-full text-start text-sm">{children}</table></div>;
 }
 export function Th({ children, className }) {
-  return <th className={cx('whitespace-nowrap border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500', className)}>{children}</th>;
+  return <th className={cx('whitespace-nowrap border-b border-slate-900/[0.07] bg-slate-500/[0.04] px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 dark:border-white/[0.07]', className)}>{children}</th>;
 }
 export function Td({ children, className, ...props }) {
-  return <td className={cx('border-b border-slate-100 px-4 py-3.5 align-middle', className)} {...props}>{children}</td>;
+  return <td className={cx('border-b border-slate-900/[0.05] px-4 py-3.5 align-middle dark:border-white/[0.05]', className)} {...props}>{children}</td>;
 }
 
 export function Pagination({ meta, onPage }) {
   const t = useT();
   if (!meta || meta.last_page <= 1) return null;
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm text-slate-600">
+    <div className="flex items-center justify-between border-t border-slate-900/[0.06] px-4 py-3 text-sm text-slate-600 dark:border-white/[0.06]">
       <span>{t('Page {page} of {pages}', { page: meta.current_page, pages: meta.last_page })} · {t('{n} total', { n: meta.total })}</span>
       <div className="flex gap-2">
         <Button size="sm" variant="secondary" disabled={meta.current_page <= 1} onClick={() => onPage(meta.current_page - 1)}><ChevronLeft className="size-4 rtl:rotate-180" />{t('Previous')}</Button>
@@ -225,7 +225,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => {
           const Icon = icons[t.type];
           return (
-            <div key={t.id} className="pointer-events-auto flex animate-pop-in items-start gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3.5 text-base shadow-pop">
+            <div key={t.id} className="glass-strong pointer-events-auto flex animate-pop-in items-start gap-3 rounded-2xl px-4 py-3.5 text-base">
               <Icon className={cx('mt-0.5 size-5 shrink-0', colors[t.type])} />
               <span className="text-slate-700">{tr(t.message)}</span>
             </div>
