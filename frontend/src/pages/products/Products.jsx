@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import useScanner from '../../lib/useScanner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ImageIcon, Package, Pencil, Plus, ScanBarcode, Search, Trash2, X } from 'lucide-react';
 import { api, paged } from '../../lib/api';
@@ -49,6 +50,10 @@ export default function Products() {
     const timer = setTimeout(() => { setTerm(search.trim()); setPage(1); }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Scanning a barcode anywhere on this page searches for it (and offers
+  // "Add it as a new product" when nothing has that barcode).
+  useScanner((code) => { setSearch(code); setTerm(code); setPage(1); }, { enabled: !adding && !openId });
 
   const params = { search: term, category_id: categoryId, is_active: active, page, per_page: 25 };
   const list = useQuery({ queryKey: ['products', params], queryFn: () => api.get('/products', params), placeholderData: (p) => p });

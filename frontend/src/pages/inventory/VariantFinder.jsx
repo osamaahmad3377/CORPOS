@@ -2,6 +2,7 @@
 // stock) and Purchases (add items). Barcode scanners type the code and press
 // Enter: Enter tries an exact barcode first, then a name/SKU search.
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import useScanner from '../../lib/useScanner';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, ScanBarcode } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -11,7 +12,7 @@ import { qty, variantLabel } from '../../lib/format';
 import { Input, cx, useToast } from '../../components/ui';
 
 export const VariantFinder = forwardRef(function VariantFinder(
-  { onPick, onUnknown, placeholder, autoFocus, className, size = 'md' }, ref,
+  { onPick, onUnknown, placeholder, autoFocus, className, size = 'md', scanAnywhere = true }, ref,
 ) {
   const t = useT();
   const shop = useShop();
@@ -55,10 +56,17 @@ export const VariantFinder = forwardRef(function VariantFinder(
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const submit = async () => {
+  const submit = () => {
     const code = q.trim();
     if (!code) return;
     if (open && hi >= 0 && list[hi]) { pick(list[hi]); return; }
+    lookup(code);
+  };
+
+  // A barcode scanned while the cursor is elsewhere still lands here.
+  useScanner((code) => lookup(code), { enabled: scanAnywhere, allowInDialog: true });
+
+  const lookup = async (code) => {
     setBusy(true);
     try {
       const res = await api.get(`/barcodes/scan/${encodeURIComponent(code)}`);

@@ -17,6 +17,7 @@ import {
 } from '../../components/ui';
 import { VariantFinder, badQty, unitStep, useUnitText } from '../inventory/VariantFinder';
 import { PAY_STATUS, SupplierForm } from '../suppliers/Suppliers';
+import { printNow } from '../../lib/printer';
 
 const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
 
@@ -504,7 +505,7 @@ function PurchaseDetail() {
         )}
         actions={(
           <>
-            <Button variant="secondary" icon={Printer} onClick={() => window.print()}>{t('Print')}</Button>
+            <Button variant="secondary" icon={Printer} onClick={() => printNow('document')}>{t('Print')}</Button>
             {canReturn && <Button variant="secondary" icon={Undo2} onClick={() => setReturning(true)}>{t('Return to supplier')}</Button>}
             {can('purchases.manage') && due > 0 && <Button size="lg" icon={Banknote} onClick={() => setPaying(true)}>{t('Pay supplier')}</Button>}
           </>

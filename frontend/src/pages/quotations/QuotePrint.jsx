@@ -99,7 +99,7 @@ function SlipQuote({ q }) {
   const { t, isUrdu } = useLang();
   const unit = useUnit();
   const s = shop.settings.shop || {};
-  const width = shop.settings.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
+  const width = shop.settings.receipt?.paper_width === '58mm' ? '48mm' : '72mm'; // printable width of the roll
   const Line = () => <div className="my-2 border-t border-dashed border-black" />;
   const Row = ({ label, value, bold }) => (
     <div className={`flex justify-between gap-2 ${bold ? 'text-[14px] font-bold' : ''}`}><span>{label}</span><span className="num">{value}</span></div>

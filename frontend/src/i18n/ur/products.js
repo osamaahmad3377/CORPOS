@@ -194,4 +194,5 @@ export default {
   Quantity: 'مقدار',
   'Expired {n} days ago': '{n} دن پہلے ختم ہو گیا',
   '{n} days left': '{n} دن باقی',
+  'Needed so it can be sold now. Count in {unit}.': 'ابھی بیچنے کے لیے ضروری ہے۔ {unit} میں گنتی لکھیں۔',
 };

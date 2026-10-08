@@ -13,4 +13,12 @@ if (location.protocol === 'file:') {
     quit: () => ipcRenderer.invoke('quit'),
     onState: (cb) => ipcRenderer.on('launcher-state', (_e, s) => cb(s)),
   });
+} else if (location.hostname === '127.0.0.1') {
+  // The POS pages (served by the local engine) may only list printers and
+  // print — direct, dialog-free printing to the chosen receipt/label printer.
+  contextBridge.exposeInMainWorld('coreposDesktop', {
+    isDesktop: true,
+    printers: () => ipcRenderer.invoke('printers'),
+    print: (options) => ipcRenderer.invoke('print', options),
+  });
 }

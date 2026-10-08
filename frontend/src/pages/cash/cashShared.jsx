@@ -239,7 +239,7 @@ export function ZReport({ session, paper = 'receipt' }) {
   const { t, isUrdu } = useLang();
   const s = session.summary || {};
   const closed = session.status === 'closed';
-  const receiptWidth = shop.settings?.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
+  const receiptWidth = shop.settings?.receipt?.paper_width === '58mm' ? '48mm' : '72mm'; // printable width of the roll
   const a4 = paper === 'a4';
   const diff = Number(session.difference || 0);
   const state = diffState(diff);

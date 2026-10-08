@@ -12,6 +12,7 @@ import {
   Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, Select, Spinner, cx, useConfirm, useToast,
 } from '../../components/ui';
 import { BarcodeLabel, FORMATS, LABEL_SIZES, needsBarcode } from './labels';
+import { printNow } from '../../lib/printer';
 
 const MAX_LABELS = 2000;
 
@@ -141,8 +142,8 @@ export default function BarcodeLabels() {
       ? `@media print { @page { size: ${dim.w}mm ${dim.h}mm; margin: 0; } }`
       : '@media print { @page { size: A4; margin: 6mm; } }';
     document.head.appendChild(style);
-    const h = setTimeout(() => {
-      window.print();
+    const h = setTimeout(async () => {
+      await printNow('label');
       style.remove();
       setPrinting(false);
     }, 150);

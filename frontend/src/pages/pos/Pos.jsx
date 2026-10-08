@@ -6,6 +6,8 @@ import {
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
+import useScanner from '../../lib/useScanner';
+import { printNow, printerPrefs } from '../../lib/printer';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -138,9 +140,13 @@ export default function Pos() {
   };
 
   // ------------------------------------------------------------ scanning
-  const onScan = async (e) => {
+  const onScan = (e) => {
     e.preventDefault();
-    const code = query.trim();
+    scanCode(query.trim());
+  };
+
+  // Looks a code up: barcode → serial/IMEI → name/SKU → "add new item".
+  const scanCode = async (code) => {
     if (!code) return;
     setBusy(true);
     try {
@@ -256,6 +262,7 @@ export default function Pos() {
       if (restaurant) {
         setKot({ ...res.data, items: res.data.items?.length ? res.data.items : cart.map((l) => ({ product_name: l.name, color: null, size: l.label, quantity: l.qty })) });
         toast(t('Order {inv} sent to kitchen', { inv: res.data.invoice_number }));
+        if (printerPrefs().kitchen?.auto ?? printerPrefs().receipt?.auto) setTimeout(() => printNow('kitchen'), 350);
       } else {
         toast(t('Bill saved for later as {inv}', { inv: res.data.invoice_number }));
       }
@@ -342,6 +349,7 @@ export default function Pos() {
     qc.invalidateQueries({ queryKey: ['customers'] });
     const full = sale.items?.length && sale.items[0].product_name ? sale : (await api.get(`/sales/${sale.invoice_number}`)).data;
     setReceipt(full);
+    if (printerPrefs().receipt?.auto) setTimeout(() => printNow('receipt'), 350);
     clearSale();
     qc.invalidateQueries({ queryKey: ['products'] });
     qc.invalidateQueries({ queryKey: ['dashboard'] });
@@ -360,6 +368,9 @@ export default function Pos() {
   });
 
   useEffect(() => { focusScan(); }, [focusScan]);
+
+  // A scan anywhere on the screen (cursor not in a box) still adds the item.
+  useScanner((code) => { setQuery(''); scanCode(code); });
 
   const cats = (categories.data || []).filter((c) => c.products_count > 0);
   const grid = products.data?.data || [];
@@ -598,6 +609,7 @@ export default function Pos() {
 
       <ProductForm
         open={!!adding}
+        requireStock
         initialBarcode={adding || ''}
         onClose={() => { setAdding(null); setQuery(''); focusScan(); }}
         onSaved={(p) => { if (p.variants?.[0] && Number(p.variants[0].stock_qty) > 0) addVariant(p.variants[0], p); else toast(t('Item added. Add its stock to sell it.'), 'info'); }}
@@ -607,7 +619,7 @@ export default function Pos() {
       {resuming && <ResumeModal restaurant={restaurant} onClose={() => { setResuming(false); focusScan(); }} onDone={completed} onEdit={editHeld} />}
       {serialPick && <SerialPicker line={serialPick.line} preselect={serialPick.preselect} onClose={() => { setSerialPick(null); focusScan(); }} onDone={(list) => { setSerials(serialPick.line, list); setSerialPick(null); focusScan(); }} />}
       <Modal open={!!kot} onClose={() => { setKot(null); focusScan(); }} size="sm" title={t('Kitchen order')}
-        footer={<><Button variant="secondary" onClick={() => { setKot(null); focusScan(); }}>{t('Close')}</Button><Button icon={Printer} onClick={() => window.print()}>{t('Print slip')}</Button></>}
+        footer={<><Button variant="secondary" onClick={() => { setKot(null); focusScan(); }}>{t('Close')}</Button><Button icon={Printer} onClick={() => printNow('kitchen')}>{t('Print slip')}</Button></>}
       >
         {kot && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><KitchenSlip order={kot} /></div>}
       </Modal>
@@ -617,7 +629,7 @@ export default function Pos() {
           <>
             <Button variant="secondary" size="lg" onClick={() => { setReceipt(null); focusScan(); }}>{t('New bill')}</Button>
             <Button variant="secondary" size="lg" icon={MessageCircle} className="text-emerald-700" onClick={() => openWhatsApp(receiptPhone, buildReceiptText(receipt, shop, t))}>{t('WhatsApp')}</Button>
-            <Button icon={Printer} size="lg" onClick={() => window.print()}>{t('Print receipt')}</Button>
+            <Button icon={Printer} size="lg" autoFocus onClick={() => printNow('receipt')}>{t('Print receipt')}</Button>
           </>
         )}
       >

@@ -7,6 +7,7 @@ import { useLang } from '../lib/i18n';
 import { dateTime, money, qty, variantLabel } from '../lib/format';
 import { orderTypeLabel } from './KitchenSlip';
 import { NEXTCORE, NextcoreLogo } from './Brand';
+import { receiptWidth } from '../lib/printer';
 
 function Row({ label, value, strong, big }) {
   return (
@@ -33,7 +34,7 @@ export default function Receipt({ sale }) {
   const shop = useShop();
   const { t, isUrdu } = useLang();
   const s = shop.settings;
-  const width = s.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
+  const width = receiptWidth(s.receipt?.paper_width);
   const showTax = s.receipt?.show_tax_line === '1' && Number(sale.tax_amount) > 0;
   const due = Number(sale.due_amount || 0);
   const pointsEarned = Number(sale.points_earned || 0);

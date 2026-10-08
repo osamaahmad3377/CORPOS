@@ -10,6 +10,7 @@ import { dateTime, money } from '../../lib/format';
 import { Page } from '../../components/Layout';
 import { Button, ErrorBox, Loading, PageHeader, cx } from '../../components/ui';
 import { CloseDayModal, DiffBanner, ZReport } from './cashShared';
+import { printNow } from '../../lib/printer';
 
 export default function CashReport() {
   const t = useT();
@@ -31,7 +32,7 @@ export default function CashReport() {
         actions={(
           <>
             <Button variant="secondary" size="lg" icon={ArrowLeft} className="[&>svg]:rtl:rotate-180" onClick={() => navigate(justClosed ? '/cash' : '/cash/history')}>{t('Back')}</Button>
-            {s && <Button size="lg" icon={Printer} onClick={() => window.print()}>{t('Print report')}</Button>}
+            {s && <Button size="lg" icon={Printer} onClick={() => printNow(paper === 'a4' ? 'document' : 'receipt')}>{t('Print report')}</Button>}
           </>
         )}
       />

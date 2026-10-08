@@ -20,6 +20,7 @@ import {
 import { VariantFinder, badQty, unitStep, useUnitText } from '../inventory/VariantFinder';
 import { rich } from '../sales/salesShared';
 import { QuotePrint } from './QuotePrint';
+import { printNow } from '../../lib/printer';
 
 const round2 = (v) => Math.round(Number(v || 0) * 100) / 100;
 
@@ -551,7 +552,7 @@ function QuoteDetail() {
       <div className="mb-5 flex flex-wrap gap-3">
         {!converted && can('sales.create') && <Button size="lg" variant="success" icon={ShoppingCart} onClick={toSale}>{t('Turn into a sale')}</Button>}
         <Button size="lg" variant="secondary" icon={MessageCircle} className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={share}>{t('Send quotation on WhatsApp')}</Button>
-        <Button size="lg" variant="secondary" icon={Printer} onClick={() => window.print()}>{t('Print')}</Button>
+        <Button size="lg" variant="secondary" icon={Printer} onClick={() => printNow(paper === '80mm' ? 'receipt' : 'document')}>{t('Print')}</Button>
         {!converted && <Button size="lg" variant="secondary" icon={Pencil} onClick={() => navigate(`/quotations/${q.id}/edit`)}>{t('Edit')}</Button>}
         {!converted && <Button size="lg" variant="secondary" icon={Trash2} className="text-red-600" loading={del.isPending} onClick={remove}>{t('Delete')}</Button>}
       </div>

@@ -20,6 +20,7 @@ import {
 import {
   PaymentMethodSelect, ReceivePaymentModal, StatusBadges, isHeld, rich, saleDue, saleNet, salePaid, useInvalidateSales,
 } from '../sales/salesShared';
+import { printNow } from '../../lib/printer';
 
 export default function Customers() {
   return (
@@ -550,7 +551,7 @@ function StatementModal({ customer, sales, onClose }) {
             {t('Only bills with money still owed')}
           </label>
           <Button variant="secondary" size="lg" onClick={onClose}>{t('Close')}</Button>
-          <Button size="lg" icon={Printer} onClick={() => window.print()}>{t('Print')}</Button>
+          <Button size="lg" icon={Printer} onClick={() => printNow('document')}>{t('Print')}</Button>
         </>
       )}
     >

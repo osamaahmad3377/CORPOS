@@ -19,6 +19,7 @@ import {
 import {
   ReceivePaymentModal, StatusBadges, isHeld, refundEstimate, rich, saleDue, saleNet, salePaid, useInvalidateSales,
 } from './salesShared';
+import { printNow } from '../../lib/printer';
 
 export default function SalesHistory() {
   return (
@@ -377,7 +378,7 @@ function SaleDetail() {
       </div>
 
       <Modal open={printing} onClose={() => setPrinting(false)} size="sm" title={t('Print receipt')}
-        footer={<><Button variant="secondary" size="lg" onClick={() => setPrinting(false)}>{t('Close')}</Button><Button size="lg" icon={Printer} onClick={() => window.print()}>{t('Print')}</Button></>}
+        footer={<><Button variant="secondary" size="lg" onClick={() => setPrinting(false)}>{t('Close')}</Button><Button size="lg" icon={Printer} onClick={() => printNow('receipt')}>{t('Print')}</Button></>}
       >
         <div className="rounded-lg bg-slate-100 py-4"><Receipt sale={sale} /></div>
       </Modal>

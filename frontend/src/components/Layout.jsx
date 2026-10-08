@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BadgePercent, BarChart3, Boxes, ClipboardList, FileText, FolderTree, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
 import { cx } from './ui';
-import { NextcoreLogo, ShopLogo } from './Brand';
+import { NextcoreLogo } from './Brand';
 
 // Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
@@ -50,15 +50,18 @@ function Sidebar({ onNavigate }) {
   const { can } = useAuth();
   const { t } = useLang();
   const shop = useShop();
+  const [logoBroken, setLogoBroken] = useState(false);
+  useEffect(() => setLogoBroken(false), [shop.logoUrl]);
   return (
     <nav className="flex h-full flex-col overflow-y-auto">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-4">
-        <ShopLogo className="size-11" />
-        <div className="min-w-0">
-          <div className="truncate text-[15px] font-bold text-slate-900">{shop.shopName}</div>
-          <div className="text-xs text-slate-500">CorePOS</div>
-        </div>
-      </div>
+      {/* Shop branding: the uploaded logo, or just the shop name if none */}
+      <NavLink to="/" onClick={onNavigate} className="flex min-h-20 items-center justify-center border-b border-slate-100 px-4 py-4" title={shop.shopName}>
+        {shop.logoUrl && !logoBroken ? (
+          <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-16 w-auto max-w-full object-contain" />
+        ) : (
+          <span className="line-clamp-2 text-center text-lg font-bold leading-snug text-slate-900">{shop.shopName}</span>
+        )}
+      </NavLink>
       <div className="flex-1 space-y-5 px-3 py-4">
         {navSections(shop).map((section) => {
           const items = section.items.filter((i) => !i.perm || can(i.perm));

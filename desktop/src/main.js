@@ -263,6 +263,33 @@ handle('setup', async (details) => {
   return { ok: true };
 });
 
+// ---------------------------------------------------------------- printing (POS pages)
+
+function fromPos(event) {
+  const url = event.senderFrame && event.senderFrame.url;
+  return !!(backend.port && typeof url === 'string' && url.startsWith(backend.url()));
+}
+
+ipcMain.handle('printers', async (event) => {
+  if (!fromPos(event)) throw new Error('Not allowed');
+  const list = await event.sender.getPrintersAsync();
+  return list.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault, status: p.status }));
+});
+
+// { deviceName?, silent?, copies? } — silent printing needs a deviceName.
+ipcMain.handle('print', async (event, options = {}) => {
+  if (!fromPos(event)) throw new Error('Not allowed');
+  const deviceName = typeof options.deviceName === 'string' ? options.deviceName : '';
+  const silent = !!options.silent && !!deviceName;
+  const copies = Math.min(Math.max(parseInt(options.copies, 10) || 1, 1), 5);
+  return new Promise((resolve) => {
+    event.sender.print(
+      { silent, deviceName: deviceName || undefined, copies, printBackground: true, margins: { marginType: 'none' } },
+      (success, failureReason) => resolve({ success, failureReason: failureReason || null }),
+    );
+  });
+});
+
 handle('retry', () => { boot(); return true; });
 handle('open-logs', () => shell.openPath(path.join(backend.storageDir, 'logs')));
 // Support by email: opens the user's mail app with the Machine ID filled in.

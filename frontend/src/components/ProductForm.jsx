@@ -28,7 +28,9 @@ function CheckRow({ checked, onChange, title, hint }) {
 }
 
 // hideStock: opening stock is added by the caller (e.g. a purchase), so don't ask for it.
-export default function ProductForm({ open, onClose, onSaved, initialBarcode = '', initialName = '', hideStock = false }) {
+// requireStock: opened from the Sell screen — the item goes straight into the
+// bill, so it needs a stock count above 0.
+export default function ProductForm({ open, onClose, onSaved, initialBarcode = '', initialName = '', hideStock = false, requireStock = false }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
@@ -167,8 +169,8 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                   <Textarea rows={3} className="font-mono" dir="ltr" value={rows[0].serials} onChange={(e) => setRow(0, 'serials', e.target.value)} placeholder={'356789012345678\n356789012345679'} />
                 </Field>
               ) : (
-                <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: unitName })}>
-                  <Input type="number" min="0" step={step} className="h-12 text-lg" value={rows[0].stock_qty} onChange={(e) => setRow(0, 'stock_qty', e.target.value)} />
+                <Field label={t('How many in stock now?')} required={requireStock} hint={requireStock ? t('Needed so it can be sold now. Count in {unit}.', { unit: unitName }) : t('Count in {unit}. Leave empty if none.', { unit: unitName })}>
+                  <Input type="number" min={requireStock ? step : '0'} step={step} required={requireStock} className="h-12 text-lg" value={rows[0].stock_qty} onChange={(e) => setRow(0, 'stock_qty', e.target.value)} />
                 </Field>
               )}
               <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className={hideStock || form.track_serial ? 'sm:col-span-2' : undefined}>

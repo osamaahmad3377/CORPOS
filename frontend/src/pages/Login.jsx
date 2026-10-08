@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useT } from '../lib/i18n';
 import { LanguageSwitch } from '../components/Layout';
+import { NEXTCORE, NextcoreLogo } from '../components/Brand';
 import { Button, ErrorBox, Field, Input } from '../components/ui';
 
 export default function Login() {
@@ -32,12 +33,9 @@ export default function Login() {
     <div className="relative grid min-h-full place-items-center bg-slate-100 p-4">
       <LanguageSwitch className="absolute end-4 top-4" />
       <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-xl bg-brand-600 text-xl font-bold text-white">C</div>
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">CorePOS</h1>
-            <p className="text-base text-slate-500">{t('Sign in to continue')}</p>
-          </div>
+        <div className="mb-7 flex flex-col items-center text-center">
+          <NextcoreLogo className="h-14 sm:h-16" />
+          <p className="mt-4 text-base text-slate-500">{t('Sign in to continue')}</p>
         </div>
         <div className="space-y-4">
           <ErrorBox error={error} />
@@ -50,6 +48,7 @@ export default function Login() {
           <Button type="submit" className="w-full" size="lg" loading={busy}>{t('Sign in')}</Button>
         </div>
       </form>
+      <p className="absolute bottom-4 text-center text-xs text-slate-400" dir="ltr">{NEXTCORE.product} by {NEXTCORE.company} · {NEXTCORE.website} · {NEXTCORE.email}</p>
     </div>
   );
 }

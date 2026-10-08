@@ -4,6 +4,7 @@ import { Download, FileBarChart, Printer } from 'lucide-react';
 import { useShop } from '../../lib/shop';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, cx, EmptyState, ErrorBox, Loading, Table, Td, Th } from '../../components/ui';
+import { printNow } from '../../lib/printer';
 
 const pad = (n) => String(n).padStart(2, '0');
 export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -97,7 +98,7 @@ export function ReportFrame({ title, hint, period, filters, csv, loading, error,
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">{filters}</div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" icon={Printer} onClick={() => window.print()} disabled={loading || !!error}>{t('Print')}</Button>
+            <Button variant="secondary" icon={Printer} onClick={() => printNow('document')} disabled={loading || !!error}>{t('Print')}</Button>
             <Button variant="secondary" icon={Download} onClick={csv} disabled={loading || !!error || !csv}>{t('Save as Excel (CSV)')}</Button>
           </div>
         </div>

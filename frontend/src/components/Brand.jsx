@@ -36,7 +36,7 @@ const LOGO_FILES = ['/brand/nextcore-logo.png', '/brand/nextcore-logo.svg'];
 export function NextcoreLogo({ className = 'h-7', mono = false }) {
   const [attempt, setAttempt] = useState(0);
   if (attempt >= LOGO_FILES.length) return <NextcoreWordmark className={className} mono={mono} />;
-  return <img src={LOGO_FILES[attempt]} alt="NextCore" onError={() => setAttempt((a) => a + 1)} className={cx(className, 'w-auto object-contain', mono && 'grayscale')} />;
+  return <img src={LOGO_FILES[attempt]} alt="CorePOS by NextCore" onError={() => setAttempt((a) => a + 1)} className={cx(className, 'w-auto object-contain', mono ? 'grayscale' : 'dark:rounded-lg dark:bg-white dark:px-2 dark:py-1')} />;
 }
 
 export const NEXTCORE = {

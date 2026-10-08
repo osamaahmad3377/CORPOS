@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Check, ImageUp, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
+import { Briefcase, Check, ImageUp, Printer, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
 import { BRAND_PRESETS } from '../../lib/theme';
+import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -36,6 +37,7 @@ const SECTIONS = [
   { key: 'barcode', label: 'Barcode stickers', icon: ScanBarcode, groups: ['barcode'], preview: 'label' },
   { key: 'business', label: 'Your business & items', icon: Briefcase, groups: ['business', 'product'] },
   { key: 'features', label: 'Extra tools', icon: Puzzle, groups: ['features'] },
+  { key: 'printers', label: 'Printers', icon: Printer, groups: [] },
   { key: 'language', label: 'Language', icon: Languages, groups: [] },
 ];
 
@@ -142,6 +144,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
   useEffect(() => { setErrors({}); }, [section]);
   if (!meta) return <Navigate to="/settings/shop" replace />;
   if (section === 'language') return <LanguageCard />;
+  if (section === 'printers') return <PrintersCard />;
 
   const canEdit = can('settings.manage');
   const dirty = !sameGroups(draft, saved, meta.groups);
@@ -501,6 +504,87 @@ function BusinessForm({ d, set, err }) {
 
 // Language is chosen per computer (saved in this browser), not for the whole
 // shop — the same choice as the English / اردو button at the top.
+// Printers are chosen per computer (each till has its own printer).
+const PRINT_JOBS = [
+  { kind: 'receipt', label: 'Bill / receipt printer', hint: 'Usually the small thermal printer (58 or 80 mm) at the counter.', auto: true, copies: true },
+  { kind: 'kitchen', label: 'Kitchen slip printer', hint: 'Restaurants only. Leave empty to use the bill printer.', auto: true, restaurantOnly: true },
+  { kind: 'label', label: 'Barcode sticker printer', hint: 'Label printer or the A4 printer for sticker sheets.' },
+  { kind: 'document', label: 'A4 printer (reports, quotations)', hint: 'Leave empty to choose each time.' },
+];
+
+function PrintersCard() {
+  const t = useT();
+  const shop = useShop();
+  const toast = useToast();
+  const [prefs, setPrefs] = useState(printerPrefs);
+  const [printers, setPrinters] = useState(null);
+  const [testing, setTesting] = useState(null);
+  const desktop = isDesktop();
+
+  useEffect(() => { listPrinters().then(setPrinters); }, []);
+  const update = (kind, patch) => setPrefs((p) => {
+    const next = { ...p, [kind]: { ...(p[kind] || {}), ...patch } };
+    savePrinterPrefs(next);
+    return next;
+  });
+  const test = async (kind) => {
+    setTesting(kind);
+    await new Promise((r) => setTimeout(r, 50));
+    try { await printNow(kind === 'document' ? 'document' : kind); toast(t('Test page sent to the printer')); } finally { setTesting(null); }
+  };
+  const jobs = PRINT_JOBS.filter((j) => !j.restaurantOnly || shop.features.restaurant);
+
+  return (
+    <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[1fr_auto]">
+      <Card className="min-w-0">
+        <CardHeader title={t('Printers')} subtitle={t('Pick a printer once — bills then print straight away without a popup. Saved on this computer only.')} />
+        <div className="space-y-6 px-5 py-5">
+          {!desktop && <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t('Direct printing works in the CorePOS desktop app. In a web browser the normal print window opens.')}</div>}
+          {desktop && printers && !printers.length && <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t('No printers found. Install the printer driver in Windows, switch the printer on, then reopen this page.')}</div>}
+          {jobs.map((job) => {
+            const p = prefs[job.kind] || {};
+            return (
+              <div key={job.kind} className="rounded-xl border border-slate-200 p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold text-slate-900">{t(job.label)}</div>
+                    <div className="text-sm text-slate-500">{t(job.hint)}</div>
+                  </div>
+                  <Button variant="secondary" size="sm" icon={Printer} loading={testing === job.kind} onClick={() => test(job.kind)}>{t('Test print')}</Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <Select value={p.name || ''} disabled={!desktop} onChange={(e) => update(job.kind, { name: e.target.value })}>
+                    <option value="">{t('Ask every time (show print window)')}</option>
+                    {(printers || []).map((pr) => <option key={pr.name} value={pr.name}>{pr.displayName}{pr.isDefault ? ` (${t('default')})` : ''}</option>)}
+                  </Select>
+                  {job.copies && (
+                    <Select className="w-full sm:w-36" value={String(p.copies || 1)} onChange={(e) => update(job.kind, { copies: Number(e.target.value) })}>
+                      {[1, 2, 3].map((n) => <option key={n} value={n}>{n === 1 ? t('1 copy') : t('{n} copies', { n })}</option>)}
+                    </Select>
+                  )}
+                </div>
+                {job.auto && (
+                  <div className="mt-3">
+                    <Toggle checked={!!p.auto} onChange={(v) => update(job.kind, { auto: v })} label={job.kind === 'kitchen' ? t('Print the kitchen slip automatically') : t('Print the bill automatically after every sale')} hint={t('No need to press Print.')} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <p className="text-xs text-slate-500">{t('Bill paper width (58 / 80 mm) is set in Settings → Receipt.')}</p>
+        </div>
+      </Card>
+      {/* what "Test print" prints */}
+      <div className="xl:w-[340px]">
+        <div className="mb-2 text-sm font-medium text-slate-500">{t('Test page')}</div>
+        <div className="rounded-2xl bg-slate-100 p-3">
+          <Receipt sale={{ invoice_number: 'TEST-0001', sale_date: new Date().toISOString(), subtotal: 100, discount_amount: 0, tax_amount: 0, grand_total: 100, payment_method: 'cash', payment_received: 100, change_amount: 0, due_amount: 0, items: [{ id: 1, product_name: t('Printer test'), quantity: 1, unit_price: 100, total_price: 100, discount_per_item: 0 }] }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LanguageCard() {
   const { lang, setLang, t } = useLang();
   const choices = [

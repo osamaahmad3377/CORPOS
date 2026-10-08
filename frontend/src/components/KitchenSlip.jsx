@@ -2,6 +2,7 @@
 import { useShop } from '../lib/shop';
 import { qty, variantLabel } from '../lib/format';
 import { useLang } from '../lib/i18n';
+import { receiptWidth } from '../lib/printer';
 
 export const ORDER_TYPES = [
   { code: 'dine_in', label: 'Dine-in' },
@@ -14,7 +15,7 @@ export const orderTypeLabel = (code) => ORDER_TYPES.find((t) => t.code === code)
 export default function KitchenSlip({ order }) {
   const shop = useShop();
   const { t, isUrdu } = useLang();
-  const width = shop.settings.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
+  const width = receiptWidth(shop.settings.receipt?.paper_width);
   return (
     <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[13px] leading-snug text-black`} style={{ width, padding: '2mm' }}>
       <div className="text-center text-[15px] font-bold">{t('KITCHEN ORDER')}</div>
