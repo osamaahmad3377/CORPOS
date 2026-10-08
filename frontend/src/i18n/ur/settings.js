@@ -231,4 +231,9 @@ export default {
   Coffee: 'کافی',
   'Soft grey': 'ہلکا سرمئی',
   White: 'سفید',
+  'Logo size in the sidebar': 'سائیڈ بار میں لوگو کا سائز',
+  'Upload a logo above to see it in the sidebar.': 'سائیڈ بار میں دیکھنے کے لیے اوپر لوگو اپ لوڈ کریں۔',
+  Small: 'چھوٹا',
+  Medium: 'درمیانہ',
+  'Extra large': 'بہت بڑا',
 };

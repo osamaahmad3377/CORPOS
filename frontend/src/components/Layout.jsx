@@ -95,8 +95,8 @@ function Sidebar({ onNavigate }) {
       {/* Shop branding: the uploaded logo right on the sidebar colour, or the shop name */}
       <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block rounded-2xl transition hover:bg-[var(--sb-hover)]">
         {hasLogo ? (
-          <span className="flex min-h-[84px] items-center justify-center px-4 py-3">
-            <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-16 w-auto max-w-full object-contain" />
+          <span className="flex items-center justify-center px-3 py-3">
+            <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} style={{ maxHeight: shop.sidebarLogoSize }} className="w-auto max-w-full object-contain" />
           </span>
         ) : (
           <span className="flex items-center gap-3 px-3 py-3">

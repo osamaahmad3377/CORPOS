@@ -61,6 +61,7 @@ export function ShopProvider({ children }) {
       brandColor,
       logoUrl: s.brand?.logo ? `/storage/${s.brand.logo}` : null,
       logoOnReceipt: s.brand?.show_logo_on_receipt !== '0',
+      sidebarLogoSize: clampLogo(s.brand?.sidebar_logo_size),
       mode,
       setMode,
       isDark: mode === 'dark',
@@ -71,6 +72,13 @@ export function ShopProvider({ children }) {
 }
 
 export const useShop = () => useContext(ShopContext);
+
+// Height of the shop logo in the sidebar (Settings → Brand & look), px.
+export const LOGO_SIZE = { min: 40, max: 180, default: 96 };
+export function clampLogo(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.max(LOGO_SIZE.min, Math.min(LOGO_SIZE.max, Math.round(n))) : LOGO_SIZE.default;
+}
 
 // Dining areas with their tables: [{ name, tables: [{ no, seats }] }].
 // Older setups only stored a count — they get tables 1…N in one hall.

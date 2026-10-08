@@ -8,7 +8,7 @@ import { ShopLogo } from '../../components/Brand';
 import { api, switchBusiness } from '../../lib/api';
 import { BusinessBadge, useBusinesses } from '../../components/BusinessSwitcher';
 import { useAuth } from '../../lib/auth';
-import { tableAreas, useShop } from '../../lib/shop';
+import { LOGO_SIZE, clampLogo, tableAreas, useShop } from '../../lib/shop';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
@@ -19,7 +19,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
 // Every key SettingController@update accepts (minus shop.logo), with defaults.
 const DEFAULTS = {
-  brand: { primary_color: '#1bd173', sidebar_color: '#0f1626', theme: 'light', show_logo_on_receipt: '1' },
+  brand: { primary_color: '#1bd173', sidebar_color: '#0f1626', sidebar_logo_size: '96', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
   receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },
@@ -240,6 +240,7 @@ function BrandForm({ d, set }) {
   const fileRef = useRef(null);
   const color = d.brand.primary_color;
   const sidebar = /^#[0-9a-f]{6}$/i.test(d.brand.sidebar_color || '') ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
+  const logoSize = clampLogo(d.brand.sidebar_logo_size);
   const upload = async (file) => {
     if (!file) return;
     setBusy(true);
@@ -335,8 +336,34 @@ function BrandForm({ d, set }) {
                 <Input className="num w-32 font-mono" value={sidebar} maxLength={7} onChange={(e) => set('brand', 'sidebar_color')(e.target.value)} />
               </div>
               <p className="mt-2 text-xs text-slate-500">{t('Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.')}</p>
+
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-700">{t('Logo size in the sidebar')}</span>
+                  <span className="num rounded-lg bg-slate-500/10 px-2 py-0.5 text-xs font-semibold text-slate-600">{logoSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={LOGO_SIZE.min}
+                  max={LOGO_SIZE.max}
+                  step="4"
+                  value={logoSize}
+                  onChange={(e) => set('brand', 'sidebar_logo_size')(e.target.value)}
+                  className="w-full cursor-pointer accent-[var(--color-brand-600)]"
+                  aria-label={t('Logo size in the sidebar')}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[['Small', 64], ['Medium', 96], ['Large', 128], ['Extra large', 160]].map(([label, px]) => (
+                    <button key={px} type="button" onClick={() => set('brand', 'sidebar_logo_size')(String(px))}
+                      className={cx('rounded-lg px-3 py-1.5 text-sm font-semibold transition', logoSize === px ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/15')}>
+                      {t(label)}
+                    </button>
+                  ))}
+                </div>
+                {!shop.logoUrl && <p className="mt-2 text-xs text-slate-500">{t('Upload a logo above to see it in the sidebar.')}</p>}
+              </div>
             </div>
-            <SidebarPreview hex={sidebar} />
+            <SidebarPreview hex={sidebar} size={logoSize} />
           </div>
         </div>
 
@@ -950,16 +977,16 @@ function BusinessesCard() {
 }
 
 // A small copy of the menu in the chosen sidebar colour, with the shop's logo.
-function SidebarPreview({ hex }) {
+function SidebarPreview({ hex, size = 96 }) {
   const t = useT();
   const shop = useShop();
   const th = sidebarTheme(hex);
   const items = [[HomeIcon, 'Home', true], [CartIcon, 'Sell', false], [PackageIcon, 'Items & stock', false]];
   return (
     <div className="w-56 shrink-0 overflow-hidden rounded-2xl border border-slate-200 shadow-card" style={{ background: th.bg }} aria-label={t('Preview')}>
-      <div className="flex min-h-[72px] items-center justify-center px-4 py-3">
+      <div className="flex min-h-[72px] items-center justify-center px-3 py-3">
         {shop.logoUrl ? (
-          <img src={shop.logoUrl} alt="" className="max-h-12 w-auto max-w-full object-contain" />
+          <img src={shop.logoUrl} alt="" style={{ maxHeight: Math.round(size * 0.86) }} className="w-auto max-w-full object-contain transition-[max-height] duration-150" />
         ) : (
           <span className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-lg bg-brand-600 font-bold text-brand-ink">{(shop.shopName || 'C').trim().charAt(0).toUpperCase()}</span>
