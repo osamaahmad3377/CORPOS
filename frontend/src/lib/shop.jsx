@@ -52,7 +52,9 @@ export function ShopProvider({ children }) {
       refetchSettings: settings.refetch,
       // restaurant POS (tables, kitchen) — on for restaurants or when switched on
       isRestaurant: s.business?.type === 'restaurant' || s.features?.restaurant === '1',
-      tables: Math.max(0, Math.min(200, Number(s.restaurant?.tables ?? 12))),
+      tableAreas: tableAreas(s.restaurant),
+      takeaway: s.restaurant?.takeaway !== '0',
+      delivery: s.restaurant?.delivery !== '0',
       // white-label
       brandColor,
       logoUrl: s.brand?.logo ? `/storage/${s.brand.logo}` : null,
@@ -67,3 +69,14 @@ export function ShopProvider({ children }) {
 }
 
 export const useShop = () => useContext(ShopContext);
+
+// Dining areas with their tables: [{ name, tables: [{ no, seats }] }].
+// Older setups only stored a count — they get tables 1…N in one hall.
+export function tableAreas(r = {}) {
+  try {
+    const layout = JSON.parse(r.layout || 'null');
+    if (Array.isArray(layout)) return layout.map((a) => ({ name: a.name || '', tables: Array.isArray(a.tables) ? a.tables : [] }));
+  } catch { /* fall back to the count */ }
+  const n = Math.max(0, Math.min(300, Number(r.tables ?? 12) || 0));
+  return [{ name: '', tables: Array.from({ length: n }, (_, i) => ({ no: String(i + 1), seats: 4 })) }];
+}

@@ -58,8 +58,12 @@ class SettingController extends Controller
             'point_value' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'min_redeem' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ],
+        // Dining areas and their tables, as JSON (see normalizeLayout()).
         'restaurant' => [
-            'tables' => ['nullable', 'integer', 'min:0', 'max:200'],
+            'tables' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'layout' => ['nullable', 'string', 'max:50000', 'json'],
+            'takeaway' => ['nullable', 'in:0,1'],
+            'delivery' => ['nullable', 'in:0,1'],
         ],
         'features' => [
             'restaurant' => ['nullable', 'in:0,1'],
@@ -129,6 +133,45 @@ class SettingController extends Controller
         return $this->index();
     }
 
+    /**
+     * Restaurant floor plan: [{name, tables: [{no, seats}]}]. Table numbers are
+     * what sales.table_no stores, so they must be short and unique.
+     */
+    private static function normalizeLayout($layout): array
+    {
+        $fail = fn (string $msg) => throw \Illuminate\Validation\ValidationException::withMessages(['restaurant.layout' => $msg]);
+        if (! is_array($layout) || ! array_is_list($layout)) {
+            $fail('The tables list is not valid.');
+        }
+        $seen = [];
+        $out = [];
+        foreach (array_slice($layout, 0, 30) as $area) {
+            $name = trim((string) ($area['name'] ?? ''));
+            $tables = [];
+            foreach (is_array($area['tables'] ?? null) ? $area['tables'] : [] as $table) {
+                $no = trim((string) ($table['no'] ?? ''));
+                if ($no === '') {
+                    $fail('Every table needs a name or number.');
+                }
+                if (mb_strlen($no) > 20) {
+                    $fail("Table name \"{$no}\" is too long (20 letters max).");
+                }
+                $key = mb_strtolower($no);
+                if (isset($seen[$key])) {
+                    $fail("Two tables are both called \"{$no}\". Give each table its own name.");
+                }
+                $seen[$key] = true;
+                $tables[] = ['no' => $no, 'seats' => max(0, min(99, (int) ($table['seats'] ?? 0)))];
+            }
+            $out[] = ['name' => mb_substr($name, 0, 40), 'tables' => $tables];
+        }
+        if (count($seen) > 300) {
+            $fail('At most 300 tables.');
+        }
+
+        return $out;
+    }
+
     public function update(Request $request)
     {
         $rules = [];
@@ -145,6 +188,12 @@ class SettingController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        if (! empty($validated['restaurant']['layout'])) {
+            $layout = self::normalizeLayout(json_decode($validated['restaurant']['layout'], true));
+            $validated['restaurant']['layout'] = json_encode($layout, JSON_UNESCAPED_UNICODE);
+            $validated['restaurant']['tables'] = array_sum(array_map(fn ($a) => count($a['tables']), $layout));
+        }
 
         foreach ($validated as $group => $values) {
             foreach ($values as $key => $value) {

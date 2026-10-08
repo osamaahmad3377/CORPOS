@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -404,7 +404,9 @@ export default function Pos() {
         )}
         {restaurant && view === 'tables' ? (
           <TablesView
-            tables={shop.tables}
+            areas={shop.tableAreas}
+            takeaway={shop.takeaway}
+            delivery={shop.delivery}
             orders={heldOrders.data || []}
             current={order}
             onPickTable={(no) => { setOrder((o) => ({ ...o, type: 'dine_in', table: String(no) })); setView('menu'); focusScan(); }}
@@ -488,7 +490,7 @@ export default function Pos() {
           {restaurant && (
             <div className="flex gap-2">
               <div className="flex flex-1 rounded-xl bg-slate-100 p-1 text-base font-medium">
-                {ORDER_TYPES.map((o) => (
+                {ORDER_TYPES.filter((o) => o.code === 'dine_in' || shop[o.code]).map((o) => (
                   <button key={o.code} type="button" onClick={() => setOrder((x) => ({ ...x, type: o.code }))} className={cx('flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 transition', order.type === o.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t(o.label)}</button>
                 ))}
               </div>
@@ -1025,81 +1027,103 @@ function minutesSince(iso) {
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-function TablesView({ tables, orders, current, onPickTable, onNew, onOpenOrder }) {
+function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, onNew, onOpenOrder }) {
   const t = useT();
   const byTable = {};
-  for (const o of orders) if (o.order_type === 'dine_in' && o.table_no) (byTable[o.table_no] ||= []).push(o);
-  const others = orders.filter((o) => o.order_type !== 'dine_in' || !o.table_no);
+  for (const o of orders) if (o.order_type === 'dine_in' && o.table_no) (byTable[o.table_no.toLowerCase()] ||= []).push(o);
+  const known = new Set(areas.flatMap((a) => a.tables.map((tb) => String(tb.no).toLowerCase())));
+  // orders on a table that was later renamed/removed still show up (below)
+  const others = orders.filter((o) => o.order_type !== 'dine_in' || !o.table_no || !known.has(o.table_no.toLowerCase()));
   const statusTone = { ready: 'bg-emerald-600 text-white', preparing: 'bg-amber-500 text-white', new: 'bg-slate-700 text-white' };
   const statusLabel = { ready: 'Ready', preparing: 'Cooking', new: 'Sent to kitchen' };
+  const total = areas.reduce((n, a) => n + a.tables.length, 0);
+  const busyCount = areas.reduce((n, a) => n + a.tables.filter((tb) => byTable[String(tb.no).toLowerCase()]).length, 0);
+  const named = areas.filter((a) => a.tables.length > 0);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4">
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <button type="button" onClick={() => onNew('takeaway')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
-          <span className="grid size-12 place-items-center rounded-xl bg-orange-100 text-orange-700"><ShoppingBag className="size-6" /></span>
-          <span><span className="block text-lg font-bold text-slate-900">{t('Takeaway')}</span><span className="text-sm text-slate-500">{t('New takeaway order')}</span></span>
-        </button>
-        <button type="button" onClick={() => onNew('delivery')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
-          <span className="grid size-12 place-items-center rounded-xl bg-blue-100 text-blue-700"><Truck className="size-6" /></span>
-          <span><span className="block text-lg font-bold text-slate-900">{t('Delivery')}</span><span className="text-sm text-slate-500">{t('New delivery order')}</span></span>
-        </button>
-      </div>
+      {(takeaway || delivery) && (
+        <div className={cx('mb-4 grid gap-3', takeaway && delivery && 'sm:grid-cols-2')}>
+          {takeaway && (
+            <button type="button" onClick={() => onNew('takeaway')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+              <span className="grid size-12 place-items-center rounded-xl bg-orange-100 text-orange-700"><ShoppingBag className="size-6" /></span>
+              <span><span className="block text-lg font-bold text-slate-900">{t('Takeaway')}</span><span className="text-sm text-slate-500">{t('New takeaway order')}</span></span>
+            </button>
+          )}
+          {delivery && (
+            <button type="button" onClick={() => onNew('delivery')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+              <span className="grid size-12 place-items-center rounded-xl bg-blue-100 text-blue-700"><Truck className="size-6" /></span>
+              <span><span className="block text-lg font-bold text-slate-900">{t('Delivery')}</span><span className="text-sm text-slate-500">{t('New delivery order')}</span></span>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-800">{t('Tables')}</h2>
+        <h2 className="text-base font-bold text-slate-800">{t('Tables')} {total > 0 && <span className="num ms-1 text-sm font-medium text-slate-500">{t('{busy} of {total} busy', { busy: busyCount, total })}</span>}</h2>
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="flex items-center gap-1"><span className="size-3 rounded border-2 border-slate-300 bg-white" />{t('Free')}</span>
           <span className="flex items-center gap-1"><span className="size-3 rounded bg-brand-600" />{t('Busy')}</span>
         </div>
       </div>
-      {tables === 0 ? (
+      {total === 0 ? (
         <p className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">{t('No tables set. Add tables in Settings → Restaurant.')}</p>
-      ) : (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
-          {Array.from({ length: tables }, (_, i) => String(i + 1)).map((no) => {
-            const list = byTable[no] || [];
-            const busy = list.length > 0;
-            const total = list.reduce((a, o) => a + Number(o.grand_total), 0);
-            const first = list[0];
-            const st = first?.kitchen_status || 'new';
-            const selected = current?.type === 'dine_in' && current?.table === no;
-            return (
-              <button
-                key={no}
-                type="button"
-                onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
-                className={cx(
-                  'relative flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition active:scale-[0.97]',
-                  busy ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
-                  selected && !busy && 'ring-4 ring-brand-200',
-                )}
-              >
-                <span className={cx('text-xs font-semibold uppercase tracking-wide', busy ? 'text-white/80' : 'text-slate-400')}>{t('Table')}</span>
-                <span className="num text-3xl font-extrabold leading-none">{no}</span>
-                {busy ? (
-                  <>
-                    <span className="num mt-1 text-sm font-bold">{money(total)}</span>
-                    <span className="mt-0.5 flex items-center gap-1 text-xs text-white/85"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
-                    <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
-                  </>
-                ) : (
-                  <span className="mt-1 text-xs text-slate-400">{t('Free')}</span>
-                )}
-              </button>
-            );
-          })}
+      ) : named.map((area, ai) => (
+        <div key={ai} className="mb-5">
+          {(named.length > 1 || area.name) && (
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+              {area.name || t('Tables')}
+              <span className="num rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold normal-case text-slate-500">{area.tables.length}</span>
+            </h3>
+          )}
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
+            {area.tables.map((tb) => {
+              const no = String(tb.no);
+              const list = byTable[no.toLowerCase()] || [];
+              const busy = list.length > 0;
+              const sum = list.reduce((a, o) => a + Number(o.grand_total), 0);
+              const first = list[0];
+              const st = first?.kitchen_status || 'new';
+              const selected = current?.type === 'dine_in' && current?.table?.toLowerCase() === no.toLowerCase();
+              return (
+                <button
+                  key={no}
+                  type="button"
+                  onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
+                  className={cx(
+                    'relative flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition active:scale-[0.97]',
+                    busy ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
+                    selected && !busy && 'ring-4 ring-brand-200',
+                  )}
+                >
+                  <span className={cx('text-xs font-semibold uppercase tracking-wide', busy ? 'text-white/80' : 'text-slate-400')}>{t('Table')}</span>
+                  <span className={cx('num max-w-full truncate font-extrabold leading-none', no.length > 3 ? 'text-xl' : 'text-3xl')}>{no}</span>
+                  {busy ? (
+                    <>
+                      <span className="num mt-1 text-sm font-bold">{money(sum)}</span>
+                      <span className="mt-0.5 flex items-center gap-1 text-xs text-white/85"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
+                      <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
+                    </>
+                  ) : (
+                    <span className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                      {Number(tb.seats) > 0 ? <><Users className="size-3" /><span className="num">{tb.seats}</span></> : t('Free')}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+      ))}
 
       {others.length > 0 && (
         <>
-          <h2 className="mb-2 mt-6 text-base font-bold text-slate-800">{t('Takeaway & delivery orders')}</h2>
+          <h2 className="mb-2 mt-6 text-base font-bold text-slate-800">{t('Other open orders')}</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {others.map((o) => (
               <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-start hover:border-brand-400">
                 <span>
-                  <span className="block font-bold text-slate-900">{t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
+                  <span className="block font-bold text-slate-900">{o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
                   <span className="text-sm text-slate-500">{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
                 </span>
                 <span className="num text-lg font-bold">{money(o.grand_total)}</span>

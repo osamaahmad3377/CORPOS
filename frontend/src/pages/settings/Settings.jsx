@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Check, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
+import { Briefcase, Check, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
 import { BRAND_PRESETS } from '../../lib/theme';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { useShop } from '../../lib/shop';
+import { tableAreas, useShop } from '../../lib/shop';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
@@ -26,7 +26,7 @@ const DEFAULTS = {
   business: { type: 'general' },
   product: { option1_label: '', option2_label: '', default_unit: 'pcs' },
   features: { restaurant: '0', serials: '0', expiry: '0' },
-  restaurant: { tables: '12' },
+  restaurant: { tables: '12', layout: '', takeaway: '1', delivery: '1' },
 };
 
 // Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
@@ -101,7 +101,7 @@ export default function Settings() {
       <PageHeader title={t('Settings')} subtitle={t('Set up your shop name, bill, tax, barcode stickers and language.')} />
       <div className="grid gap-6 lg:grid-cols-[minmax(200px,max-content)_1fr]">
         <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
-          {SECTIONS.filter((x) => !x.onlyRestaurant || shop.features.restaurant).map(({ key, label, icon: Icon, groups }) => {
+          {SECTIONS.filter((x) => !x.onlyRestaurant || shop.isRestaurant).map(({ key, label, icon: Icon, groups }) => {
             const dirty = !sameGroups(draft, saved, groups);
             return (
               <NavLink
@@ -327,20 +327,94 @@ function BrandForm({ d, set }) {
 
 function RestaurantForm({ d, set, err }) {
   const t = useT();
-  const n = Math.max(0, Math.min(200, Number(d.restaurant.tables || 0)));
+  const areas = tableAreas(d.restaurant);
+  const all = areas.flatMap((a) => a.tables);
+  const save = (next) => set('restaurant', 'layout')(JSON.stringify(next));
+  // A new table follows the hall's own naming: after F4 comes F5; plain
+  // numbers carry on from the highest number used anywhere.
+  const nextNo = (hall, taken) => {
+    const used = new Set(taken.map((tb) => String(tb.no).toLowerCase()));
+    const last = [...hall].reverse().map((tb) => String(tb.no).match(/^(.*?)(\d+)$/)).find(Boolean);
+    const prefix = last && /\D/.test(last[1]) ? last[1] : '';
+    const pool = prefix ? hall : taken;
+    let n = pool.reduce((m, tb) => {
+      const x = String(tb.no).match(/^(.*?)(\d+)$/);
+      return x && x[1] === prefix ? Math.max(m, Number(x[2])) : m;
+    }, 0) + 1;
+    while (used.has(`${prefix}${n}`.toLowerCase())) n++;
+    return `${prefix}${n}`;
+  };
+  const addTables = (ai, count) => {
+    const next = areas.map((a) => ({ ...a, tables: [...a.tables] }));
+    const taken = [...all];
+    for (let i = 0; i < count && taken.length < 300; i++) {
+      const tb = { no: nextNo(next[ai].tables, taken), seats: 4 };
+      taken.push(tb);
+      next[ai].tables.push(tb);
+    }
+    save(next);
+  };
+  const editArea = (ai, patch) => save(areas.map((a, i) => (i === ai ? { ...a, ...patch } : a)));
+  const editTable = (ai, ti, patch) => editArea(ai, { tables: areas[ai].tables.map((tb, i) => (i === ti ? { ...tb, ...patch } : tb)) });
+  const dupes = new Set(all.map((tb) => String(tb.no).trim().toLowerCase()).filter((no, i, arr) => no && arr.indexOf(no) !== i));
+  const onOff = (k) => d.restaurant[k] !== '0';
+
   return (
     <>
-      <CardHeader title={t('Restaurant')} subtitle={t('Tables shown on the Sell screen. Takeaway and delivery are always there.')} />
-      <div className="space-y-5 p-5">
-        <Field label={t('How many tables?')} error={err('restaurant', 'tables')}>
-          <div className="sm:max-w-40"><Input type="number" min="0" max="200" step="1" value={d.restaurant.tables} onChange={set('restaurant', 'tables')} /></div>
-        </Field>
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: Math.min(n, 40) }, (_, i) => (
-            <span key={i} className="num grid size-12 place-items-center rounded-xl border-2 border-slate-200 bg-white text-sm font-bold text-slate-600">{i + 1}</span>
-          ))}
-          {n > 40 && <span className="self-center text-sm text-slate-500">+{n - 40}</span>}
+      <CardHeader title={t('Restaurant')} subtitle={t('Set up your halls and tables exactly as they are in your restaurant. They appear on the Sell screen.')} />
+      <div className="space-y-6 p-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Toggle checked={onOff('takeaway')} onChange={(v) => set('restaurant', 'takeaway')(v ? '1' : '0')} label={t('Takeaway orders')} hint={t('Customer picks up the food.')} />
+          <Toggle checked={onOff('delivery')} onChange={(v) => set('restaurant', 'delivery')(v ? '1' : '0')} label={t('Delivery orders')} hint={t('Food is sent to the customer’s home.')} />
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">{t('Halls & tables')}</h3>
+            <p className="text-sm text-slate-500">{t('{n} tables in total. Tap a table name to change it — e.g. 1, F2, VIP, Roof 3.', { n: all.length })}</p>
+          </div>
+          <Button variant="secondary" icon={Plus} onClick={() => save([...areas, { name: '', tables: [] }])} disabled={areas.length >= 30}>{t('Add hall / area')}</Button>
+        </div>
+        {err('restaurant', 'layout') && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err('restaurant', 'layout')}</p>}
+
+        {areas.map((area, ai) => (
+          <div key={ai} className="rounded-2xl border-2 border-slate-200 bg-slate-50/60 p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="min-w-0 flex-1 sm:max-w-72">
+                <Input value={area.name} onChange={(e) => editArea(ai, { name: e.target.value })} placeholder={t('Hall name — e.g. Main hall, Family hall, Rooftop')} aria-label={t('Hall name')} />
+              </div>
+              <span className="num text-sm text-slate-500">{t('{n} tables', { n: area.tables.length })}</span>
+              <div className="flex-1" />
+              {areas.length > 1 && (
+                <Button variant="ghost" icon={Trash2} onClick={() => save(areas.filter((_, i) => i !== ai))} className="text-red-600">{t('Remove hall')}</Button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {area.tables.map((tb, ti) => {
+                const dup = dupes.has(String(tb.no).trim().toLowerCase()) || !String(tb.no).trim();
+                return (
+                  <div key={ti} className={cx('flex items-center gap-1.5 rounded-xl border-2 bg-white p-1.5', dup ? 'border-red-400' : 'border-slate-200')}>
+                    <input value={tb.no} maxLength={20} onChange={(e) => editTable(ai, ti, { no: e.target.value })} aria-label={t('Table name')} placeholder={t('Table name')} className="num w-0 min-w-0 flex-1 rounded-md border border-transparent px-1 py-1 text-base font-bold text-slate-900 hover:border-slate-200 focus:border-brand-400 focus:outline-none" />
+                    <label className="flex shrink-0 items-center gap-0.5 text-slate-400" title={t('Seats')}>
+                      <Users className="size-3.5" />
+                      <input type="number" min="0" max="99" value={tb.seats ?? ''} onChange={(e) => editTable(ai, ti, { seats: e.target.value === '' ? 0 : Math.max(0, Math.min(99, Number(e.target.value))) })} aria-label={t('Seats')} className="num w-9 rounded-md border border-transparent px-0.5 py-1 text-center text-sm text-slate-700 hover:border-slate-200 focus:border-brand-400 focus:outline-none" />
+                    </label>
+                    <button type="button" onClick={() => editArea(ai, { tables: area.tables.filter((_, i) => i !== ti) })} aria-label={t('Remove table')} className="grid size-7 shrink-0 place-items-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600">
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" icon={Plus} onClick={() => addTables(ai, 1)} disabled={all.length >= 300}>{t('Add table')}</Button>
+              <Button variant="ghost" size="sm" onClick={() => addTables(ai, 5)} disabled={all.length >= 300}>{t('+5 tables')}</Button>
+              <Button variant="ghost" size="sm" onClick={() => addTables(ai, 10)} disabled={all.length >= 300}>{t('+10 tables')}</Button>
+            </div>
+          </div>
+        ))}
+        {dupes.size > 0 && <p className="text-sm text-red-600">{t('Two tables have the same name. Give each table its own name before saving.')}</p>}
+        <p className="text-sm text-slate-500">{t('A table that has an open order keeps its order even if you rename or remove it — the order shows under “Other open orders”.')}</p>
       </div>
     </>
   );
@@ -575,7 +649,7 @@ function PrintersCard() {
     await new Promise((r) => setTimeout(r, 50));
     try { await printNow(kind === 'document' ? 'document' : kind); toast(t('Test page sent to the printer')); } finally { setTesting(null); }
   };
-  const jobs = PRINT_JOBS.filter((j) => !j.restaurantOnly || shop.features.restaurant);
+  const jobs = PRINT_JOBS.filter((j) => !j.restaurantOnly || shop.isRestaurant);
 
   return (
     <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[1fr_auto]">
