@@ -4,27 +4,29 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, KeyRound, Pencil, Plus, ShieldCheck, UserCheck, UserX, UsersRound } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { dateTime } from '../../lib/format';
+import { useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import {
   Badge, Button, Card, CardHeader, cx, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Th,
   useConfirm, useToast,
 } from '../../components/ui';
+import { useDates } from '../reports/reportKit';
 import { passwordOk, PasswordRules } from './PasswordRules';
 
+// Plain names for the permission groups (each is translated with t()).
 const MODULE_LABELS = {
-  dashboard: 'Dashboard',
-  products: 'Products & catalog',
+  dashboard: 'Today\'s summary',
+  products: 'Items & categories',
   barcodes: 'Barcodes',
-  purchases: 'Purchases',
+  purchases: 'Buying stock',
   suppliers: 'Suppliers',
-  inventory: 'Inventory',
-  customers: 'Customers',
-  sales: 'Sales & billing',
+  inventory: 'Stock',
+  customers: 'Customers & udhaar',
+  sales: 'Selling & bills',
   reports: 'Reports',
   activity_logs: 'Activity log',
   settings: 'Settings',
-  users: 'Users',
+  users: 'Staff',
 };
 const moduleLabel = (m) => MODULE_LABELS[m] || String(m || '').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 const roleColor = (name) => ({ Admin: 'blue', Manager: 'green', Cashier: 'amber' }[name] || 'gray');
@@ -34,22 +36,23 @@ function useRoles() {
 }
 
 export default function Users() {
-  const tabs = [{ to: '/users', label: 'Staff', end: true }, { to: '/users/roles', label: 'Roles & permissions' }];
+  const t = useT();
+  const tabs = [{ to: '/users', label: 'Staff members', end: true }, { to: '/users/roles', label: 'What each role can do' }];
   return (
     <Page>
-      <PageHeader title="Users" subtitle="Staff who can sign in to CorePOS, and what each role is allowed to do." />
-      <div className="mb-5 flex gap-1 border-b border-slate-200">
-        {tabs.map((t) => (
+      <PageHeader title={t('Staff')} subtitle={t('People who can sign in to this shop\'s computer, and what each one is allowed to do.')} />
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
+        {tabs.map((tab) => (
           <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.end}
+            key={tab.to}
+            to={tab.to}
+            end={tab.end}
             className={({ isActive }) => cx(
-              '-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors',
+              '-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-base font-medium transition-colors',
               isActive ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800',
             )}
           >
-            {t.label}
+            {t(tab.label)}
           </NavLink>
         ))}
       </div>
@@ -65,6 +68,8 @@ export default function Users() {
 // ---------------------------------------------------------------- staff
 
 function StaffList() {
+  const t = useT();
+  const d = useDates();
   const { user: me } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
@@ -80,7 +85,7 @@ function StaffList() {
   const toggle = useMutation({
     mutationFn: (u) => (u.is_active ? api.del(`/users/${u.id}`) : api.put(`/users/${u.id}`, { is_active: true })),
     onSuccess: (_, u) => {
-      toast(u.is_active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`);
+      toast(u.is_active ? t('{name} can no longer sign in.', { name: u.name }) : t('{name} can sign in again.', { name: u.name }));
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['roles'] });
     },
@@ -90,9 +95,9 @@ function StaffList() {
   const onToggle = async (u) => {
     if (u.is_active) {
       const ok = await confirm({
-        title: `Deactivate ${u.name}?`,
-        message: 'They will be signed out on every device and won’t be able to sign in. Their past sales and activity stay in the records. You can re-activate them later.',
-        confirmLabel: 'Deactivate',
+        title: t('Stop {name} from signing in?', { name: u.name }),
+        message: t('{name} will be signed out and can\'t sign in any more. Their old sales stay saved. You can turn them back on later.', { name: u.name }),
+        confirmLabel: t('Yes, stop sign-in'),
         danger: true,
       });
       if (!ok) return;
@@ -101,8 +106,8 @@ function StaffList() {
   };
 
   const rows = useMemo(() => (users.data || []).filter((u) => {
-    const t = search.trim().toLowerCase();
-    if (t && !`${u.name} ${u.email}`.toLowerCase().includes(t)) return false;
+    const s = search.trim().toLowerCase();
+    if (s && !`${u.name} ${u.email}`.toLowerCase().includes(s)) return false;
     if (roleId && String(u.role_id) !== roleId) return false;
     if (status === 'active' && !u.is_active) return false;
     if (status === 'inactive' && u.is_active) return false;
@@ -112,33 +117,33 @@ function StaffList() {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="w-full sm:w-64"><Input placeholder="Search name or email" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
-        <div className="w-full sm:w-40">
-          <Select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-            <option value="">All roles</option>
-            {(roles.data || []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+        <div className="w-full sm:w-64"><Input placeholder={t('Search name or email')} value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t('Search name or email')} /></div>
+        <div className="w-full sm:w-44">
+          <Select value={roleId} onChange={(e) => setRoleId(e.target.value)} aria-label={t('Role')}>
+            <option value="">{t('All roles')}</option>
+            {(roles.data || []).map((r) => <option key={r.id} value={r.id}>{t(r.name)}</option>)}
           </Select>
         </div>
-        <div className="w-full sm:w-40">
-          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Any status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Deactivated</option>
+        <div className="w-full sm:w-48">
+          <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={t('Status')}>
+            <option value="">{t('Everyone')}</option>
+            <option value="active">{t('Can sign in')}</option>
+            <option value="inactive">{t('Stopped')}</option>
           </Select>
         </div>
         <div className="flex-1" />
-        <Button icon={Plus} onClick={() => setEditing({})}>Add staff member</Button>
+        <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add staff member')}</Button>
       </div>
 
       <Card>
         {users.isLoading ? <Loading /> : users.error ? <div className="p-5"><ErrorBox error={users.error} /></div> : !rows.length ? (
-          <EmptyState icon={UsersRound} title={users.data?.length ? 'No staff match these filters' : 'No staff yet'}>
-            Add a login for each person who uses the till so sales and changes are recorded under their name.
+          <EmptyState icon={UsersRound} title={users.data?.length ? t('No staff match your search') : t('No staff yet')}>
+            {t('Give each person who uses the till their own login, so every sale is saved under their name.')}
           </EmptyState>
         ) : (
           <Table>
             <thead>
-              <tr><Th>Name</Th><Th>Role</Th><Th>Status</Th><Th>Last sign-in</Th><Th className="text-right">Actions</Th></tr>
+              <tr><Th className="text-start">{t('Name')}</Th><Th className="text-start">{t('Role')}</Th><Th className="text-start">{t('Status')}</Th><Th className="text-start">{t('Last signed in')}</Th><Th className="text-end">{t('Actions')}</Th></tr>
             </thead>
             <tbody>
               {rows.map((u) => {
@@ -147,20 +152,20 @@ function StaffList() {
                   <tr key={u.id} className={cx(!u.is_active && 'bg-slate-50/70')}>
                     <Td>
                       <div className={cx('font-medium', u.is_active ? 'text-slate-900' : 'text-slate-500')}>
-                        {u.name}{self && <span className="ml-2 text-xs font-normal text-slate-400">(you)</span>}
+                        {u.name}{self && <span className="ms-2 text-xs font-normal text-slate-400">({t('you')})</span>}
                       </div>
                       <div className="text-xs text-slate-500">{u.email}</div>
                     </Td>
-                    <Td><Badge color={roleColor(u.role)}>{u.role || '—'}</Badge></Td>
-                    <Td>{u.is_active ? <Badge color="green">Active</Badge> : <Badge color="red">Deactivated</Badge>}</Td>
-                    <Td className="text-slate-600">{u.last_login_at ? dateTime(u.last_login_at) : <span className="text-slate-400">Never</span>}</Td>
+                    <Td><Badge color={roleColor(u.role)}>{u.role ? t(u.role) : '—'}</Badge></Td>
+                    <Td>{u.is_active ? <Badge color="green">{t('Can sign in')}</Badge> : <Badge color="red">{t('Stopped')}</Badge>}</Td>
+                    <Td className="text-slate-600">{u.last_login_at ? <span className="num">{d.dateTime(u.last_login_at)}</span> : <span className="text-slate-400">{t('Never')}</span>}</Td>
                     <Td>
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" icon={Pencil} onClick={() => setEditing(u)}>Edit</Button>
-                        <Button size="sm" variant="ghost" icon={KeyRound} onClick={() => setResetting(u)}>Reset password</Button>
+                        <Button variant="ghost" icon={Pencil} onClick={() => setEditing(u)}>{t('Edit')}</Button>
+                        <Button variant="ghost" icon={KeyRound} onClick={() => setResetting(u)}>{t('New password')}</Button>
                         {!self && (u.is_active
-                          ? <Button size="sm" variant="ghost" icon={UserX} className="text-red-600! hover:bg-red-50" onClick={() => onToggle(u)}>Deactivate</Button>
-                          : <Button size="sm" variant="ghost" icon={UserCheck} className="text-emerald-700! hover:bg-emerald-50" onClick={() => onToggle(u)}>Activate</Button>)}
+                          ? <Button variant="ghost" icon={UserX} className="text-red-600! hover:bg-red-50" onClick={() => onToggle(u)}>{t('Stop sign-in')}</Button>
+                          : <Button variant="ghost" icon={UserCheck} className="text-emerald-700! hover:bg-emerald-50" onClick={() => onToggle(u)}>{t('Allow sign-in')}</Button>)}
                       </div>
                     </Td>
                   </tr>
@@ -178,6 +183,7 @@ function StaffList() {
 }
 
 function UserForm({ user, roles, onClose }) {
+  const t = useT();
   const { user: me, setUser } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
@@ -205,7 +211,7 @@ function UserForm({ user, roles, onClose }) {
       return api.put(`/users/${user.id}`, body);
     },
     onSuccess: (res) => {
-      toast(isNew ? 'Staff member added.' : 'Changes saved.');
+      toast(isNew ? t('Staff member added.') : t('Changes saved.'));
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['roles'] });
       // Keep the header in sync when editing yourself (permissions come from /auth/me).
@@ -219,8 +225,8 @@ function UserForm({ user, roles, onClose }) {
   const submit = (e) => {
     e.preventDefault();
     setErrors({}); setError(null);
-    if (isNew && !passwordOk(form.password)) { setErrors({ password: ['Password doesn’t meet the rules below.'] }); return; }
-    if (isNew && form.password !== form.confirm) { setErrors({ confirm: ['Passwords don’t match.'] }); return; }
+    if (isNew && !passwordOk(form.password)) { setErrors({ password: [t('This password is too weak. Follow the rules below.')] }); return; }
+    if (isNew && form.password !== form.confirm) { setErrors({ confirm: [t('The two passwords are not the same.')] }); return; }
     save.mutate();
   };
   const err = (k) => errors[k]?.[0];
@@ -229,42 +235,42 @@ function UserForm({ user, roles, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={isNew ? 'Add staff member' : `Edit ${user.name}`}
+      title={isNew ? t('Add staff member') : t('Edit {name}', { name: user.name })}
       footer={(
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="user-form" loading={save.isPending}>{isNew ? 'Add staff member' : 'Save changes'}</Button>
+          <Button variant="secondary" onClick={onClose}>{t('Cancel')}</Button>
+          <Button type="submit" form="user-form" loading={save.isPending}>{isNew ? t('Add staff member') : t('Save')}</Button>
         </>
       )}
     >
       <form id="user-form" onSubmit={submit} className="space-y-4">
         {error && !Object.keys(errors).length && <ErrorBox error={error} />}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name" required error={err('name')}><Input value={form.name} onChange={set('name')} autoFocus required maxLength={255} /></Field>
-          <Field label="Email (used to sign in)" required error={err('email')}><Input type="email" value={form.email} onChange={set('email')} required autoComplete="off" /></Field>
+          <Field label={t('Full name')} required error={err('name')}><Input value={form.name} onChange={set('name')} autoFocus required maxLength={255} /></Field>
+          <Field label={t('Email (used to sign in)')} required error={err('email')}><Input type="email" value={form.email} onChange={set('email')} required autoComplete="off" /></Field>
         </div>
-        <Field label="Role" required error={err('role_id')} hint={role?.description}>
+        <Field label={t('Role')} required error={err('role_id')} hint={role?.description ? t(role.description) : null}>
           <Select value={form.role_id} onChange={set('role_id')} required disabled={self}>
-            {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            {roles.map((r) => <option key={r.id} value={r.id}>{t(r.name)}</option>)}
           </Select>
         </Field>
-        {self && <p className="-mt-2 text-xs text-slate-500">You can’t change your own role — ask another admin.</p>}
+        {self && <p className="-mt-2 text-sm text-slate-500">{t('You can\'t change your own role. Ask another owner (Admin).')}</p>}
         {role?.permissions?.length > 0 && <PermissionSummary role={role} compact />}
         {isNew && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Password" required error={err('password')}>
+            <Field label={t('Password')} required error={err('password')}>
               <Input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" required />
             </Field>
-            <Field label="Confirm password" required error={err('confirm')}>
+            <Field label={t('Type password again')} required error={err('confirm')}>
               <Input type="password" value={form.confirm} onChange={set('confirm')} autoComplete="new-password" required />
             </Field>
             <div className="sm:col-span-2 -mt-2"><PasswordRules value={form.password} /></div>
           </div>
         )}
         {!self && (
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" className="size-4 rounded border-slate-300 text-brand-600" checked={form.is_active} onChange={set('is_active')} />
-            Active — can sign in
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-slate-700">
+            <input type="checkbox" className="size-5 rounded border-slate-300 text-brand-600" checked={form.is_active} onChange={set('is_active')} />
+            {t('Allowed to sign in')}
           </label>
         )}
       </form>
@@ -273,20 +279,21 @@ function UserForm({ user, roles, onClose }) {
 }
 
 function ResetPassword({ user, onClose }) {
+  const t = useT();
   const toast = useToast();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState(null);
   const reset = useMutation({
     mutationFn: () => api.post(`/users/${user.id}/reset-password`, { password }),
-    onSuccess: () => { toast(`Password reset for ${user.name}.`); onClose(); },
+    onSuccess: () => { toast(t('New password set for {name}.', { name: user.name })); onClose(); },
     onError: setError,
   });
   const submit = (e) => {
     e.preventDefault();
     setError(null);
-    if (!passwordOk(password)) return setError(new Error('Password doesn’t meet the rules below.'));
-    if (password !== confirm) return setError(new Error('Passwords don’t match.'));
+    if (!passwordOk(password)) return setError(new Error(t('This password is too weak. Follow the rules below.')));
+    if (password !== confirm) return setError(new Error(t('The two passwords are not the same.')));
     reset.mutate();
     return undefined;
   };
@@ -295,19 +302,19 @@ function ResetPassword({ user, onClose }) {
       open
       onClose={onClose}
       size="sm"
-      title={`Reset password — ${user.name}`}
+      title={t('New password for {name}', { name: user.name })}
       footer={(
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="reset-form" loading={reset.isPending}>Reset password</Button>
+          <Button variant="secondary" onClick={onClose}>{t('Cancel')}</Button>
+          <Button type="submit" form="reset-form" loading={reset.isPending}>{t('Set new password')}</Button>
         </>
       )}
     >
       <form id="reset-form" onSubmit={submit} className="space-y-4">
-        <p className="text-sm text-slate-600">{user.name} will be signed out on every device and must sign in with the new password. Tell them the new password in person.</p>
+        <p className="text-base text-slate-600">{t('{name} will be signed out and must sign in with the new password. Tell them the new password yourself.', { name: user.name })}</p>
         <ErrorBox error={error} />
-        <Field label="New password" required><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus /></Field>
-        <Field label="Confirm new password" required><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" /></Field>
+        <Field label={t('New password')} required><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus /></Field>
+        <Field label={t('Type new password again')} required><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" /></Field>
         <PasswordRules value={password} />
       </form>
     </Modal>
@@ -323,25 +330,26 @@ function groupByModule(perms) {
 }
 
 function PermissionSummary({ role, compact }) {
+  const t = useT();
   const groups = groupByModule(role.permissions);
   if (compact) {
     return (
-      <div className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-        <div className="mb-1 font-medium text-slate-700">{role.name} can:</div>
-        <div className="flex flex-wrap gap-1">
-          {role.permissions.map((p) => <span key={p.slug} className="rounded bg-white px-1.5 py-0.5 ring-1 ring-slate-200">{p.name}</span>)}
+      <div className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
+        <div className="mb-1.5 font-medium text-slate-700">{t('{role} can:', { role: t(role.name) })}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {role.permissions.map((p) => <span key={p.slug} className="rounded bg-white px-2 py-0.5 ring-1 ring-slate-200">{t(p.name)}</span>)}
         </div>
       </div>
     );
   }
   return (
-    <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
       {groups.map(([module, perms]) => (
         <div key={module}>
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{moduleLabel(module)}</div>
-          <ul className="space-y-1">
+          <div className="mb-1.5 text-sm font-semibold text-slate-500">{t(moduleLabel(module))}</div>
+          <ul className="space-y-1.5">
             {perms.map((p) => (
-              <li key={p.slug} className="flex items-center gap-1.5 text-sm text-slate-700"><Check className="size-3.5 text-emerald-600" />{p.name}</li>
+              <li key={p.slug} className="flex items-start gap-2 text-sm text-slate-700"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" />{t(p.name)}</li>
             ))}
           </ul>
         </div>
@@ -351,23 +359,24 @@ function PermissionSummary({ role, compact }) {
 }
 
 function RolesList() {
+  const t = useT();
   const roles = useRoles();
   if (roles.isLoading) return <Loading />;
   if (roles.error) return <ErrorBox error={roles.error} />;
-  if (!roles.data?.length) return <Card><EmptyState icon={ShieldCheck} title="No roles set up" /></Card>;
+  if (!roles.data?.length) return <Card><EmptyState icon={ShieldCheck} title={t('No roles set up')} /></Card>;
   return (
     <div className="space-y-5">
-      <p className="text-sm text-slate-500">Roles are fixed. Pick the one that fits each person when you add them — give the Admin role only to people you fully trust.</p>
+      <p className="text-base text-slate-600">{t('Each staff member gets one role. The role decides what they can do. Give the owner (Admin) role only to people you fully trust.')}</p>
       {roles.data.map((r) => (
         <Card key={r.id}>
           <CardHeader
-            title={<span className="flex items-center gap-2">{r.name} <Badge color={roleColor(r.name)}>{r.users_count ?? 0} {r.users_count === 1 ? 'person' : 'people'}</Badge></span>}
-            subtitle={r.description}
+            title={<span className="flex flex-wrap items-center gap-2">{t(r.name)} <Badge color={roleColor(r.name)}>{r.users_count === 1 ? t('1 person') : t('{n} people', { n: r.users_count ?? 0 })}</Badge></span>}
+            subtitle={r.description ? t(r.description) : null}
           />
           <div className="p-5">
             {r.permissions?.length
               ? <PermissionSummary role={r} />
-              : <p className="text-sm text-slate-500">{r.permissions ? 'This role has no permissions.' : 'Permission details aren’t available.'}</p>}
+              : <p className="text-sm text-slate-500">{r.permissions ? t('This role can\'t do anything yet.') : t('Details are not available.')}</p>}
           </div>
         </Card>
       ))}

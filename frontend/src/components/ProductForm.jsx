@@ -1,18 +1,35 @@
-// Create-product modal. Used from Products and from the POS when an
+// Create-product modal. Used from Products and from the POS / Purchases when an
 // unknown barcode is scanned (initialBarcode pre-fills the barcode).
+// The everyday fields come first in plain words; types (options), serial and
+// expiry tracking live under "More options" so the form stays simple.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
+import { ChevronDown, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShop } from '../lib/shop';
+import { useT } from '../lib/i18n';
 import { useBrands, useCategories } from '../lib/catalog';
 import { Button, ErrorBox, Field, Input, Modal, Select, Textarea, cx, useToast } from './ui';
 
 const emptyRow = (barcode = '') => ({ color: '', size: '', barcode, purchase_price: '', selling_price: '', stock_qty: '', low_stock_threshold: '', serials: '', batch_no: '', expiry_date: '' });
 const serialList = (text) => text.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
+const noEnter = (e) => { if (e.key === 'Enter') e.preventDefault(); }; // barcode scanners press Enter
+
+function CheckRow({ checked, onChange, title, hint }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg p-2 text-sm hover:bg-slate-50">
+      <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-brand-600" checked={checked} onChange={onChange} />
+      <span>
+        <span className="block font-medium text-slate-800">{title}</span>
+        {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
 
 // hideStock: opening stock is added by the caller (e.g. a purchase), so don't ask for it.
 export default function ProductForm({ open, onClose, onSaved, initialBarcode = '', initialName = '', hideStock = false }) {
+  const t = useT();
   const shop = useShop();
   const toast = useToast();
   const qc = useQueryClient();
@@ -21,6 +38,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
 
   const [form, setForm] = useState({});
   const [hasOptions, setHasOptions] = useState(false);
+  const [more, setMore] = useState(false);
   const [rows, setRows] = useState([emptyRow()]);
   const [quick, setQuick] = useState({ a: '', b: '' });
   const [image, setImage] = useState(null);
@@ -32,6 +50,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
     if (!open) return;
     setForm({ name: initialName, category_id: '', brand_id: '', unit: shop.defaultUnit, description: '', track_serial: false, track_expiry: false, warranty_months: '' });
     setHasOptions(false);
+    setMore(false);
     setRows([emptyRow(initialBarcode)]);
     setQuick({ a: '', b: '' });
     setImage(null);
@@ -41,6 +60,9 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
 
   const fractional = shop.isFractional(form.unit);
   const step = fractional ? '0.001' : '1';
+  const unitName = t(shop.unitLabel(form.unit));
+  const opt1 = t(shop.option1);
+  const opt2 = t(shop.option2);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setRow = (i, k, v) => setRows((r) => r.map((row, j) => (j === i ? { ...row, [k]: v } : row)));
 
@@ -95,7 +117,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
         product = (await api.upload(`/products/${product.id}/image`, fd)).data;
       }
       qc.invalidateQueries({ queryKey: ['products'] });
-      toast(`${product.name} added`);
+      toast(t('{name} added', { name: product.name }));
       onSaved?.(product);
       onClose();
     } catch (err) {
@@ -106,138 +128,179 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
   };
 
   const noCategories = !categories.isLoading && !categories.data?.length;
+  const showMore = more || hasOptions || form.track_serial || form.track_expiry;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       size="lg"
-      title="Add product"
+      title={t('Add new item')}
       footer={(
         <>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="product-form" loading={saving}>Save product</Button>
+          <Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button>
+          <Button type="submit" form="product-form" size="lg" loading={saving}>{t('Save item')}</Button>
         </>
       )}
     >
       <form id="product-form" onSubmit={submit} className="space-y-5">
         <ErrorBox error={error} />
-        {noCategories && <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Create a category first (Catalog → Categories &amp; brands).</div>}
+        {noCategories && <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800">{t('First make a category (menu: Categories & brands), then add items.')}</div>}
 
+        {/* ---- everyday fields ---- */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Product name" required className="sm:col-span-2">
-            <Input ref={nameRef} required maxLength={255} value={form.name || ''} onChange={set('name')} placeholder="e.g. Basmati Rice, Hammer 16oz, Samsung A15" />
+          <Field label={t('Item name')} required className="sm:col-span-2">
+            <Input ref={nameRef} required maxLength={255} className="h-12 text-base" value={form.name || ''} onChange={set('name')} placeholder={t('e.g. Basmati rice, Hammer, Samsung A15')} />
           </Field>
-          <Field label="Category" required>
+
+          {!hasOptions ? (
+            <>
+              <Field label={t('Selling price')} required hint={t('What the customer pays (Rs)')}>
+                <Input type="number" min="0" step="0.01" required className="h-12 text-lg font-semibold" value={rows[0].selling_price} onChange={(e) => setRow(0, 'selling_price', e.target.value)} />
+              </Field>
+              <Field label={t('Buying price (cost)')} hint={t('What you paid (Rs) — used to work out profit')}>
+                <Input type="number" min="0" step="0.01" className="h-12 text-lg" value={rows[0].purchase_price} onChange={(e) => setRow(0, 'purchase_price', e.target.value)} />
+              </Field>
+              {hideStock ? null : form.track_serial ? (
+                <Field label={t('Serial / IMEI numbers in stock ({n})', { n: serialList(rows[0].serials).length })} hint={t('Scan or type one per line. Stock = how many numbers you enter.')} className="sm:col-span-2">
+                  <Textarea rows={3} className="font-mono" dir="ltr" value={rows[0].serials} onChange={(e) => setRow(0, 'serials', e.target.value)} placeholder={'356789012345678\n356789012345679'} />
+                </Field>
+              ) : (
+                <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: unitName })}>
+                  <Input type="number" min="0" step={step} className="h-12 text-lg" value={rows[0].stock_qty} onChange={(e) => setRow(0, 'stock_qty', e.target.value)} />
+                </Field>
+              )}
+              <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className={hideStock || form.track_serial ? 'sm:col-span-2' : undefined}>
+                <div className="relative">
+                  <ScanBarcode className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                  <Input className="h-12 ps-10 font-mono" dir="ltr" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={noEnter} placeholder={t('Scan or type barcode')} />
+                </div>
+              </Field>
+              {form.track_expiry && !hideStock && (
+                <>
+                  <Field label={t('Batch no. (for this stock)')}><Input value={rows[0].batch_no} onChange={(e) => setRow(0, 'batch_no', e.target.value)} /></Field>
+                  <Field label={t('Expiry date (for this stock)')}><Input type="date" value={rows[0].expiry_date} onChange={(e) => setRow(0, 'expiry_date', e.target.value)} /></Field>
+                </>
+              )}
+            </>
+          ) : (
+            <p className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-800 sm:col-span-2">{t('This item comes in different types — set the price and stock of each type below.')}</p>
+          )}
+
+          <Field label={t('Category')} required>
             <Select required value={form.category_id || ''} onChange={set('category_id')}>
-              <option value="">Choose…</option>
+              <option value="">{t('Choose…')}</option>
               {(categories.data || []).map((c) => <option key={c.id} value={c.id}>{c.path}</option>)}
             </Select>
           </Field>
-          <Field label="Brand">
-            <Select value={form.brand_id || ''} onChange={set('brand_id')}>
-              <option value="">No brand</option>
-              {(brands.data || []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </Select>
-          </Field>
-          <Field label="Sold by" hint={fractional ? 'Decimal quantities allowed (e.g. 1.5)' : 'Whole quantities only'}>
+          <Field label={t('Sold by')} hint={fractional ? t('You can sell part of it (e.g. 1.5)') : t('Sold in whole numbers only')}>
             <Select value={form.unit || 'pcs'} onChange={set('unit')}>
-              {units.map((u) => <option key={u.code} value={u.code}>{u.label}</option>)}
+              {units.map((u) => <option key={u.code} value={u.code}>{t(u.label)}</option>)}
             </Select>
           </Field>
-          <Field label="Photo">
-            <Input type="file" accept="image/png,image/jpeg,image/webp" className="pt-2" onChange={(e) => setImage(e.target.files?.[0] || null)} />
-          </Field>
         </div>
 
-        {(shop.features.serials || shop.features.expiry) && (
-          <div className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
-            {shop.features.serials && (
-              <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" checked={!!form.track_serial} onChange={(e) => setForm((f) => ({ ...f, track_serial: e.target.checked, unit: e.target.checked && shop.isFractional(f.unit) ? 'pcs' : f.unit }))} />
-                <span><span className="font-medium text-slate-800">Track serial / IMEI numbers</span><span className="block text-xs text-slate-500">Each unit has its own number (mobiles, laptops, vehicles).</span></span>
-              </label>
-            )}
-            {shop.features.expiry && (
-              <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" checked={!!form.track_expiry} onChange={(e) => setForm((f) => ({ ...f, track_expiry: e.target.checked }))} />
-                <span><span className="font-medium text-slate-800">Track batch &amp; expiry date</span><span className="block text-xs text-slate-500">Sells the earliest-expiring stock first and warns before expiry.</span></span>
-              </label>
-            )}
-            {form.track_serial && (
-              <Field label="Warranty (months)" hint="Printed on the receipt with the serial number">
-                <Input type="number" min="0" max="240" step="1" value={form.warranty_months} onChange={set('warranty_months')} placeholder="e.g. 12" />
-              </Field>
-            )}
-          </div>
-        )}
+        {/* ---- more options (secondary) ---- */}
+        <div className="rounded-xl border border-slate-200">
+          <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={showMore} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start">
+            <span>
+              <span className="block font-medium text-slate-800">{t('More options (if you need them)')}</span>
+              <span className="block text-xs text-slate-500">{t('Brand, photo, low stock warning, different types, serial numbers')}</span>
+            </span>
+            <ChevronDown className={cx('size-5 shrink-0 text-slate-400 transition', showMore && 'rotate-180')} />
+          </button>
 
-        <div className="flex rounded-lg bg-slate-100 p-1 text-sm font-medium">
-          {[[false, 'Single item'], [true, `Has options (${shop.option1} / ${shop.option2})`]].map(([v, label]) => (
-            <button key={label} type="button" onClick={() => setHasOptions(v)} className={cx('flex-1 rounded-md px-3 py-2 transition', hasOptions === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{label}</button>
-          ))}
-        </div>
-
-        {!hasOptions ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Barcode" hint="Scan the barcode on the item, or leave empty to generate one." className="sm:col-span-2">
-              <div className="relative">
-                <ScanBarcode className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input className="pl-9 font-mono" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} placeholder="Scan or type barcode" />
+          {showMore && (
+            <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t('Brand')}>
+                  <Select value={form.brand_id || ''} onChange={set('brand_id')}>
+                    <option value="">{t('No brand')}</option>
+                    {(brands.data || []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </Select>
+                </Field>
+                <Field label={t('Photo')}>
+                  <Input type="file" accept="image/png,image/jpeg,image/webp" className="pt-2" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                </Field>
+                {!hasOptions && (
+                  <Field label={t('Warn me when stock is below')} hint={t('Leave empty to use 5')}>
+                    <Input type="number" min="0" step={step} placeholder="5" value={rows[0].low_stock_threshold} onChange={(e) => setRow(0, 'low_stock_threshold', e.target.value)} />
+                  </Field>
+                )}
+                <Field label={t('Description')} className="sm:col-span-2"><Textarea value={form.description || ''} onChange={set('description')} rows={2} /></Field>
               </div>
-            </Field>
-            <Field label="Cost price (Rs)"><Input type="number" min="0" step="0.01" value={rows[0].purchase_price} onChange={(e) => setRow(0, 'purchase_price', e.target.value)} /></Field>
-            <Field label="Selling price (Rs)" required><Input type="number" min="0" step="0.01" required value={rows[0].selling_price} onChange={(e) => setRow(0, 'selling_price', e.target.value)} /></Field>
-            {hideStock ? null : form.track_serial ? (
-              <Field label={`Serial / IMEI numbers in stock (${serialList(rows[0].serials).length})`} hint="Scan or type one per line. Opening stock = number of serials." className="sm:col-span-2">
-                <Textarea rows={3} className="font-mono" value={rows[0].serials} onChange={(e) => setRow(0, 'serials', e.target.value)} placeholder={'356789012345678\n356789012345679'} />
-              </Field>
-            ) : (
-              <Field label={`Opening stock (${shop.unitLabel(form.unit)})`}><Input type="number" min="0" step={step} value={rows[0].stock_qty} onChange={(e) => setRow(0, 'stock_qty', e.target.value)} /></Field>
-            )}
-            {form.track_expiry && !hideStock && (
-              <>
-                <Field label="Batch no. (opening stock)"><Input value={rows[0].batch_no} onChange={(e) => setRow(0, 'batch_no', e.target.value)} /></Field>
-                <Field label="Expiry date (opening stock)"><Input type="date" value={rows[0].expiry_date} onChange={(e) => setRow(0, 'expiry_date', e.target.value)} /></Field>
-              </>
-            )}
-            <Field label="Low stock alert at"><Input type="number" min="0" step={step} placeholder="5" value={rows[0].low_stock_threshold} onChange={(e) => setRow(0, 'low_stock_threshold', e.target.value)} /></Field>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid gap-3 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <Field label={`${shop.option1} values`} hint="Comma separated"><Input value={quick.a} onChange={(e) => setQuick((q) => ({ ...q, a: e.target.value }))} placeholder="e.g. Red, Blue" /></Field>
-              <Field label={`${shop.option2} values`} hint="Comma separated"><Input value={quick.b} onChange={(e) => setQuick((q) => ({ ...q, b: e.target.value }))} placeholder="e.g. S, M, L" /></Field>
-              <Button variant="secondary" icon={Wand2} onClick={generate} className="mb-5">Make rows</Button>
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>{[shop.option1, shop.option2, 'Barcode', 'Cost', 'Price *', 'Stock', ''].map((h, i) => <th key={i} className="px-2 py-2 text-left font-semibold">{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={i} className="border-t border-slate-100">
-                      <td className="p-1.5"><Input className="h-9" value={r.color} onChange={(e) => setRow(i, 'color', e.target.value)} /></td>
-                      <td className="p-1.5"><Input className="h-9" value={r.size} onChange={(e) => setRow(i, 'size', e.target.value)} /></td>
-                      <td className="p-1.5"><Input className="h-9 font-mono" placeholder="Auto" value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} /></td>
-                      <td className="p-1.5"><Input className="h-9 w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
-                      <td className="p-1.5"><Input className="h-9 w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
-                      <td className="p-1.5"><Input className="h-9 w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>
-                      <td className="p-1.5 text-right">
-                        <button type="button" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label="Remove row"><Trash2 className="size-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button variant="secondary" size="sm" icon={Plus} onClick={() => setRows((r) => [...r, { ...emptyRow(), purchase_price: r[r.length - 1]?.purchase_price || '', selling_price: r[r.length - 1]?.selling_price || '' }])}>Add row</Button>
-            {(form.track_serial || form.track_expiry) && <p className="text-xs text-slate-500">With options, add stock{form.track_serial ? ' (and serial numbers)' : ''}{form.track_expiry ? ' with batch & expiry' : ''} through Purchases after saving.</p>}
-          </div>
-        )}
 
-        <Field label="Description"><Textarea value={form.description || ''} onChange={set('description')} rows={2} /></Field>
+              <div className="space-y-1 border-t border-slate-100 pt-3">
+                <CheckRow
+                  checked={hasOptions}
+                  onChange={(e) => setHasOptions(e.target.checked)}
+                  title={t('This item comes in different types ({a} / {b})', { a: opt1, b: opt2 })}
+                  hint={t('Each type gets its own price, stock and barcode.')}
+                />
+                {shop.features.serials && (
+                  <CheckRow
+                    checked={!!form.track_serial}
+                    onChange={(e) => { const on = e.target.checked; setForm((f) => ({ ...f, track_serial: on, unit: on && shop.isFractional(f.unit) ? 'pcs' : f.unit })); }}
+                    title={t('Track serial / IMEI numbers')}
+                    hint={t('Each piece has its own number (mobiles, laptops, bikes).')}
+                  />
+                )}
+                {shop.features.expiry && (
+                  <CheckRow
+                    checked={!!form.track_expiry}
+                    onChange={(e) => { const on = e.target.checked; setForm((f) => ({ ...f, track_expiry: on })); }}
+                    title={t('Track batch & expiry date')}
+                    hint={t('Sells the stock that expires first, and warns you before it expires.')}
+                  />
+                )}
+                {form.track_serial && (
+                  <div className="ps-10 sm:w-1/2">
+                    <Field label={t('Warranty (months)')} hint={t('Printed on the receipt with the serial number')}>
+                      <Input type="number" min="0" max="240" step="1" value={form.warranty_months} onChange={set('warranty_months')} placeholder="12" />
+                    </Field>
+                  </div>
+                )}
+              </div>
+
+              {hasOptions && (
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                  <h4 className="font-semibold text-slate-800">{t('Types of this item')}</h4>
+                  <div className="grid gap-3 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                    <Field label={t('{name} — write them with commas', { name: opt1 })}><Input value={quick.a} onChange={(e) => setQuick((q) => ({ ...q, a: e.target.value }))} placeholder={t('e.g. Red, Blue')} /></Field>
+                    <Field label={t('{name} — write them with commas', { name: opt2 })}><Input value={quick.b} onChange={(e) => setQuick((q) => ({ ...q, b: e.target.value }))} placeholder={t('e.g. Small, Large')} /></Field>
+                    <Button variant="secondary" icon={Wand2} onClick={generate}>{t('Make rows')}</Button>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg border border-slate-200">
+                    <table className="w-full min-w-[720px] text-sm">
+                      <thead className="bg-slate-50 text-xs text-slate-500">
+                        <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, t('Stock'), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={i} className="border-t border-slate-100">
+                            <td className="p-1.5"><Input value={r.color} onChange={(e) => setRow(i, 'color', e.target.value)} /></td>
+                            <td className="p-1.5"><Input value={r.size} onChange={(e) => setRow(i, 'size', e.target.value)} /></td>
+                            <td className="p-1.5"><Input className="font-mono" dir="ltr" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
+                            <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
+                            <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
+                            <td className="p-1.5"><Input className="w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>
+                            <td className="p-1.5 text-end">
+                              <button type="button" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="rounded-lg p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label={t('Remove this type')} title={t('Remove this type')}><Trash2 className="size-5" /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Button variant="secondary" icon={Plus} onClick={() => setRows((r) => [...r, { ...emptyRow(), purchase_price: r[r.length - 1]?.purchase_price || '', selling_price: r[r.length - 1]?.selling_price || '' }])}>{t('Add another type')}</Button>
+                  {form.track_serial
+                    ? <p className="text-xs text-slate-500">{t('After saving, add the stock and serial numbers from "Buy stock (purchases)".')}</p>
+                    : form.track_expiry && <p className="text-xs text-slate-500">{t('After saving, add stock with batch & expiry from "Buy stock (purchases)".')}</p>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </form>
     </Modal>
   );

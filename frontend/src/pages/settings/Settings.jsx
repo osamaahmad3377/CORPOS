@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Lightbulb, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store } from 'lucide-react';
+import { Briefcase, Check, Languages, Lightbulb, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
+import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
 import {
@@ -23,13 +24,15 @@ const DEFAULTS = {
   features: { restaurant: '0', serials: '0', expiry: '0' },
 };
 
+// Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
 const SECTIONS = [
   { key: 'shop', label: 'Shop details', icon: Store, groups: ['shop'], preview: 'receipt' },
   { key: 'receipt', label: 'Receipt', icon: ReceiptText, groups: ['receipt'], preview: 'receipt' },
   { key: 'tax', label: 'Tax', icon: Percent, groups: ['tax'], preview: 'receipt' },
-  { key: 'barcode', label: 'Barcode labels', icon: ScanBarcode, groups: ['barcode'], preview: 'label' },
-  { key: 'business', label: 'Business & products', icon: Briefcase, groups: ['business', 'product'] },
-  { key: 'features', label: 'Features', icon: Puzzle, groups: ['features'] },
+  { key: 'barcode', label: 'Barcode stickers', icon: ScanBarcode, groups: ['barcode'], preview: 'label' },
+  { key: 'business', label: 'Your business & items', icon: Briefcase, groups: ['business', 'product'] },
+  { key: 'features', label: 'Extra tools', icon: Puzzle, groups: ['features'] },
+  { key: 'language', label: 'Language', icon: Languages, groups: [] },
 ];
 
 function normalize(s) {
@@ -48,6 +51,7 @@ const sameGroups = (a, b, groups) => groups.every((g) => Object.keys(DEFAULTS[g]
 
 export default function Settings() {
   const shop = useShop();
+  const t = useT();
   const qc = useQueryClient();
   const [saved, setSaved] = useState(null); // last values from the server
   const [draft, setDraft] = useState(null); // what's on screen
@@ -86,8 +90,8 @@ export default function Settings() {
 
   return (
     <Page>
-      <PageHeader title="Settings" subtitle="Your shop's details, receipts, tax and how products are described." />
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+      <PageHeader title={t('Settings')} subtitle={t('Set up your shop name, bill, tax, barcode stickers and language.')} />
+      <div className="grid gap-6 lg:grid-cols-[minmax(200px,max-content)_1fr]">
         <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
           {SECTIONS.map(({ key, label, icon: Icon, groups }) => {
             const dirty = !sameGroups(draft, saved, groups);
@@ -96,13 +100,13 @@ export default function Settings() {
                 key={key}
                 to={`/settings/${key}`}
                 className={({ isActive }) => cx(
-                  'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors',
                   isActive ? 'bg-white text-brand-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70 hover:text-slate-900',
                 )}
               >
-                <Icon className="size-4 shrink-0" />
-                <span className="flex-1 whitespace-nowrap">{label}</span>
-                {dirty && <span className="size-2 rounded-full bg-amber-500" title="Unsaved changes" />}
+                <Icon className="size-5 shrink-0" />
+                <span className="flex-1 whitespace-nowrap">{t(label)}</span>
+                {dirty && <span className="size-2.5 rounded-full bg-amber-500" title={t('Not saved yet')} aria-label={t('Not saved yet')} />}
               </NavLink>
             );
           })}
@@ -125,6 +129,7 @@ function mergeInto(old, draft) {
 function Section({ draft, saved, setDraft, onSaved }) {
   const { section } = useParams();
   const { can } = useAuth();
+  const t = useT();
   const toast = useToast();
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -132,6 +137,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
 
   useEffect(() => { setErrors({}); }, [section]);
   if (!meta) return <Navigate to="/settings/shop" replace />;
+  if (section === 'language') return <LanguageCard />;
 
   const canEdit = can('settings.manage');
   const dirty = !sameGroups(draft, saved, meta.groups);
@@ -155,7 +161,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
     try {
       const res = await api.put('/settings', body);
       await onSaved(res, meta.groups);
-      toast(`${meta.label} saved`);
+      toast(t('{section} saved', { section: t(meta.label) }));
     } catch (ex) {
       setErrors(ex.errors || {});
       toast(ex.message, 'error');
@@ -176,9 +182,9 @@ function Section({ draft, saved, setDraft, onSaved }) {
           </fieldset>
           {canEdit && (
             <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-3">
-              {dirty && <span className="mr-auto text-sm text-amber-700">You have unsaved changes</span>}
-              <Button variant="ghost" icon={RotateCcw} disabled={!dirty || busy} onClick={discard}>Discard</Button>
-              <Button type="submit" icon={Save} loading={busy} disabled={!dirty}>Save changes</Button>
+              {dirty && <span className="me-auto text-sm text-amber-700">{t('You changed something. Press Save to keep it.')}</span>}
+              <Button variant="ghost" icon={RotateCcw} disabled={!dirty || busy} onClick={discard}>{t('Undo changes')}</Button>
+              <Button type="submit" size="lg" icon={Save} loading={busy} disabled={!dirty}>{t('Save')}</Button>
             </div>
           )}
         </form>
@@ -199,88 +205,92 @@ function Toggle({ checked, onChange, label, hint }) {
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={cx('relative mt-0.5 inline-flex h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50', checked ? 'bg-brand-600' : 'bg-slate-300')}
+        className={cx('relative mt-0.5 inline-flex h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50', checked ? 'bg-brand-600' : 'bg-slate-300')}
       >
-        <span className={cx('absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform', checked ? 'translate-x-5.5' : 'translate-x-0.5')} />
+        <span className={cx('absolute start-0.5 top-0.5 size-6 rounded-full bg-white shadow transition-transform', checked ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0')} />
       </button>
       <span>
-        <span className="block text-sm font-medium text-slate-800">{label}</span>
-        {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+        <span className="block text-[15px] font-medium text-slate-800">{label}</span>
+        {hint && <span className="block text-sm text-slate-500">{hint}</span>}
       </span>
     </label>
   );
 }
 
 function FeaturesForm({ d, set }) {
+  const t = useT();
   const on = (k) => d.features[k] === '1';
   const toggle = (k) => (v) => set('features', k)(v ? '1' : '0');
   return (
     <>
-      <CardHeader title="Features" subtitle="Switch on the extra tools your trade needs. Turning one off hides it — no data is deleted." />
-      <div className="space-y-5 px-5 py-5">
-        <Toggle checked={on('restaurant')} onChange={toggle('restaurant')} label="Restaurant mode" hint="Dine-in / takeaway / delivery, table numbers, kitchen order slips (KOT) and open orders at the POS." />
-        <Toggle checked={on('serials')} onChange={toggle('serials')} label="Serial / IMEI numbers" hint="Track each unit of phones, laptops, appliances or vehicles by its serial/IMEI/chassis number, with warranty on the receipt." />
-        <Toggle checked={on('expiry')} onChange={toggle('expiry')} label="Batches & expiry dates" hint="Record batch and expiry when buying; sells the earliest-expiring stock first and lists what is about to expire." />
-        <p className="text-xs text-slate-500">After switching a feature on, open a product and tick &ldquo;Track serial / IMEI&rdquo; or &ldquo;Track batch &amp; expiry&rdquo; for the items that need it.</p>
+      <CardHeader title={t('Extra tools')} subtitle={t('Switch on only what your shop needs. Switching one off just hides it — nothing is deleted.')} />
+      <div className="space-y-6 px-5 py-5">
+        <Toggle checked={on('restaurant')} onChange={toggle('restaurant')} label={t('Restaurant mode')} hint={t('Dine-in, takeaway and delivery, table numbers, kitchen slips and open orders on the Sell screen.')} />
+        <Toggle checked={on('serials')} onChange={toggle('serials')} label={t('Serial / IMEI numbers')} hint={t('Keep the serial, IMEI or chassis number of each phone, laptop, appliance or vehicle. Warranty prints on the receipt.')} />
+        <Toggle checked={on('expiry')} onChange={toggle('expiry')} label={t('Batches & expiry dates')} hint={t('Write the batch and expiry date when stock arrives. The oldest stock is sold first, and you can see what will expire soon.')} />
+        <p className="text-sm text-slate-500">{t('After switching one on, open an item and tick “Track serial / IMEI” or “Track batch & expiry” for the items that need it.')}</p>
       </div>
     </>
   );
 }
 
 function ShopForm({ d, set, err }) {
+  const t = useT();
   return (
     <>
-      <CardHeader title="Shop details" subtitle="Printed at the top of every receipt." />
+      <CardHeader title={t('Shop details')} subtitle={t('Printed at the top of every receipt.')} />
       <div className="grid gap-4 p-5 sm:grid-cols-2">
-        <Field label="Shop name" className="sm:col-span-2" error={err('shop', 'name')}><Input maxLength={255} value={d.shop.name} onChange={set('shop', 'name')} placeholder="e.g. Madina General Store" /></Field>
-        <Field label="Phone" error={err('shop', 'phone')}><Input maxLength={50} value={d.shop.phone} onChange={set('shop', 'phone')} placeholder="0300 1234567" /></Field>
-        <Field label="Email" error={err('shop', 'email')}><Input type="email" maxLength={255} value={d.shop.email} onChange={set('shop', 'email')} placeholder="Optional" /></Field>
-        <Field label="Address" className="sm:col-span-2" error={err('shop', 'address')}><Textarea rows={2} maxLength={500} value={d.shop.address} onChange={set('shop', 'address')} placeholder="Shop #, market, city" /></Field>
-        <Field label="Website or Facebook page" className="sm:col-span-2" error={err('shop', 'website')}><Input maxLength={255} value={d.shop.website} onChange={set('shop', 'website')} placeholder="Optional" /></Field>
+        <Field label={t('Shop name')} className="sm:col-span-2" error={err('shop', 'name')}><Input maxLength={255} value={d.shop.name} onChange={set('shop', 'name')} placeholder={t('e.g. Madina General Store')} /></Field>
+        <Field label={t('Phone')} error={err('shop', 'phone')}><Input type="tel" dir="ltr" maxLength={50} value={d.shop.phone} onChange={set('shop', 'phone')} placeholder="0300 1234567" className="text-start" /></Field>
+        <Field label={t('Email')} error={err('shop', 'email')}><Input type="email" maxLength={255} value={d.shop.email} onChange={set('shop', 'email')} placeholder={t('Optional')} /></Field>
+        <Field label={t('Address')} className="sm:col-span-2" error={err('shop', 'address')}><Textarea rows={2} maxLength={500} value={d.shop.address} onChange={set('shop', 'address')} placeholder={t('Shop #, market, city')} /></Field>
+        <Field label={t('Website or Facebook page')} className="sm:col-span-2" error={err('shop', 'website')}><Input dir="ltr" maxLength={255} value={d.shop.website} onChange={set('shop', 'website')} placeholder={t('Optional')} className="text-start" /></Field>
       </div>
     </>
   );
 }
 
 function ReceiptForm({ d, set, err }) {
+  const t = useT();
   return (
     <>
-      <CardHeader title="Receipt" subtitle="What customers see on their printed bill." />
-      <div className="space-y-4 p-5">
-        <Field label="Paper width" hint="Match your thermal printer's roll." error={err('receipt', 'paper_width')}>
-          <div className="grid grid-cols-2 gap-2 sm:w-80">
+      <CardHeader title={t('Receipt')} subtitle={t('What customers see on their printed bill.')} />
+      <div className="space-y-5 p-5">
+        <Field label={t('Paper size')} hint={t('Pick the width of the paper roll in your receipt printer.')} error={err('receipt', 'paper_width')}>
+          <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
             {[['58mm', '58 mm (small)'], ['80mm', '80 mm (standard)']].map(([v, l]) => (
               <button key={v} type="button" onClick={() => set('receipt', 'paper_width')(v)}
-                className={cx('rounded-lg border px-3 py-2 text-sm font-medium transition-colors', d.receipt.paper_width === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
-                {l}
+                className={cx('min-h-12 rounded-lg border px-3 py-2 text-[15px] font-medium transition-colors', d.receipt.paper_width === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
+                {t(l)}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Header message" hint="Shown under the shop name, e.g. “Thank you for shopping with us!”" error={err('receipt', 'header')}>
+        <Field label={t('Message at the top')} hint={t('Shown under the shop name, e.g. “Thank you for shopping with us!”')} error={err('receipt', 'header')}>
           <Textarea rows={2} maxLength={500} value={d.receipt.header} onChange={set('receipt', 'header')} />
         </Field>
-        <Field label="Footer message" hint="Shown at the bottom, e.g. your return or exchange policy." error={err('receipt', 'footer')}>
+        <Field label={t('Message at the bottom')} hint={t('Shown at the end, e.g. your return or exchange rule.')} error={err('receipt', 'footer')}>
           <Textarea rows={2} maxLength={500} value={d.receipt.footer} onChange={set('receipt', 'footer')} />
         </Field>
-        <Toggle checked={d.receipt.show_tax_line === '1'} onChange={(v) => set('receipt', 'show_tax_line')(v ? '1' : '0')} label="Show tax line" hint="Prints the tax amount separately when a sale includes tax." />
+        <Toggle checked={d.receipt.show_tax_line === '1'} onChange={(v) => set('receipt', 'show_tax_line')(v ? '1' : '0')} label={t('Show tax on the receipt')} hint={t('Prints the tax amount on its own line when a sale has tax.')} />
       </div>
     </>
   );
 }
 
 function TaxForm({ d, set, err }) {
+  const t = useT();
   const on = d.tax.enabled === '1';
   return (
     <>
-      <CardHeader title="Tax" subtitle="Sales tax added on top of item prices at the till." />
-      <div className="space-y-4 p-5">
-        <Toggle checked={on} onChange={(v) => set('tax', 'enabled')(v ? '1' : '0')} label="Charge tax on sales" hint="Turn off if your prices already include tax or you aren't registered." />
+      <CardHeader title={t('Tax')} subtitle={t('Sales tax added on top of item prices when you make a bill.')} />
+      <div className="space-y-5 p-5">
+        <Toggle checked={on} onChange={(v) => set('tax', 'enabled')(v ? '1' : '0')} label={t('Add tax to sales')} hint={t('Keep this off if your prices already include tax, or you are not registered for tax.')} />
         <div className={cx('grid gap-4 sm:grid-cols-2', !on && 'opacity-50')}>
-          <Field label="Tax name" hint="Printed on receipts, e.g. GST or Sales Tax." error={err('tax', 'label')}>
+          <Field label={t('Tax name')} hint={t('Printed on receipts, e.g. GST or Sales Tax.')} error={err('tax', 'label')}>
             <Input maxLength={50} disabled={!on} value={d.tax.label} onChange={set('tax', 'label')} />
           </Field>
-          <Field label="Rate (%)" error={err('tax', 'percentage')}>
+          <Field label={t('Tax rate (%)')} error={err('tax', 'percentage')}>
             <Input type="number" min="0" max="100" step="0.01" required disabled={!on} value={d.tax.percentage} onChange={set('tax', 'percentage')} />
           </Field>
         </div>
@@ -290,21 +300,22 @@ function TaxForm({ d, set, err }) {
 }
 
 function BarcodeForm({ d, set, err }) {
+  const t = useT();
   return (
     <>
-      <CardHeader title="Barcode labels" subtitle="Defaults for the Barcode labels page. You can still change them each time you print." />
-      <div className="space-y-4 p-5">
-        <Field label="Barcode type" error={err('barcode', 'default_format')}>
+      <CardHeader title={t('Barcode stickers')} subtitle={t('Starting choices for the “Print barcode stickers” page. You can still change them each time you print.')} />
+      <div className="space-y-5 p-5">
+        <Field label={t('Barcode type')} hint={t('If unsure, keep CODE128.')} error={err('barcode', 'default_format')}>
           <Select value={d.barcode.default_format} onChange={set('barcode', 'default_format')}>
-            {Object.entries(FORMATS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            {Object.entries(FORMATS).map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}
           </Select>
         </Field>
-        <Field label="Label size" error={err('barcode', 'default_label_size')}>
+        <Field label={t('Sticker size')} error={err('barcode', 'default_label_size')}>
           <Select value={d.barcode.default_label_size} onChange={set('barcode', 'default_label_size')}>
-            {Object.entries(LABEL_SIZES).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
+            {Object.entries(LABEL_SIZES).map(([k, s]) => <option key={k} value={k}>{t(s.label)}</option>)}
           </Select>
         </Field>
-        <Toggle checked={d.barcode.show_shop_name === '1'} onChange={(v) => set('barcode', 'show_shop_name')(v ? '1' : '0')} label="Print shop name on labels" />
+        <Toggle checked={d.barcode.show_shop_name === '1'} onChange={(v) => set('barcode', 'show_shop_name')(v ? '1' : '0')} label={t('Print shop name on stickers')} />
       </div>
     </>
   );
@@ -312,18 +323,19 @@ function BarcodeForm({ d, set, err }) {
 
 function BusinessForm({ d, set, err }) {
   const shop = useShop();
+  const t = useT();
   const types = shop.meta.business_types || [];
   const units = shop.meta.units || [];
   const [suggest, setSuggest] = useState(null);
-  const current = types.find((t) => t.code === d.business.type);
+  const current = types.find((x) => x.code === d.business.type);
 
   const onType = (e) => {
     const code = e.target.value;
     set('business', 'type')(code);
-    const t = types.find((x) => x.code === code);
-    if (!t) return setSuggest(null);
-    const differs = t.options?.[0] !== d.product.option1_label || t.options?.[1] !== d.product.option2_label || t.unit !== d.product.default_unit;
-    return setSuggest(differs ? t : null);
+    const bt = types.find((x) => x.code === code);
+    if (!bt) return setSuggest(null);
+    const differs = bt.options?.[0] !== d.product.option1_label || bt.options?.[1] !== d.product.option2_label || bt.unit !== d.product.default_unit;
+    return setSuggest(differs ? bt : null);
   };
 
   const apply = () => {
@@ -333,48 +345,49 @@ function BusinessForm({ d, set, err }) {
     setSuggest(null);
   };
 
-  const o1 = d.product.option1_label || 'Option 1';
-  const o2 = d.product.option2_label || 'Option 2';
+  const o1 = t(d.product.option1_label || 'Option 1');
+  const o2 = t(d.product.option2_label || 'Option 2');
   return (
     <>
-      <CardHeader title="Business & products" subtitle="Words that fit your trade, used on product forms, the till and labels." />
-      <div className="space-y-5 p-5">
-        <Field label="Type of business" hint="Changing this doesn't change your existing products or categories." error={err('business', 'type')}>
+      <CardHeader title={t('Your business & items')} subtitle={t('Words that fit your trade. They are used on the item form, the Sell screen and stickers.')} />
+      <div className="space-y-6 p-5">
+        <Field label={t('What kind of shop is this?')} hint={t('Changing this does not change your items or categories.')} error={err('business', 'type')}>
           <Select value={d.business.type} onChange={onType}>
             {!current && <option value={d.business.type}>{d.business.type}</option>}
-            {types.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+            {types.map((x) => <option key={x.code} value={x.code}>{t(x.label)}</option>)}
           </Select>
         </Field>
 
         {suggest && (
           <div className="flex flex-col gap-3 rounded-lg border border-brand-100 bg-brand-50 p-4 sm:flex-row sm:items-center">
-            <Lightbulb className="size-5 shrink-0 text-brand-600" />
-            <div className="flex-1 text-sm text-slate-700">
-              Use the usual setup for <b>{suggest.label}</b>? Options <b>{suggest.options?.[0]}</b> and <b>{suggest.options?.[1]}</b>, sold by <b>{shop.unitLabel(suggest.unit)}</b>.
+            <Lightbulb className="size-6 shrink-0 text-brand-600" />
+            <div className="flex-1 text-[15px] text-slate-700">
+              <div className="font-semibold text-slate-900">{t('Use the usual setup for {type}?', { type: t(suggest.label) })}</div>
+              <div className="mt-1">{t('Item types: {first} and {second}. Sold by: {unit}.', { first: t(suggest.options?.[0] || ''), second: t(suggest.options?.[1] || ''), unit: t(shop.unitLabel(suggest.unit)) })}</div>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setSuggest(null)}>Keep mine</Button>
-              <Button size="sm" onClick={apply}>Use these</Button>
+              <Button variant="secondary" onClick={() => setSuggest(null)}>{t('Keep mine')}</Button>
+              <Button icon={Check} onClick={apply}>{t('Use these')}</Button>
             </div>
           </div>
         )}
 
         <div>
-          <div className="mb-1.5 text-sm font-medium text-slate-700">Product options</div>
-          <p className="mb-3 text-xs text-slate-500">Names for the two ways one product can come in different versions — e.g. Color and Size for clothes, Storage and Model for mobiles, Strength and Pack for medicines. Each version gets its own price, stock and barcode.</p>
+          <div className="mb-1.5 text-sm font-medium text-slate-700">{t('Item types')}</div>
+          <p className="mb-3 text-sm text-slate-500">{t('Some items come in different types — e.g. Color and Size for clothes, Storage and Model for mobiles, Strength and Pack for medicines. Write the two names here. Each type gets its own price, stock and barcode.')}</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="First option" error={err('product', 'option1_label')}><Input maxLength={40} value={d.product.option1_label} onChange={set('product', 'option1_label')} placeholder="e.g. Variant" /></Field>
-            <Field label="Second option" error={err('product', 'option2_label')}><Input maxLength={40} value={d.product.option2_label} onChange={set('product', 'option2_label')} placeholder="e.g. Size" /></Field>
+            <Field label={t('First name')} error={err('product', 'option1_label')}><Input maxLength={40} value={d.product.option1_label} onChange={set('product', 'option1_label')} placeholder={t('e.g. Color')} /></Field>
+            <Field label={t('Second name')} error={err('product', 'option2_label')}><Input maxLength={40} value={d.product.option2_label} onChange={set('product', 'option2_label')} placeholder={t('e.g. Size')} /></Field>
           </div>
-          <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            On product forms you&apos;ll see: <span className="font-medium text-slate-800">{o1}</span> · <span className="font-medium text-slate-800">{o2}</span>
+          <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {t('On the item form you will see:')} <span className="font-medium text-slate-800">{o1}</span> · <span className="font-medium text-slate-800">{o2}</span>
           </div>
         </div>
 
-        <Field label="Default unit for new products" hint="What most of your items are sold by. Each product can still use its own unit." error={err('product', 'default_unit')}>
-          <div className="sm:w-64">
+        <Field label={t('Most items are sold by')} hint={t('Used for new items. Each item can still have its own unit.')} error={err('product', 'default_unit')}>
+          <div className="sm:max-w-xs">
             <Select value={d.product.default_unit} onChange={set('product', 'default_unit')}>
-              {units.map((u) => <option key={u.code} value={u.code}>{u.label}{u.fractional ? ' (allows 1.5 etc.)' : ''}</option>)}
+              {units.map((u) => <option key={u.code} value={u.code}>{u.fractional ? t('{unit} (can be 1.5 etc.)', { unit: t(u.label) }) : t(u.label)}</option>)}
             </Select>
           </div>
         </Field>
@@ -383,15 +396,56 @@ function BusinessForm({ d, set, err }) {
   );
 }
 
+// Language is chosen per computer (saved in this browser), not for the whole
+// shop — the same choice as the English / اردو button at the top.
+function LanguageCard() {
+  const { lang, setLang, t } = useLang();
+  const choices = [
+    { code: 'en', label: 'English', font: 'var(--font-sans)' },
+    { code: 'ur', label: 'اردو', font: 'var(--font-urdu)' },
+  ];
+  return (
+    <div className="max-w-3xl">
+      <Card>
+        <CardHeader title={t('Language')} subtitle={t('Choose the language for menus, buttons and receipts.')} />
+        <div className="space-y-4 p-5">
+          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('Language')}>
+            {choices.map((c) => {
+              const active = lang === c.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setLang(c.code)}
+                  className={cx('flex min-h-16 items-center justify-between gap-3 rounded-xl border-2 px-5 py-3 text-xl font-semibold transition-colors',
+                    active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
+                >
+                  <span lang={c.code} style={{ fontFamily: c.font }}>{c.label}</span>
+                  {active && <Check className="size-6 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-slate-600">{t('This is saved on this computer only. Each computer in the shop can use its own language.')}</p>
+          <p className="text-sm text-slate-500">{t('Item, customer and supplier names stay as you typed them.')}</p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- previews
 
 function ReceiptPreview({ d }) {
   const { user } = useAuth();
+  const t = useT();
   const sale = useMemo(() => {
     const items = [
-      { id: 1, product_name: 'Sample item', color: null, size: null, quantity: 2, unit: 'pcs', unit_price: 150, discount_per_item: 0, total_price: 300 },
-      { id: 2, product_name: 'Item sold by weight', color: null, size: null, quantity: 1.5, unit: 'kg', unit_price: 240, discount_per_item: 0, total_price: 360 },
-      { id: 3, product_name: 'Item with discount', color: null, size: 'Large', quantity: 1, unit: 'pcs', unit_price: 450, discount_per_item: 50, total_price: 400 },
+      { id: 1, product_name: t('Sample item'), color: null, size: null, quantity: 2, unit: 'pcs', unit_price: 150, discount_per_item: 0, total_price: 300 },
+      { id: 2, product_name: t('Item sold by weight'), color: null, size: null, quantity: 1.5, unit: 'kg', unit_price: 240, discount_per_item: 0, total_price: 360 },
+      { id: 3, product_name: t('Item with discount'), color: null, size: t('Large'), quantity: 1, unit: 'pcs', unit_price: 450, discount_per_item: 50, total_price: 400 },
     ];
     const subtotal = items.reduce((a, i) => a + i.total_price, 0);
     const tax = d.tax.enabled === '1' ? Math.round(subtotal * Number(d.tax.percentage || 0)) / 100 : 0;
@@ -401,31 +455,32 @@ function ReceiptPreview({ d }) {
       invoice_number: 'INV-1001', sale_date: new Date().toISOString(), cashier: user?.name, customer: null, items,
       subtotal, discount_amount: 0, tax_amount: tax, grand_total: total, payment_method: 'cash', payment_received: paid, change_amount: paid - total, due_amount: 0,
     };
-  }, [d.tax.enabled, d.tax.percentage, user?.name]);
+  }, [d.tax.enabled, d.tax.percentage, user?.name, t]);
 
   return (
     <div className="xl:sticky xl:top-6">
-      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Receipt preview · {d.receipt.paper_width === '58mm' ? '58' : '80'} mm</div>
+      <div className="mb-2 text-sm font-medium text-slate-500">{t('Receipt preview · {n} mm', { n: d.receipt.paper_width === '58mm' ? '58' : '80' })}</div>
       <div className="overflow-x-auto rounded-xl bg-slate-200/70 p-4">
         <div className="mx-auto w-fit shadow-md">
           <Receipt sale={sale} />
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Sample sale — updates as you type.</p>
+      <p className="mt-2 text-sm text-slate-500">{t('A sample bill — it changes as you type.')}</p>
     </div>
   );
 }
 
 function LabelPreview({ d }) {
   const shop = useShop();
-  const item = { id: 0, product_name: 'Sample product', color: null, size: null, barcode: d.barcode.default_format === 'ean13' ? '8964000123454' : '260100010001', selling_price: '250' };
+  const t = useT();
+  const item = { id: 0, product_name: t('Sample item'), color: null, size: null, barcode: d.barcode.default_format === 'ean13' ? '8964000123454' : '260100010001', selling_price: '250' };
   return (
     <div className="xl:sticky xl:top-6">
-      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Label preview</div>
+      <div className="mb-2 text-sm font-medium text-slate-500">{t('Sticker preview')}</div>
       <div className="flex justify-center rounded-xl bg-slate-200/70 p-6">
         <BarcodeLabel item={item} size={d.barcode.default_label_size} showShop={d.barcode.show_shop_name === '1'} shopName={d.shop.name || shop.shopName} format={d.barcode.default_format} className="shadow-md" />
       </div>
-      <p className="mt-2 text-xs text-slate-500">Shown at actual size on most screens.</p>
+      <p className="mt-2 text-sm text-slate-500">{t('Shown at real size on most screens.')}</p>
     </div>
   );
 }

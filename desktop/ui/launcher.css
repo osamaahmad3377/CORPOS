@@ -95,3 +95,9 @@ a { color: var(--primary); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .card { padding: 22px; } }
+
+/* Urdu next to English on the activation / setup screens */
+@font-face { font-family: "CorePOS Urdu"; src: url("fonts/noto-nastaliq-urdu-arabic-400-normal.woff2") format("woff2"); font-display: swap; }
+.ur-inline, .ur-line { font-family: "CorePOS Urdu", "Noto Nastaliq Urdu", "Segoe UI", sans-serif; direction: rtl; font-weight: 400; color: var(--muted); }
+.ur-inline { margin-inline-start: 6px; font-size: 14px; }
+.ur-line { display: block; margin-top: 4px; line-height: 2; font-size: 15px; }

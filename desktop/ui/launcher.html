@@ -25,37 +25,37 @@
   <!-- activate -->
   <section data-state="activate">
     <h2>Activate CorePOS <span class="ur">پروڈکٹ کی درج کریں</span></h2>
-    <p class="muted">Enter the product key you received from CorePOS. Internet is needed for activation only.</p>
+    <p class="muted">Enter the product key you received from CorePOS. Internet is needed for activation only.<br><span class="ur-line">CorePOS سے ملی ہوئی پروڈکٹ کی یہاں لکھیں۔ انٹرنیٹ صرف ایک بار چاہیے۔</span></p>
     <div class="alert" id="activate-msg" hidden></div>
     <form id="activate-form">
-      <label for="key">Product key</label>
+      <label for="key">Product key <span class="ur-inline">پروڈکٹ کی</span></label>
       <input id="key" autocomplete="off" spellcheck="false" placeholder="CPOS-XXXXX-XXXXX-XXXXX-XXXXX" maxlength="40" required>
-      <button type="submit" class="primary" id="activate-btn">Activate</button>
+      <button type="submit" class="primary" id="activate-btn">Activate · فعال کریں</button>
     </form>
     <div class="machine">
-      <span class="muted">Machine ID</span>
+      <span class="muted">Machine ID · کمپیوٹر نمبر</span>
       <code id="machine-id"></code>
     </div>
-    <p class="help">Need a key or help? <a href="#" data-action="whatsapp">WhatsApp support</a> <span id="support-phone"></span></p>
+    <p class="help">Need a key or help? <a href="#" data-action="whatsapp">WhatsApp support</a> <span id="support-phone"></span><br><span class="ur-line">کی یا مدد چاہیے؟ واٹس ایپ پر رابطہ کریں۔</span></p>
   </section>
 
   <!-- first-run setup -->
   <section data-state="setup">
     <h2>Set up your shop <span class="ur">دکان کی معلومات</span></h2>
-    <p class="muted">This creates your shop and the owner (Admin) login. You can change these later in Settings.</p>
+    <p class="muted">This creates your shop and the owner (Admin) login. You can change these later in Settings.<br><span class="ur-line">اس سے آپ کی دکان اور مالک کا لاگ اِن بنے گا۔ بعد میں سیٹنگز میں بدل سکتے ہیں۔</span></p>
     <div class="alert" id="setup-msg" hidden></div>
     <form id="setup-form" class="grid">
-      <label class="full">Shop name *<input name="shop_name" required maxlength="255"></label>
-      <label class="full">Type of business *<select name="business_type" id="business-type" required></select>
+      <label class="full">Shop name * <span class="ur-inline">دکان کا نام</span><input name="shop_name" required maxlength="255"></label>
+      <label class="full">Type of business * <span class="ur-inline">کاروبار کی قسم</span><select name="business_type" id="business-type" required></select>
         <span class="muted small">Sets up starter categories and product options for your trade. You can change everything later.</span></label>
-      <label>Shop phone<input name="shop_phone" maxlength="50"></label>
-      <label>Shop address<input name="shop_address" maxlength="500"></label>
-      <label class="full">Owner name *<input name="admin_name" required maxlength="255"></label>
-      <label class="full">Login email *<input name="admin_email" type="email" required maxlength="255" placeholder="owner@myshop.pk"></label>
-      <label>Password *<input name="admin_password" type="password" required minlength="8" autocomplete="new-password"></label>
-      <label>Confirm password *<input name="confirm" type="password" required minlength="8" autocomplete="new-password"></label>
-      <p class="muted full small">Password: at least 8 characters with an uppercase letter, a lowercase letter and a number. Write it down — it is needed to log in.</p>
-      <button type="submit" class="primary full" id="setup-btn">Create shop &amp; start</button>
+      <label>Shop phone <span class="ur-inline">دکان کا فون</span><input name="shop_phone" maxlength="50"></label>
+      <label>Shop address <span class="ur-inline">پتہ</span><input name="shop_address" maxlength="500"></label>
+      <label class="full">Owner name * <span class="ur-inline">مالک کا نام</span><input name="admin_name" required maxlength="255"></label>
+      <label class="full">Login email * <span class="ur-inline">لاگ اِن ای میل</span><input name="admin_email" type="email" required maxlength="255" placeholder="owner@myshop.pk"></label>
+      <label>Password * <span class="ur-inline">پاس ورڈ</span><input name="admin_password" type="password" required minlength="8" autocomplete="new-password"></label>
+      <label>Confirm password * <span class="ur-inline">دوبارہ پاس ورڈ</span><input name="confirm" type="password" required minlength="8" autocomplete="new-password"></label>
+      <p class="muted full small">Password: at least 8 characters with an uppercase letter, a lowercase letter and a number. Write it down — it is needed to log in.<br><span class="ur-line">پاس ورڈ کم از کم 8 حروف کا ہو، جس میں بڑا حرف (A)، چھوٹا حرف (a) اور نمبر ہو۔ اسے لکھ کر رکھیں۔</span></p>
+      <button type="submit" class="primary full" id="setup-btn">Create shop &amp; start · دکان بنائیں</button>
     </form>
   </section>
 
@@ -64,8 +64,8 @@
     <h2>Internet connection needed <span class="ur">انٹرنیٹ درکار ہے</span></h2>
     <div class="alert" id="offline-msg"></div>
     <div class="row">
-      <button class="primary" data-action="retry">Retry</button>
-      <button data-action="change-key">Enter a different key</button>
+      <button class="primary" data-action="retry">Retry · دوبارہ کوشش</button>
+      <button data-action="change-key">Enter a different key · دوسری کی</button>
     </div>
     <p class="help">Problem? <a href="#" data-action="whatsapp">WhatsApp support</a></p>
   </section>

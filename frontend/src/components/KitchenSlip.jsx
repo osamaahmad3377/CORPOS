@@ -1,6 +1,7 @@
 // Kitchen order ticket (KOT): what to cook, for which table — no prices.
 import { useShop } from '../lib/shop';
 import { qty, variantLabel } from '../lib/format';
+import { useLang } from '../lib/i18n';
 
 export const ORDER_TYPES = [
   { code: 'dine_in', label: 'Dine-in' },
@@ -12,11 +13,12 @@ export const orderTypeLabel = (code) => ORDER_TYPES.find((t) => t.code === code)
 
 export default function KitchenSlip({ order }) {
   const shop = useShop();
+  const { t, isUrdu } = useLang();
   const width = shop.settings.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
   return (
-    <div className="print-area mx-auto bg-white font-mono text-[13px] leading-snug text-black" style={{ width, padding: '2mm' }}>
-      <div className="text-center text-[15px] font-bold">KITCHEN ORDER</div>
-      <div className="text-center">{orderTypeLabel(order.order_type)}{order.table_no ? ` — Table ${order.table_no}` : ''}</div>
+    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[13px] leading-snug text-black`} style={{ width, padding: '2mm' }}>
+      <div className="text-center text-[15px] font-bold">{t('KITCHEN ORDER')}</div>
+      <div className="text-center">{t(orderTypeLabel(order.order_type))}{order.table_no ? ` — ${t('Table {n}', { n: order.table_no })}` : ''}</div>
       <div className="mt-1 flex justify-between text-[11px]"><span>{order.invoice_number}</span><span>{new Date().toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' })}</span></div>
       <div className="my-2 border-t border-dashed border-black" />
       {order.items.map((it, i) => (
@@ -28,7 +30,7 @@ export default function KitchenSlip({ order }) {
       {order.notes && (
         <>
           <div className="my-2 border-t border-dashed border-black" />
-          <div>Note: {order.notes}</div>
+          <div>{t('Note')}: {order.notes}</div>
         </>
       )}
     </div>

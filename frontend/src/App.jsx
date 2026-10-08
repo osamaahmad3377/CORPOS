@@ -2,11 +2,13 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from './lib/auth';
+import { useT } from './lib/i18n';
 import { ShopProvider } from './lib/shop';
 import Layout, { Page } from './components/Layout';
 import { EmptyState, Loading } from './components/ui';
 import Login from './pages/Login';
 
+const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Pos = lazy(() => import('./pages/pos/Pos'));
 const Products = lazy(() => import('./pages/products/Products'));
@@ -26,14 +28,16 @@ const Profile = lazy(() => import('./pages/profile/Profile'));
 // Permission-gated route (the backend enforces the same permissions).
 function Guard({ perm, children }) {
   const { can } = useAuth();
+  const t = useT();
   if (perm && !can(perm)) {
-    return <Page><EmptyState icon={ShieldAlert} title="No access">Your role doesn&apos;t have permission to open this page. Ask the shop owner.</EmptyState></Page>;
+    return <Page><EmptyState icon={ShieldAlert} title={t('No access')}>{t('Your role doesn\'t have permission to open this page. Ask the shop owner.')}</EmptyState></Page>;
   }
   return children;
 }
 
 const ROUTES = [
-  { path: '/', element: <Dashboard /> },
+  { path: '/', element: <Home /> },
+  { path: '/dashboard', element: <Dashboard /> },
   { path: '/pos', element: <Pos />, perm: 'sales.create' },
   { path: '/sales/*', element: <SalesHistory />, perm: 'sales.create' },
   { path: '/customers/*', element: <Customers />, perm: 'customers.view' },
@@ -52,7 +56,7 @@ const ROUTES = [
 
 export default function App() {
   const { user, ready } = useAuth();
-  if (!ready) return <Loading label="Starting…" />;
+  if (!ready) return <Loading />;
   if (!user) {
     return (
       <Routes>

@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ChefHat, ImageIcon, ListChecks, Minus, PauseCircle, PlayCircle, Plus, Printer, ScanBarcode, ShoppingCart, Trash2, UserPlus, X,
+  Banknote, ChefHat, CreditCard, ImageIcon, ListChecks, Minus, PauseCircle, PlayCircle, Plus, Printer, ScanBarcode,
+  ShoppingCart, Smartphone, Trash2, UserPlus, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
+import { useT } from '../../lib/i18n';
 import { primaryImage, useCategories } from '../../lib/catalog';
 import { money, qty, round3, variantLabel } from '../../lib/format';
 import ProductForm from '../../components/ProductForm';
 import Receipt from '../../components/Receipt';
-import KitchenSlip, { ORDER_TYPES, orderTypeLabel } from '../../components/KitchenSlip';
-import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, Select, cx, useToast } from '../../components/ui';
+import Keypad from '../../components/Keypad';
+import KitchenSlip, { ORDER_TYPES } from '../../components/KitchenSlip';
+import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, cx, useToast } from '../../components/ui';
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+const PAY_ICONS = { cash: Banknote, card: CreditCard, jazzcash: Smartphone, easypaisa: Smartphone };
 
 // Cart line from a variant (+ its product's unit).
 function lineFrom(variant, product, shop) {
@@ -37,6 +41,7 @@ function lineFrom(variant, product, shop) {
 export default function Pos() {
   const shop = useShop();
   const { can } = useAuth();
+  const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
   const scanRef = useRef(null);
@@ -53,7 +58,8 @@ export default function Pos() {
   const [resuming, setResuming] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [serialPick, setSerialPick] = useState(null); // { variant, product, preselect }
+  const [serialPick, setSerialPick] = useState(null); // { line, preselect }
+  const [qtyEdit, setQtyEdit] = useState(null); // cart line being edited on the keypad
   const [order, setOrder] = useState({ type: 'dine_in', table: '', note: '' }); // restaurant mode
   const [kot, setKot] = useState(null); // kitchen slip to print
   const restaurant = shop.features.restaurant;
@@ -63,7 +69,7 @@ export default function Pos() {
   // ------------------------------------------------------------ catalog
   const categories = useCategories();
   const [debounced, setDebounced] = useState('');
-  useEffect(() => { const t = setTimeout(() => setDebounced(query.trim()), 250); return () => clearTimeout(t); }, [query]);
+  useEffect(() => { const h = setTimeout(() => setDebounced(query.trim()), 250); return () => clearTimeout(h); }, [query]);
   const productParams = { search: debounced, category_id: categoryId, is_active: 1, per_page: 60 };
   const products = useQuery({ queryKey: ['products', 'pos', productParams], queryFn: () => api.get('/products', productParams), placeholderData: (p) => p });
 
@@ -71,7 +77,7 @@ export default function Pos() {
   const addLine = useCallback((line) => {
     setCart((c) => {
       const i = c.findIndex((l) => l.variant_id === line.variant_id);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: round3(l.qty + 1) } : l));
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: round3(Number(l.qty) + 1) } : l));
       return [...c, line];
     });
   }, []);
@@ -83,13 +89,13 @@ export default function Pos() {
       setSerialPick({ line: existing || line, preselect: [...(existing?.serials || []), ...(serial ? [serial] : [])] });
       return;
     }
-    const inCart = cart.find((l) => l.variant_id === variant.id)?.qty || 0;
+    const inCart = Number(cart.find((l) => l.variant_id === variant.id)?.qty || 0);
     if (line.stock - inCart <= 0) {
-      toast(`${line.name}: only ${qty(line.stock)} in stock`, 'error');
+      toast(t('{name}: only {n} left in stock', { name: line.name, n: qty(line.stock) }), 'error');
       return;
     }
     addLine(line);
-  }, [addLine, cart, shop, toast]);
+  }, [addLine, cart, shop, toast, t]);
 
   const addProduct = (p) => {
     const variants = (p.variants || []).filter((v) => v.is_active !== false);
@@ -132,7 +138,7 @@ export default function Pos() {
         const unit = await api.get(`/serials/${encodeURIComponent(code)}`).catch(() => null);
         if (unit) {
           if (unit.status === 'in_stock') addVariant(unit.variant, null, unit.serial);
-          else toast(`${unit.serial} is ${unit.status.replace(/_/g, ' ')}${unit.invoice_number ? ` (bill ${unit.invoice_number})` : ''}`, 'error');
+          else toast(t('{serial} is already sold or not in stock', { serial: unit.serial }) + (unit.invoice_number ? ` (${unit.invoice_number})` : ''), 'error');
           setQuery('');
           return;
         }
@@ -162,7 +168,13 @@ export default function Pos() {
     return { subtotal: round2(subtotal), discount: round2(saleDiscount), tax: round2(tax), total: round2(subtotal - saleDiscount + tax), items: cart.length };
   }, [cart, discount, shop.taxEnabled, shop.taxPercent]);
 
-  const cartError = cart.find((l) => !(Number(l.qty) > 0) || (!l.fractional && !Number.isInteger(Number(l.qty))) || (l.serialTracked && l.serials.length !== Number(l.qty)));
+  const lineProblem = (l) => {
+    if (!(Number(l.qty) > 0)) return t('Enter a quantity above 0');
+    if (!l.fractional && !Number.isInteger(Number(l.qty))) return t('Whole numbers only for this item');
+    if (l.serialTracked && l.serials.length !== Number(l.qty)) return t('Choose the serial numbers');
+    return null;
+  };
+  const cartError = cart.find(lineProblem);
 
   // ------------------------------------------------------------ checkout
   const payload = (extra) => ({
@@ -181,9 +193,9 @@ export default function Pos() {
       const res = await api.post('/sales', payload({ status: 'held', payment_method: 'cash', payment_received: 0, idempotency_key: uid() }));
       if (restaurant) {
         setKot({ ...res.data, items: res.data.items?.length ? res.data.items : cart.map((l) => ({ product_name: l.name, color: null, size: l.label, quantity: l.qty })) });
-        toast(`Order ${res.data.invoice_number} sent to kitchen`);
+        toast(t('Order {inv} sent to kitchen', { inv: res.data.invoice_number }));
       } else {
-        toast(`Bill held as ${res.data.invoice_number}`);
+        toast(t('Bill saved for later as {inv}', { inv: res.data.invoice_number }));
       }
       qc.invalidateQueries({ queryKey: ['sales'] });
       clearSale();
@@ -194,6 +206,7 @@ export default function Pos() {
     }
   };
 
+  // reopen a held order into the cart (restaurant: add more items)
   const editHeld = async (sale) => {
     try {
       await api.del(`/sales/${sale.invoice_number}`);
@@ -210,7 +223,7 @@ export default function Pos() {
     setCustomer(sale.customer_id ? { id: sale.customer_id, name: sale.customer, phone: '' } : null);
     setResuming(false);
     qc.invalidateQueries({ queryKey: ['sales'] });
-    toast(`Order ${sale.invoice_number} reopened — add items, then send to kitchen or take payment`, 'info');
+    toast(t('Bill {inv} opened again — add items, then take payment', { inv: sale.invoice_number }), 'info');
   };
 
   const completed = async (sale) => {
@@ -242,28 +255,28 @@ export default function Pos() {
 
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
-      {/* ------------------------------------------------ left: catalog */}
+      {/* ------------------------------------------------ items */}
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-slate-200 bg-white p-4">
           <form onSubmit={onScan} className="relative">
-            <ScanBarcode className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-brand-600" />
+            <ScanBarcode className="pointer-events-none absolute start-4 top-1/2 size-6 -translate-y-1/2 text-brand-600" />
             <Input
               ref={scanRef}
-              className="h-12 pl-11 pr-24 text-base"
-              placeholder="Scan barcode or type product name…  (F2)"
+              className="h-14 ps-13 pe-28 text-lg"
+              placeholder={t('Scan barcode or type item name…')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
             />
-            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-              {query && <button type="button" onClick={() => { setQuery(''); focusScan(); }} className="rounded p-1.5 text-slate-400 hover:text-slate-600" aria-label="Clear"><X className="size-4" /></button>}
-              <Button type="submit" size="sm" loading={busy}>Add</Button>
+            <div className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              {query && <button type="button" onClick={() => { setQuery(''); focusScan(); }} className="rounded-lg p-2 text-slate-400 hover:text-slate-600" aria-label="Clear"><X className="size-5" /></button>}
+              <Button type="submit" loading={busy}>{t('Add')}</Button>
             </div>
           </form>
           {cats.length > 0 && (
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {[{ id: '', path: 'All' }, ...cats].map((c) => (
-                <button key={c.id || 'all'} type="button" onClick={() => setCategoryId(String(c.id))} className={cx('whitespace-nowrap rounded-full border px-3 py-1 text-sm font-medium transition', String(categoryId) === String(c.id) ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300')}>
+              {[{ id: '', path: t('All items') }, ...cats].map((c) => (
+                <button key={c.id || 'all'} type="button" onClick={() => setCategoryId(String(c.id))} className={cx('whitespace-nowrap rounded-full border-2 px-4 py-1.5 text-base font-medium transition', String(categoryId) === String(c.id) ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300')}>
                   {c.path}
                 </button>
               ))}
@@ -273,8 +286,8 @@ export default function Pos() {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {products.isLoading ? <Loading /> : !grid.length ? (
-            <div className="py-16 text-center text-sm text-slate-500">
-              {debounced ? <>No products match &ldquo;{debounced}&rdquo;. Press Enter to look it up as a barcode.</> : 'No products yet. Add products from the Products page, or scan a barcode to add one.'}
+            <div className="py-16 text-center text-base text-slate-500">
+              {debounced ? t('Nothing found for "{q}". Press Enter to search it as a barcode.', { q: debounced }) : t('No items yet. Add items first, or scan a barcode to add one.')}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
@@ -283,15 +296,15 @@ export default function Pos() {
                 const stock = (p.variants || []).reduce((a, v) => a + Number(v.stock_qty), 0);
                 const prices = (p.variants || []).map((v) => Number(v.selling_price));
                 return (
-                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-brand-400 hover:shadow disabled:opacity-50">
+                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-2xl border-2 border-slate-200 bg-white text-start shadow-sm transition hover:border-brand-400 active:scale-[0.98] disabled:opacity-50">
                     <div className="grid aspect-[4/3] place-items-center bg-slate-100">
-                      {img ? <img src={img} alt="" className="size-full object-cover" /> : <ImageIcon className="size-6 text-slate-300" />}
+                      {img ? <img src={img} alt="" className="size-full object-cover" /> : <ImageIcon className="size-8 text-slate-300" />}
                     </div>
-                    <div className="flex flex-1 flex-col p-2.5">
-                      <div className="line-clamp-2 text-sm font-medium text-slate-900">{p.name}</div>
-                      <div className="mt-auto flex items-end justify-between pt-1">
-                        <span className="text-sm font-semibold text-brand-700">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
-                        <span className={cx('text-xs', stock <= 0 ? 'text-red-600' : 'text-slate-500')}>{stock <= 0 ? 'Out' : `${qty(stock)} ${p.unit}`}</span>
+                    <div className="flex flex-1 flex-col p-3">
+                      <div className="line-clamp-2 text-base font-semibold leading-snug text-slate-900">{p.name}</div>
+                      <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-1">
+                        <span className="num text-lg font-bold text-brand-700">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
+                        <span className={cx('text-sm', stock <= 0 ? 'font-semibold text-red-600' : 'text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>
                       </div>
                     </div>
                   </button>
@@ -302,17 +315,17 @@ export default function Pos() {
         </div>
       </section>
 
-      {/* ------------------------------------------------ right: bill */}
-      <aside className="flex min-h-0 w-full flex-col border-l border-slate-200 bg-white lg:w-[420px]">
+      {/* ------------------------------------------------ bill */}
+      <aside className="flex min-h-0 w-full flex-col border-s border-slate-200 bg-white lg:w-[440px]">
         <div className="space-y-2 border-b border-slate-200 p-3">
           {restaurant && (
             <div className="flex gap-2">
-              <div className="flex flex-1 rounded-lg bg-slate-100 p-1 text-sm font-medium">
-                {ORDER_TYPES.map((t) => (
-                  <button key={t.code} type="button" onClick={() => setOrder((o) => ({ ...o, type: t.code }))} className={cx('flex-1 whitespace-nowrap rounded-md px-1.5 py-1.5 transition', order.type === t.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t.label}</button>
+              <div className="flex flex-1 rounded-xl bg-slate-100 p-1 text-base font-medium">
+                {ORDER_TYPES.map((o) => (
+                  <button key={o.code} type="button" onClick={() => setOrder((x) => ({ ...x, type: o.code }))} className={cx('flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 transition', order.type === o.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t(o.label)}</button>
                 ))}
               </div>
-              {order.type === 'dine_in' && <Input className="h-10 w-20" placeholder="Table" value={order.table} onChange={(e) => setOrder((o) => ({ ...o, table: e.target.value }))} />}
+              {order.type === 'dine_in' && <Input className="h-12 w-24 text-center" placeholder={t('Table')} value={order.table} onChange={(e) => setOrder((o) => ({ ...o, table: e.target.value }))} />}
             </div>
           )}
           <CustomerPicker value={customer} onChange={setCustomer} canCreate={can('customers.create')} />
@@ -321,48 +334,44 @@ export default function Pos() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!cart.length ? (
             <div className="flex h-full flex-col items-center justify-center p-8 text-center text-slate-400">
-              <ShoppingCart className="mb-2 size-10" />
-              <p className="font-medium text-slate-500">Cart is empty</p>
-              <p className="text-sm">Scan a barcode or tap a product</p>
+              <ShoppingCart className="mb-3 size-14 rtl:-scale-x-100" strokeWidth={1.5} />
+              <p className="text-lg font-semibold text-slate-500">{t('Bill is empty')}</p>
+              <p className="text-base">{t('Scan a barcode or tap an item')}</p>
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
               {cart.map((l) => {
-                const bad = !(Number(l.qty) > 0) || (!l.fractional && !Number.isInteger(Number(l.qty)));
+                const problem = lineProblem(l);
                 const over = Number(l.qty) > l.stock;
                 return (
                   <li key={l.variant_id} className="p-3">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-slate-900">{l.name}</div>
-                        <div className="text-xs text-slate-500">{[l.label, `${money(l.price)} / ${shop.unitLabel(l.unit).toLowerCase()}`].filter(Boolean).join(' · ')}</div>
+                        <div className="truncate text-base font-semibold text-slate-900">{l.name}</div>
+                        <div className="text-sm text-slate-500">{l.label && `${l.label} · `}<span className="num">{money(l.price)}</span> / {t(shop.unitLabel(l.unit))}</div>
                       </div>
-                      <div className="text-right font-semibold text-slate-900">{money(l.price * Number(l.qty || 0) - Number(l.discount || 0))}</div>
-                      <button type="button" onClick={() => removeLine(l.variant_id)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Remove"><Trash2 className="size-4" /></button>
+                      <div className="num text-lg font-bold text-slate-900">{money(l.price * Number(l.qty || 0) - Number(l.discount || 0))}</div>
+                      <button type="button" onClick={() => removeLine(l.variant_id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label={t('Remove')}><Trash2 className="size-5" /></button>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       {l.serialTracked ? (
-                        <Button size="sm" variant="secondary" icon={ListChecks} onClick={() => setSerialPick({ line: l, preselect: l.serials })}>{l.serials.length} serial{l.serials.length === 1 ? '' : 's'}</Button>
+                        <Button variant="secondary" icon={ListChecks} onClick={() => setSerialPick({ line: l, preselect: l.serials })}>{t('{n} serial numbers', { n: l.serials.length })}</Button>
                       ) : (
-                      <div className="flex items-center rounded-lg border border-slate-300">
-                        <button type="button" onClick={() => bump(l.variant_id, -1)} className="px-2 py-1.5 text-slate-500 hover:text-slate-800" aria-label="Less"><Minus className="size-3.5" /></button>
-                        <input
-                          className={cx('w-16 border-x border-slate-300 py-1 text-center text-sm outline-none', bad && 'bg-red-50 text-red-700')}
-                          type="number" min="0" step={l.fractional ? '0.001' : '1'} value={l.qty}
-                          onChange={(e) => setQty(l.variant_id, e.target.value)}
-                        />
-                        <button type="button" onClick={() => bump(l.variant_id, 1)} className="px-2 py-1.5 text-slate-500 hover:text-slate-800" aria-label="More"><Plus className="size-3.5" /></button>
-                      </div>
+                        <div className="flex items-center overflow-hidden rounded-xl border-2 border-slate-200" dir="ltr">
+                          <button type="button" onClick={() => bump(l.variant_id, -1)} className="grid size-11 place-items-center text-slate-600 hover:bg-slate-100 active:bg-slate-200" aria-label="Less"><Minus className="size-5" /></button>
+                          <button type="button" onClick={() => setQtyEdit(l)} className={cx('num h-11 min-w-16 border-x-2 border-slate-200 px-2 text-center text-lg font-bold', problem && 'bg-red-50 text-red-700')}>{l.qty === '' ? '—' : qty(l.qty)}</button>
+                          <button type="button" onClick={() => bump(l.variant_id, 1)} className="grid size-11 place-items-center text-slate-600 hover:bg-slate-100 active:bg-slate-200" aria-label="More"><Plus className="size-5" /></button>
+                        </div>
                       )}
-                      <span className="text-xs text-slate-500">{l.unit}</span>
-                      <div className="ml-auto flex items-center gap-1 text-xs text-slate-500">
-                        Disc
-                        <input className="w-16 rounded-md border border-slate-300 px-1.5 py-1 text-right text-sm" type="number" min="0" step="0.01" value={l.discount || ''} placeholder="0" onChange={(e) => setCart((c) => c.map((x) => (x.variant_id === l.variant_id ? { ...x, discount: e.target.value } : x)))} />
+                      <span className="text-sm text-slate-500">{t(shop.unitLabel(l.unit))}</span>
+                      <div className="ms-auto flex items-center gap-1 text-sm text-slate-500">
+                        {t('Discount')}
+                        <input className="num h-10 w-20 rounded-lg border border-slate-300 px-2 text-end text-base" type="number" min="0" step="0.01" value={l.discount || ''} placeholder="0" onChange={(e) => setCart((c) => c.map((x) => (x.variant_id === l.variant_id ? { ...x, discount: e.target.value } : x)))} />
                       </div>
                     </div>
                     {l.serialTracked && l.serials.length > 0 && <p className="mt-1 truncate font-mono text-xs text-slate-500">{l.serials.join(', ')}</p>}
-                    {over && <p className="mt-1 text-xs text-red-600">Only {qty(l.stock)} in stock</p>}
-                    {bad && <p className="mt-1 text-xs text-red-600">{l.fractional ? 'Enter a quantity above 0' : 'Whole numbers only for this item'}</p>}
+                    {over && <p className="mt-1 text-sm text-red-600">{t('Only {n} left in stock', { n: qty(l.stock) })}</p>}
+                    {problem && <p className="mt-1 text-sm text-red-600">{problem}</p>}
                   </li>
                 );
               })}
@@ -370,85 +379,99 @@ export default function Pos() {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 p-4 text-sm">
-          <div className="flex justify-between text-slate-600"><span>Subtotal ({totals.items} items)</span><span>{money(totals.subtotal)}</span></div>
+        <div className="space-y-2 border-t border-slate-200 p-4 text-base">
+          <div className="flex justify-between text-slate-600"><span>{t('Subtotal ({n} items)', { n: totals.items })}</span><span className="num">{money(totals.subtotal)}</span></div>
           <div className="flex items-center justify-between gap-2 text-slate-600">
-            <span>Discount</span>
+            <span>{t('Discount')}</span>
             <div className="flex items-center gap-1">
-              <input className="w-20 rounded-md border border-slate-300 px-2 py-1 text-right" type="number" min="0" step="0.01" placeholder="0" value={discount.value} onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))} />
-              <select className="rounded-md border border-slate-300 px-1 py-1" value={discount.mode} onChange={(e) => setDiscount((d) => ({ ...d, mode: e.target.value }))}>
+              <input className="num h-10 w-20 rounded-lg border border-slate-300 px-2 text-end" type="number" min="0" step="0.01" placeholder="0" value={discount.value} onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))} />
+              <select className="h-10 rounded-lg border border-slate-300 px-1" value={discount.mode} onChange={(e) => setDiscount((d) => ({ ...d, mode: e.target.value }))}>
                 <option value="amount">Rs</option><option value="percent">%</option>
               </select>
-              <span className="w-20 text-right">-{money(totals.discount)}</span>
+              <span className="num w-24 text-end">-{money(totals.discount)}</span>
             </div>
           </div>
-          {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span>{money(totals.tax)}</span></div>}
-          <div className="flex justify-between pt-1 text-xl font-bold text-slate-900"><span>Total</span><span>{money(totals.total)}</span></div>
-          {restaurant && <Input className="h-9" placeholder="Kitchen note (e.g. less spicy)" value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
-          <div className="grid grid-cols-3 gap-2 pt-2">
+          {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span className="num">{money(totals.tax)}</span></div>}
+          <div className="flex items-center justify-between pt-1"><span className="text-xl font-bold text-slate-900">{t('Total')}</span><span className="num text-3xl font-bold text-slate-900">{money(totals.total)}</span></div>
+          {restaurant && <Input placeholder={t('Kitchen note (e.g. less spicy)')} value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
+          <div className="grid grid-cols-3 gap-2 pt-1">
             {restaurant
-              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError} onClick={hold}>Kitchen</Button>
-              : <Button variant="secondary" icon={PauseCircle} disabled={!cart.length || busy} onClick={hold}>Hold</Button>}
-            <Button variant="secondary" icon={PlayCircle} onClick={() => setResuming(true)}>{restaurant ? 'Orders' : 'Resume'}</Button>
-            <Button variant="ghost" icon={X} disabled={!cart.length} onClick={clearSale}>Clear</Button>
+              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError} onClick={hold}>{t('Kitchen')}</Button>
+              : <Button variant="secondary" icon={PauseCircle} disabled={!cart.length || busy} onClick={hold}>{t('Save for later')}</Button>}
+            <Button variant="secondary" icon={PlayCircle} onClick={() => setResuming(true)}>{restaurant ? t('Open orders') : t('Saved bills')}</Button>
+            <Button variant="ghost" icon={X} disabled={!cart.length} onClick={clearSale}>{t('Clear')}</Button>
           </div>
-          <Button size="lg" variant="success" className="w-full text-lg" disabled={!cart.length || !!cartError} onClick={() => setPaying(true)}>
-            Pay {money(totals.total)} <span className="text-sm font-normal opacity-80">F8</span>
+          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError} onClick={() => setPaying(true)}>
+            {t('Take payment')} <span className="num">{money(totals.total)}</span>
           </Button>
         </div>
       </aside>
 
-      {/* ------------------------------------------------ modals */}
+      {/* ------------------------------------------------ dialogs */}
       {picking && (
         <Modal open onClose={() => { setPicking(null); focusScan(); }} title={picking.name}>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <p className="mb-3 text-base text-slate-600">{t('Which one?')}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
             {picking.variants.filter((v) => v.is_active !== false).map((v) => (
-              <button key={v.id} type="button" disabled={Number(v.stock_qty) <= 0} onClick={() => { addVariant(v, picking); setPicking(null); focusScan(); }} className="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-left hover:border-brand-400 disabled:opacity-50">
+              <button key={v.id} type="button" disabled={Number(v.stock_qty) <= 0} onClick={() => { addVariant(v, picking); setPicking(null); focusScan(); }} className="flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 text-start hover:border-brand-400 disabled:opacity-50">
                 <div>
-                  <div className="font-medium">{variantLabel(v) || 'Standard'}</div>
-                  <div className="text-xs text-slate-500">{qty(v.stock_qty)} in stock</div>
+                  <div className="text-lg font-semibold">{variantLabel(v) || t('Standard')}</div>
+                  <div className="text-sm text-slate-500">{t('{n} in stock', { n: qty(v.stock_qty) })}</div>
                 </div>
-                <span className="font-semibold text-brand-700">{money(v.selling_price)}</span>
+                <span className="num text-lg font-bold text-brand-700">{money(v.selling_price)}</span>
               </button>
             ))}
           </div>
         </Modal>
       )}
 
-      <Modal open={!!unknown} onClose={() => { setUnknown(null); focusScan(); }} size="sm" title="Barcode not found"
+      {qtyEdit && (
+        <QtyPad
+          line={qtyEdit}
+          onClose={() => { setQtyEdit(null); focusScan(); }}
+          onDone={(v) => { setQty(qtyEdit.variant_id, v); setQtyEdit(null); focusScan(); }}
+        />
+      )}
+
+      <Modal open={!!unknown} onClose={() => { setUnknown(null); focusScan(); }} size="sm" title={t('Item not found')}
         footer={(
           <>
-            <Button variant="secondary" onClick={() => { setUnknown(null); focusScan(); }}>Cancel</Button>
-            {can('products.create') && <Button icon={Plus} onClick={() => { setAdding(unknown); setUnknown(null); }}>Add as new product</Button>}
+            <Button variant="secondary" onClick={() => { setUnknown(null); focusScan(); }}>{t('Cancel')}</Button>
+            {can('products.create') && <Button icon={Plus} onClick={() => { setAdding(unknown); setUnknown(null); }}>{t('Add this item')}</Button>}
           </>
         )}
       >
-        <p className="text-sm text-slate-600">No product has the barcode <span className="font-mono font-semibold text-slate-900">{unknown}</span>.</p>
-        {can('products.create') ? <p className="mt-2 text-sm text-slate-600">Add it now — it will go straight into this bill.</p> : <p className="mt-2 text-sm text-slate-600">Ask a manager to add this product.</p>}
+        <p className="text-base text-slate-600">{t('No item has the barcode')} <span className="font-mono font-semibold text-slate-900">{unknown}</span></p>
+        <p className="mt-2 text-base text-slate-600">{can('products.create') ? t('Add it now — it will go straight into this bill.') : t('Ask the owner to add this item.')}</p>
       </Modal>
 
       <ProductForm
         open={!!adding}
         initialBarcode={adding || ''}
         onClose={() => { setAdding(null); setQuery(''); focusScan(); }}
-        onSaved={(p) => { if (p.variants?.[0] && Number(p.variants[0].stock_qty) > 0) addVariant(p.variants[0], p); else toast('Product added — add stock through Purchases or Inventory to sell it.', 'info'); }}
+        onSaved={(p) => { if (p.variants?.[0] && Number(p.variants[0].stock_qty) > 0) addVariant(p.variants[0], p); else toast(t('Item added. Add its stock to sell it.'), 'info'); }}
       />
 
       {paying && <PayModal totals={totals} customer={customer} onClose={() => { setPaying(false); focusScan(); }} payload={payload} onDone={completed} />}
       {resuming && <ResumeModal restaurant={restaurant} onClose={() => { setResuming(false); focusScan(); }} onDone={completed} onEdit={editHeld} />}
       {serialPick && <SerialPicker line={serialPick.line} preselect={serialPick.preselect} onClose={() => { setSerialPick(null); focusScan(); }} onDone={(list) => { setSerials(serialPick.line, list); setSerialPick(null); focusScan(); }} />}
-      <Modal open={!!kot} onClose={() => { setKot(null); focusScan(); }} size="sm" title="Kitchen order"
-        footer={<><Button variant="secondary" onClick={() => { setKot(null); focusScan(); }}>Close</Button><Button icon={Printer} onClick={() => window.print()}>Print slip</Button></>}
+      <Modal open={!!kot} onClose={() => { setKot(null); focusScan(); }} size="sm" title={t('Kitchen order')}
+        footer={<><Button variant="secondary" onClick={() => { setKot(null); focusScan(); }}>{t('Close')}</Button><Button icon={Printer} onClick={() => window.print()}>{t('Print slip')}</Button></>}
       >
         {kot && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><KitchenSlip order={kot} /></div>}
       </Modal>
 
-      <Modal open={!!receipt} onClose={() => { setReceipt(null); focusScan(); }} size="sm" title={`Sale complete — ${receipt?.invoice_number || ''}`}
-        footer={<><Button variant="secondary" onClick={() => { setReceipt(null); focusScan(); }}>New sale</Button><Button icon={Printer} onClick={() => window.print()}>Print receipt</Button></>}
+      <Modal open={!!receipt} onClose={() => { setReceipt(null); focusScan(); }} size="sm" title={t('Sale complete')}
+        footer={<><Button variant="secondary" size="lg" onClick={() => { setReceipt(null); focusScan(); }}>{t('New bill')}</Button><Button icon={Printer} size="lg" onClick={() => window.print()}>{t('Print receipt')}</Button></>}
       >
         {receipt && (
           <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
-            {Number(receipt.change_amount) > 0 && <div className="mb-3 rounded-lg bg-emerald-50 p-3 text-center text-emerald-800">Change to return: <span className="text-xl font-bold">{money(receipt.change_amount)}</span></div>}
+            {Number(receipt.change_amount) > 0 && (
+              <div className="mb-3 rounded-xl bg-emerald-50 p-4 text-center text-emerald-800">
+                <div className="text-base">{t('Give back to customer')}</div>
+                <div className="num text-4xl font-bold">{money(receipt.change_amount)}</div>
+              </div>
+            )}
             <Receipt sale={receipt} />
           </div>
         )}
@@ -457,9 +480,27 @@ export default function Pos() {
   );
 }
 
+// ---------------------------------------------------------------- quantity keypad
+
+function QtyPad({ line, onClose, onDone }) {
+  const t = useT();
+  const shop = useShop();
+  const [v, setV] = useState(String(line.qty ?? ''));
+  const ok = Number(v) > 0 && (line.fractional || Number.isInteger(Number(v)));
+  return (
+    <Modal open onClose={onClose} size="sm" title={line.name}>
+      <div className="mb-3 text-center text-base text-slate-500">{t('How many?')} ({t(shop.unitLabel(line.unit))})</div>
+      <div className="num mb-4 rounded-xl border-2 border-brand-500 bg-brand-50 py-3 text-center text-4xl font-bold text-slate-900">{v || '0'}</div>
+      {!ok && v !== '' && <p className="mb-2 text-center text-sm text-red-600">{line.fractional ? t('Enter a quantity above 0') : t('Whole numbers only for this item')}</p>}
+      <Keypad value={v} onChange={setV} allowDecimal={line.fractional} onEnter={() => ok && onDone(round3(Number(v)))} enterLabel={t('Done')} />
+    </Modal>
+  );
+}
+
 // ---------------------------------------------------------------- customer
 
 function CustomerPicker({ value, onChange, canCreate }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
@@ -469,24 +510,24 @@ function CustomerPicker({ value, onChange, canCreate }) {
   return (
     <>
       <div className="flex gap-2">
-        <button type="button" onClick={() => setOpen(true)} className="flex h-10 flex-1 items-center justify-between rounded-lg border border-slate-300 px-3 text-left text-sm hover:bg-slate-50">
-          <span className={value ? 'font-medium text-slate-900' : 'text-slate-500'}>{value ? `${value.name} · ${value.phone}` : 'Walk-in customer'}</span>
-          {value && <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onChange(null); }} className="text-slate-400 hover:text-slate-600"><X className="size-4" /></span>}
+        <button type="button" onClick={() => setOpen(true)} className="flex h-12 flex-1 items-center justify-between rounded-xl border-2 border-slate-200 px-3 text-start text-base hover:bg-slate-50">
+          <span className={value ? 'font-semibold text-slate-900' : 'text-slate-500'}>{value ? `${value.name}${value.phone ? ` · ${value.phone}` : ''}` : t('Walk-in customer (tap to choose)')}</span>
+          {value && <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onChange(null); }} className="text-slate-400 hover:text-slate-600"><X className="size-5" /></span>}
         </button>
-        {canCreate && <Button variant="secondary" icon={UserPlus} onClick={() => setCreating(true)} aria-label="New customer" />}
+        {canCreate && <Button variant="secondary" className="h-12" icon={UserPlus} onClick={() => setCreating(true)} aria-label={t('New customer')} />}
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Choose customer">
-        <Input autoFocus placeholder="Search name or phone…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <Modal open={open} onClose={() => setOpen(false)} title={t('Choose customer')}>
+        <Input autoFocus placeholder={t('Search name or phone…')} value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto">
           {customers.isLoading && <Loading />}
           {list.map((c) => (
-            <button key={c.id} type="button" onClick={() => { onChange(c); setOpen(false); }} className="flex w-full items-center justify-between px-2 py-2.5 text-left hover:bg-slate-50">
-              <div><div className="font-medium text-slate-900">{c.name}</div><div className="text-xs text-slate-500">{c.phone}</div></div>
-              {Number(c.total_due || 0) > 0 && <Badge color="amber">Due {money(c.total_due)}</Badge>}
+            <button key={c.id} type="button" onClick={() => { onChange(c); setOpen(false); }} className="flex w-full items-center justify-between px-2 py-3 text-start hover:bg-slate-50">
+              <div><div className="text-base font-semibold text-slate-900">{c.name}</div><div className="num text-sm text-slate-500">{c.phone}</div></div>
+              {Number(c.total_due || 0) > 0 && <Badge color="amber">{t('Owes')} <span className="num ms-1">{money(c.total_due)}</span></Badge>}
             </button>
           ))}
-          {!customers.isLoading && !list.length && <p className="py-6 text-center text-sm text-slate-500">No customers found.</p>}
+          {!customers.isLoading && !list.length && <p className="py-6 text-center text-base text-slate-500">{t('No customers found.')}</p>}
         </div>
       </Modal>
 
@@ -496,6 +537,7 @@ function CustomerPicker({ value, onChange, canCreate }) {
 }
 
 function NewCustomer({ onClose, onCreated }) {
+  const t = useT();
   const qc = useQueryClient();
   const [f, setF] = useState({ name: '', phone: '' });
   const [error, setError] = useState(null);
@@ -514,11 +556,11 @@ function NewCustomer({ onClose, onCreated }) {
     }
   };
   return (
-    <Modal open onClose={onClose} size="sm" title="New customer" footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button type="submit" form="new-customer" loading={busy}>Save</Button></>}>
+    <Modal open onClose={onClose} size="sm" title={t('New customer')} footer={<><Button variant="secondary" onClick={onClose}>{t('Cancel')}</Button><Button type="submit" form="new-customer" loading={busy}>{t('Save')}</Button></>}>
       <form id="new-customer" onSubmit={submit} className="space-y-4">
         <ErrorBox error={error} />
-        <Field label="Name" required><Input autoFocus required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <Field label="Phone" required><Input required value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="03xx-xxxxxxx" /></Field>
+        <Field label={t('Name')} required><Input autoFocus required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+        <Field label={t('Phone')} required><Input required className="num" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="03xx-xxxxxxx" /></Field>
       </form>
     </Modal>
   );
@@ -528,20 +570,24 @@ function NewCustomer({ onClose, onCreated }) {
 
 function PayModal({ totals, customer, payload, onClose, onDone }) {
   const shop = useShop();
+  const t = useT();
   const [method, setMethod] = useState('cash');
   const [received, setReceived] = useState(String(totals.total));
+  const [touched, setTouched] = useState(false);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const key = useRef(uid()); // same key on retry -> never a double sale
   const amount = Number(received || 0);
-  const change = Math.max(0, amount - totals.total);
-  const due = Math.max(0, totals.total - amount);
-  const quick = [...new Set([totals.total, ...[100, 500, 1000, 5000].map((n) => Math.ceil(totals.total / n) * n)])].filter((n) => n >= totals.total).slice(0, 4);
+  const change = Math.max(0, Math.round((amount - totals.total) * 100) / 100);
+  const due = Math.max(0, Math.round((totals.total - amount) * 100) / 100);
+  const notesQuick = [...new Set([totals.total, ...[100, 500, 1000, 5000].map((n) => Math.ceil(totals.total / n) * n)])].filter((n) => n >= totals.total).slice(0, 4);
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (due > 0 && !customer) { setError(new Error('Choose a customer to give credit (udhaar) for the unpaid amount.')); return; }
+  // The keypad replaces the pre-filled total on the first press.
+  const type = (v) => { setReceived(touched ? v : v.replace(String(totals.total), '')); setTouched(true); };
+
+  const submit = async () => {
+    if (due > 0 && !customer) { setError(new Error(t('Choose a customer to give udhaar (credit) for the unpaid amount.'))); return; }
     setBusy(true);
     setError(null);
     try {
@@ -555,35 +601,55 @@ function PayModal({ totals, customer, payload, onClose, onDone }) {
   };
 
   return (
-    <Modal open onClose={onClose} title="Take payment" footer={<><Button variant="secondary" onClick={onClose}>Back</Button><Button type="submit" form="pay-form" variant="success" size="lg" loading={busy}>Complete sale</Button></>}>
-      <form id="pay-form" onSubmit={submit} className="space-y-5">
-        <ErrorBox error={error} />
-        <div className="rounded-xl bg-slate-900 p-4 text-center text-white">
-          <div className="text-sm text-slate-300">Amount to pay</div>
-          <div className="text-3xl font-bold">{money(totals.total)}</div>
+    <Modal open onClose={onClose} size="lg" title={t('Take payment')}
+      footer={<><Button variant="secondary" size="lg" onClick={onClose}>{t('Back')}</Button><Button variant="success" size="lg" loading={busy} onClick={submit}>{t('Finish sale')}</Button></>}
+    >
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-4">
+          <ErrorBox error={error} />
+          <div className="rounded-2xl bg-slate-900 p-4 text-center text-white">
+            <div className="text-base text-slate-300">{t('Customer has to pay')}</div>
+            <div className="num text-4xl font-bold">{money(totals.total)}</div>
+          </div>
+          <div>
+            <div className="mb-2 text-base font-semibold text-slate-700">{t('How is the customer paying?')}</div>
+            <div className="grid grid-cols-2 gap-2">
+              {(shop.meta.payment_methods || []).map((p) => {
+                const Icon = PAY_ICONS[p.code] || Banknote;
+                return (
+                  <button key={p.code} type="button" onClick={() => setMethod(p.code)} className={cx('flex items-center gap-2 rounded-xl border-2 px-3 py-3 text-base font-semibold transition', method === p.code ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:border-slate-300')}>
+                    <Icon className="size-5 shrink-0" />{t(p.label)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {change > 0 && (
+            <div className="rounded-2xl bg-emerald-50 p-4 text-center text-emerald-800">
+              <div className="text-base">{t('Give back to customer')}</div>
+              <div className="num text-4xl font-bold">{money(change)}</div>
+            </div>
+          )}
+          {due > 0 && (
+            <div className="rounded-2xl bg-amber-50 p-4 text-base text-amber-900">
+              <span className="num font-bold">{money(due)}</span> {customer ? t('will be added to {name}\'s udhaar', { name: customer.name }) : t('is unpaid — choose a customer first to give udhaar')}
+            </div>
+          )}
+          <Field label={t('Note (optional)')}><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
         </div>
         <div>
-          <div className="mb-2 text-sm font-medium text-slate-700">Payment method</div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {(shop.meta.payment_methods || []).map((p) => (
-              <button key={p.code} type="button" onClick={() => setMethod(p.code)} className={cx('rounded-lg border px-2 py-2.5 text-sm font-medium transition', method === p.code ? 'border-brand-600 bg-brand-50 text-brand-700 ring-1 ring-brand-600' : 'border-slate-200 text-slate-700 hover:border-slate-300')}>{p.label}</button>
-            ))}
+          <div className="mb-2 text-base font-semibold text-slate-700">{t('Money received')}</div>
+          <input
+            className="num mb-3 h-16 w-full rounded-xl border-2 border-brand-500 bg-brand-50 px-4 text-end text-3xl font-bold text-slate-900 outline-none"
+            type="number" min="0" step="0.01" value={received}
+            onChange={(e) => { setReceived(e.target.value); setTouched(true); }} onFocus={(e) => e.target.select()}
+          />
+          <div className="mb-3 flex flex-wrap gap-2">
+            {notesQuick.map((n) => <Button key={n} variant="secondary" className="num" onClick={() => { setReceived(String(n)); setTouched(true); }}>{money(n)}</Button>)}
           </div>
+          <Keypad value={received} onChange={type} />
         </div>
-        <Field label="Amount received">
-          <Input autoFocus type="number" min="0" step="0.01" className="h-12 text-lg" value={received} onChange={(e) => setReceived(e.target.value)} onFocus={(e) => e.target.select()} />
-        </Field>
-        <div className="flex flex-wrap gap-2">
-          {quick.map((n) => <Button key={n} size="sm" variant="secondary" onClick={() => setReceived(String(n))}>{money(n)}</Button>)}
-        </div>
-        {change > 0 && <div className="rounded-lg bg-emerald-50 p-3 text-emerald-800">Change to return: <span className="font-bold">{money(change)}</span></div>}
-        {due > 0 && (
-          <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-            {money(due)} will be recorded as credit (udhaar){customer ? ` for ${customer.name}` : ' — choose a customer first'}.
-          </div>
-        )}
-        <Field label="Note (optional)"><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -592,6 +658,7 @@ function PayModal({ totals, customer, payload, onClose, onDone }) {
 
 function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
   const shop = useShop();
+  const t = useT();
   const held = useQuery({ queryKey: ['sales', 'held'], queryFn: () => api.get('/sales', { status: 'held', per_page: 50 }), select: (r) => r.data || [] });
   const [selected, setSelected] = useState(null);
   const [method, setMethod] = useState('cash');
@@ -619,20 +686,22 @@ function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
     }
   };
 
+  const orderLabel = (code) => t(ORDER_TYPES.find((o) => o.code === code)?.label || '');
+
   return (
-    <Modal open onClose={onClose} size="lg" title={selected ? `${restaurant ? 'Order' : 'Held bill'} ${selected.invoice_number}` : restaurant ? 'Open orders' : 'Held bills'}
-      footer={selected && <><Button variant="secondary" onClick={() => setSelected(null)}>Back</Button><Button variant="secondary" onClick={() => onEdit(selected)}>{restaurant ? 'Add items' : 'Edit bill'}</Button><Button variant="success" loading={busy} onClick={complete}>Complete sale</Button></>}
+    <Modal open onClose={onClose} size="lg" title={selected ? selected.invoice_number : restaurant ? t('Open orders') : t('Saved bills')}
+      footer={selected && <><Button variant="secondary" onClick={() => setSelected(null)}>{t('Back')}</Button><Button variant="secondary" onClick={() => onEdit(selected)}>{t('Add more items')}</Button><Button variant="success" loading={busy} onClick={complete}>{t('Finish sale')}</Button></>}
     >
       {!selected ? (
-        held.isLoading ? <Loading /> : !held.data?.length ? <p className="py-8 text-center text-sm text-slate-500">No held bills.</p> : (
+        held.isLoading ? <Loading /> : !held.data?.length ? <p className="py-8 text-center text-base text-slate-500">{restaurant ? t('No open orders.') : t('No saved bills.')}</p> : (
           <div className="divide-y divide-slate-100">
             {held.data.map((s) => (
-              <button key={s.invoice_number} type="button" onClick={() => open(s.invoice_number)} className="flex w-full items-center justify-between px-2 py-3 text-left hover:bg-slate-50">
+              <button key={s.invoice_number} type="button" onClick={() => open(s.invoice_number)} className="flex w-full items-center justify-between px-2 py-3 text-start hover:bg-slate-50">
                 <div>
-                  <div className="font-medium">{s.table_no ? `Table ${s.table_no}` : s.invoice_number}{s.order_type && <span className="ml-2 text-xs font-normal text-slate-500">{orderTypeLabel(s.order_type)}</span>}</div>
-                  <div className="text-xs text-slate-500">{s.table_no ? `${s.invoice_number} · ` : ''}{s.customer || 'Walk-in'} · {s.items_count} items</div>
+                  <div className="text-base font-semibold">{s.table_no ? t('Table {n}', { n: s.table_no }) : s.invoice_number}{s.order_type && <span className="ms-2 text-sm font-normal text-slate-500">{orderLabel(s.order_type)}</span>}</div>
+                  <div className="text-sm text-slate-500">{s.customer || t('Walk-in')} · {t('{n} items', { n: s.items_count })}</div>
                 </div>
-                <span className="font-semibold">{money(s.grand_total)}</span>
+                <span className="num text-lg font-bold">{money(s.grand_total)}</span>
               </button>
             ))}
           </div>
@@ -640,20 +709,18 @@ function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
       ) : (
         <div className="space-y-4">
           <ErrorBox error={error} />
-          <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             {selected.items.map((it) => (
-              <div key={it.id} className="flex justify-between px-3 py-2 text-sm"><span>{it.product_name} {variantLabel(it) && `(${variantLabel(it)})`} × {qty(it.quantity)}</span><span>{money(it.total_price)}</span></div>
+              <div key={it.id} className="flex justify-between px-3 py-2 text-base"><span>{it.product_name} {variantLabel(it) && `(${variantLabel(it)})`} × <span className="num">{qty(it.quantity)}</span></span><span className="num">{money(it.total_price)}</span></div>
             ))}
-            <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{money(selected.grand_total)}</span></div>
+            <div className="flex justify-between px-3 py-2 text-lg font-bold"><span>{t('Total')}</span><span className="num">{money(selected.grand_total)}</span></div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Payment method">
-              <Select value={method} onChange={(e) => setMethod(e.target.value)}>
-                {(shop.meta.payment_methods || []).map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
-              </Select>
-            </Field>
-            <Field label="Amount received"><Input type="number" min="0" step="0.01" value={received} onChange={(e) => setReceived(e.target.value)} /></Field>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(shop.meta.payment_methods || []).map((p) => (
+              <button key={p.code} type="button" onClick={() => setMethod(p.code)} className={cx('rounded-xl border-2 px-2 py-2.5 text-base font-semibold', method === p.code ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700')}>{t(p.label)}</button>
+            ))}
           </div>
+          <Field label={t('Money received')}><Input type="number" min="0" step="0.01" className="h-14 text-2xl" value={received} onChange={(e) => setReceived(e.target.value)} /></Field>
         </div>
       )}
     </Modal>
@@ -664,6 +731,7 @@ function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
 
 // Choose which serial/IMEI numbers are being sold for a serial-tracked item.
 function SerialPicker({ line, preselect, onClose, onDone }) {
+  const t = useT();
   const [picked, setPicked] = useState(() => new Set(preselect));
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -675,24 +743,24 @@ function SerialPicker({ line, preselect, onClose, onDone }) {
     e.preventDefault();
     const c = code.trim();
     if (!c) return;
-    if (!available.some((x) => x.serial === c)) setError(`${c} is not in stock for this item`);
+    if (!available.some((x) => x.serial === c)) setError(t('{serial} is not in stock for this item', { serial: c }));
     else { setPicked((p) => new Set(p).add(c)); setError(''); }
     setCode('');
   };
 
   return (
-    <Modal open onClose={onClose} title={`${line.name} — choose serial / IMEI`}
-      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button disabled={!picked.size} onClick={() => onDone([...picked])}>Add {picked.size} to bill</Button></>}
+    <Modal open onClose={onClose} title={`${line.name} — ${t('choose serial / IMEI')}`}
+      footer={<><Button variant="secondary" onClick={onClose}>{t('Cancel')}</Button><Button disabled={!picked.size} onClick={() => onDone([...picked])}>{t('Add {n} to bill', { n: picked.size })}</Button></>}
     >
       <form onSubmit={scan} className="mb-3">
-        <Input autoFocus className="font-mono" placeholder="Scan IMEI / serial…" value={code} onChange={(e) => setCode(e.target.value)} />
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        <Input autoFocus className="font-mono" placeholder={t('Scan IMEI / serial…')} value={code} onChange={(e) => setCode(e.target.value)} />
+        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       </form>
-      {list.isLoading ? <Loading /> : !available.length ? <p className="py-6 text-center text-sm text-slate-500">No serials in stock for this item. Add stock with serials through Purchases.</p> : (
-        <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+      {list.isLoading ? <Loading /> : !available.length ? <p className="py-6 text-center text-base text-slate-500">{t('No serial numbers in stock for this item.')}</p> : (
+        <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
           {available.map((x) => (
-            <label key={x.id} className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50">
-              <input type="checkbox" className="size-4 accent-brand-600" checked={picked.has(x.serial)} onChange={() => toggle(x.serial)} />
+            <label key={x.id} className="flex cursor-pointer items-center gap-3 px-3 py-3 text-base hover:bg-slate-50">
+              <input type="checkbox" className="size-5 accent-brand-600" checked={picked.has(x.serial)} onChange={() => toggle(x.serial)} />
               <span className="font-mono">{x.serial}</span>
             </label>
           ))}

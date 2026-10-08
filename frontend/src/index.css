@@ -1,8 +1,13 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
+@import "@fontsource/noto-nastaliq-urdu/400.css";
+@import "@fontsource/noto-nastaliq-urdu/700.css";
 
 @theme {
   --font-sans: "Inter Variable", "Segoe UI", system-ui, sans-serif;
+  /* Inter first: it has no Urdu letters, so Urdu falls through to Nastaliq
+     while English words / product names keep the clean Latin font. */
+  --font-urdu: "Inter Variable", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", sans-serif;
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
   --color-brand-500: #6366f1;
@@ -11,6 +16,23 @@
 }
 
 html, body, #root { height: 100%; }
+/* Slightly larger everything — easier to read for every user. */
+html { font-size: 17px; }
+
+/* Urdu: Nastaliq script needs more size and line height to stay readable. */
+html[dir=rtl] { font-size: 18px; }
+html[dir=rtl] body { font-family: var(--font-urdu); line-height: 2; }
+html[dir=rtl] input, html[dir=rtl] select, html[dir=rtl] textarea, html[dir=rtl] button { font-family: var(--font-urdu); }
+/* Numbers, barcodes, dates and money stay left-to-right inside Urdu text. */
+html[dir=rtl] input[type=number], html[dir=rtl] input[type=date], html[dir=rtl] input[type=email],
+html[dir=rtl] input[type=password], html[dir=rtl] .font-mono, html[dir=rtl] .ltr {
+  direction: ltr; font-family: var(--font-sans);
+}
+html[dir=rtl] input[type=number] { text-align: right; }
+.num { font-family: var(--font-sans); unicode-bidi: isolate; direction: ltr; white-space: nowrap; }
+/* Nastaliq letters are tall — tight line-heights make lines overlap. */
+html[dir=rtl] [class*="leading-"] { line-height: 1.75; }
+html[dir=rtl] h1, html[dir=rtl] h2, html[dir=rtl] h3 { line-height: 1.7; }
 body { @apply bg-slate-50 text-slate-900 antialiased; }
 
 /* Number inputs: no spinners (cashiers type, scanners type). */

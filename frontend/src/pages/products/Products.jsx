@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ImageIcon, Package, Pencil, Plus, ScanBarcode, Search, Trash2, X } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
+import { useT } from '../../lib/i18n';
 import { primaryImage, useBrands, useCategories } from '../../lib/catalog';
 import { money, qty, variantLabel } from '../../lib/format';
 import { Page } from '../../components/Layout';
@@ -25,7 +27,10 @@ function totalStock(variants) {
   return (variants || []).reduce((a, v) => a + Number(v.stock_qty || 0), 0);
 }
 
+const SERIAL_STATUS = { in_stock: 'In stock', sold: 'Sold', returned_to_supplier: 'Returned to supplier', damaged: 'Damaged' };
+
 export default function Products() {
+  const t = useT();
   const { can } = useAuth();
   const shop = useShop();
   const categories = useCategories();
@@ -34,67 +39,69 @@ export default function Products() {
   const [categoryId, setCategoryId] = useState('');
   const [active, setActive] = useState('');
   const [page, setPage] = useState(1);
-  const [adding, setAdding] = useState(null); // { barcode, name } when open
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [adding, setAdding] = useState(searchParams.get('new') ? { barcode: '', name: '' } : null); // { barcode, name } when open
+  useEffect(() => { if (searchParams.get('new')) setSearchParams({}, { replace: true }); }, [searchParams, setSearchParams]);
   const [openId, setOpenId] = useState(null);
 
   // Debounce typing; Enter (what barcode scanners send) searches immediately.
   useEffect(() => {
-    const t = setTimeout(() => { setTerm(search.trim()); setPage(1); }, 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => { setTerm(search.trim()); setPage(1); }, 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const params = { search: term, category_id: categoryId, is_active: active, page, per_page: 25 };
   const list = useQuery({ queryKey: ['products', params], queryFn: () => api.get('/products', params), placeholderData: (p) => p });
   const { rows, meta } = paged(list.data);
   const looksLikeBarcode = /^[0-9A-Za-z-]{6,}$/.test(term) && !/\s/.test(term);
-  const label = shop.businessType === 'restaurant' ? 'Menu items' : 'Products';
+  const label = shop.businessType === 'restaurant' ? t('Menu items') : t('My items');
 
   return (
     <Page>
       <PageHeader
         title={label}
-        subtitle="Everything you sell. Scan a barcode in the search box to find an item — or add it if it's new."
-        actions={can('products.create') && <Button icon={Plus} onClick={() => setAdding({ barcode: '', name: '' })}>Add product</Button>}
+        subtitle={t('Everything you sell, with price and stock. Scan a barcode in the search box to find an item, or add a new one.')}
+        actions={can('products.create') && <Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: '', name: '' })}>{t('Add new item')}</Button>}
       />
 
       <Card>
         <div className="flex flex-wrap gap-3 border-b border-slate-100 p-4">
           <div className="relative min-w-60 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
             <Input
-              className="pl-9 pr-9"
-              placeholder="Search name, SKU or scan barcode…"
+              className="h-12 ps-10 pe-10 text-base"
+              placeholder={t('Search by name, or scan a barcode…')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setTerm(search.trim()); setPage(1); } }}
             />
-            {search && <button type="button" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-600" aria-label="Clear"><X className="size-4" /></button>}
+            {search && <button type="button" onClick={() => setSearch('')} className="absolute end-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label={t('Clear')} title={t('Clear')}><X className="size-5" /></button>}
           </div>
-          <div className="w-full sm:w-56"><Select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}>
-            <option value="">All categories</option>
+          <div className="w-full sm:w-56"><Select className="h-12" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}>
+            <option value="">{t('All categories')}</option>
             {(categories.data || []).map((c) => <option key={c.id} value={c.id}>{c.path}</option>)}
           </Select></div>
-          <div className="w-full sm:w-44"><Select value={active} onChange={(e) => { setActive(e.target.value); setPage(1); }}>
-            <option value="">Active &amp; hidden</option>
-            <option value="1">Active only</option>
-            <option value="0">Hidden only</option>
+          <div className="w-full sm:w-52"><Select className="h-12" value={active} onChange={(e) => { setActive(e.target.value); setPage(1); }}>
+            <option value="">{t('Shown and hidden items')}</option>
+            <option value="1">{t('Shown items only')}</option>
+            <option value="0">{t('Hidden items only')}</option>
           </Select></div>
         </div>
 
         {list.isLoading ? <Loading /> : list.error ? <div className="p-4"><ErrorBox error={list.error} /></div> : !rows.length ? (
           term && looksLikeBarcode && can('products.create') ? (
-            <EmptyState icon={ScanBarcode} title={`No product with barcode ${term}`} action={<Button icon={Plus} onClick={() => setAdding({ barcode: term, name: '' })}>Add it as a new product</Button>}>
-              This barcode isn&apos;t in your catalog yet.
+            <EmptyState icon={ScanBarcode} title={t('No item has the barcode {code}', { code: term })} action={<Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: term, name: '' })}>{t('Add it as a new item')}</Button>}>
+              {t("This barcode isn't in your items yet.")}
             </EmptyState>
           ) : (
-            <EmptyState icon={Package} title={term || categoryId ? 'No matching products' : 'No products yet'} action={!term && can('products.create') && <Button icon={Plus} onClick={() => setAdding({ barcode: '', name: '' })}>Add your first product</Button>}>
-              {term || categoryId ? 'Try a different search or category.' : 'Add products by typing them in or scanning their barcodes.'}
+            <EmptyState icon={Package} title={term || categoryId ? t('No matching items') : t('No items yet')} action={!term && can('products.create') && <Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: '', name: '' })}>{t('Add your first item')}</Button>}>
+              {term || categoryId ? t('Try a different search or category.') : t('Add items by typing their name or scanning their barcode.')}
             </EmptyState>
           )
         ) : (
           <Table>
             <thead>
-              <tr><Th className="w-14" /><Th>Product</Th><Th>Category</Th><Th>Price</Th><Th className="text-right">In stock</Th><Th /></tr>
+              <tr><Th className="w-14" /><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('Category')}</Th><Th className="text-start">{t('Price')}</Th><Th className="text-end">{t('In stock')}</Th><Th /></tr>
             </thead>
             <tbody>
               {rows.map((p) => {
@@ -102,7 +109,7 @@ export default function Products() {
                 const stock = totalStock(p.variants);
                 const low = (p.variants || []).some((v) => v.is_low_stock);
                 return (
-                  <tr key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setOpenId(p.id)}>
+                  <tr key={p.id} className="cursor-pointer hover:bg-slate-50 [&>td]:py-3.5" onClick={() => setOpenId(p.id)}>
                     <Td>
                       <div className="grid size-10 place-items-center overflow-hidden rounded-lg bg-slate-100">
                         {img ? <img src={img} alt="" className="size-full object-cover" /> : <ImageIcon className="size-4 text-slate-400" />}
@@ -111,15 +118,15 @@ export default function Products() {
                     <Td>
                       <div className="font-medium text-slate-900">{p.name}</div>
                       <div className="text-xs text-slate-500">
-                        {p.variants?.length > 1 ? `${p.variants.length} variants` : p.variants?.[0]?.barcode}
+                        {p.variants?.length > 1 ? t('{n} types', { n: p.variants.length }) : <span className="num font-mono">{p.variants?.[0]?.barcode}</span>}
                         {p.brand && ` · ${p.brand}`}
-                        {!p.is_active && <Badge className="ml-2">Hidden</Badge>}
+                        {!p.is_active && <Badge className="ms-2">{t('Hidden')}</Badge>}
                       </div>
                     </Td>
                     <Td className="text-slate-600">{p.category}</Td>
-                    <Td className="whitespace-nowrap">{priceRange(p.variants)} <span className="text-xs text-slate-400">/ {shop.unitLabel(p.unit).toLowerCase()}</span></Td>
-                    <Td className="text-right"><Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'}>{qty(stock)} {p.unit}</Badge></Td>
-                    <Td className="text-right"><Pencil className="ml-auto size-4 text-slate-400" /></Td>
+                    <Td className="whitespace-nowrap"><span className="num font-medium">{priceRange(p.variants)}</span> <span className="text-xs text-slate-400">/ {t(shop.unitLabel(p.unit)).toLowerCase()}</span></Td>
+                    <Td className="text-end"><Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className="text-sm">{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge></Td>
+                    <Td className="text-end"><span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-600"><Pencil className="size-4" />{t('Open')}</span></Td>
                   </tr>
                 );
               })}
@@ -138,6 +145,7 @@ export default function Products() {
 // ---------------------------------------------------------------- detail / edit
 
 function ProductDetail({ id, onClose }) {
+  const t = useT();
   const { can } = useAuth();
   const shop = useShop();
   const qc = useQueryClient();
@@ -163,16 +171,16 @@ function ProductDetail({ id, onClose }) {
 
   const save = useMutation({
     mutationFn: () => api.put(`/products/${id}`, { ...info, category_id: Number(info.category_id), brand_id: info.brand_id ? Number(info.brand_id) : null, warranty_months: info.warranty_months === '' ? null : Number(info.warranty_months) }),
-    onSuccess: () => { refresh(); toast('Product saved'); },
+    onSuccess: () => { refresh(); toast(t('Item saved')); },
     onError: setError,
   });
 
   const remove = async () => {
-    if (!(await confirm({ title: 'Delete product?', message: `${p.name} will be removed from your catalog. Products with stock can't be deleted.`, danger: true, confirmLabel: 'Delete' }))) return;
+    if (!(await confirm({ title: t('Delete this item?'), message: t("{name} will be removed from your items. An item that still has stock can't be deleted.", { name: p.name }), danger: true, confirmLabel: t('Delete') }))) return;
     try {
       await api.del(`/products/${id}`);
       refresh();
-      toast('Product deleted');
+      toast(t('Item deleted'));
       onClose();
     } catch (err) {
       setError(err);
@@ -186,7 +194,7 @@ function ProductDetail({ id, onClose }) {
     try {
       await api.upload(`/products/${id}/image`, fd);
       refresh();
-      toast('Photo updated');
+      toast(t('Photo changed'));
     } catch (err) {
       setError(err);
     }
@@ -195,7 +203,7 @@ function ProductDetail({ id, onClose }) {
   const set = (k) => (e) => setInfo((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <Modal open onClose={onClose} size="xl" title={p ? p.name : 'Product'}>
+    <Modal open onClose={onClose} size="xl" title={p ? p.name : t('Item')}>
       {!p || !info ? <Loading /> : (
         <div className="space-y-6">
           <ErrorBox error={error} />
@@ -205,69 +213,72 @@ function ProductDetail({ id, onClose }) {
                 {primaryImage(p) ? <img src={primaryImage(p)} alt="" className="size-full object-cover" /> : <ImageIcon className="size-8 text-slate-300" />}
               </div>
               {canEdit && (
-                <label className="mt-2 block cursor-pointer text-center text-sm font-medium text-brand-600">
-                  Change photo
+                <label className="mt-2 block cursor-pointer rounded-lg border border-slate-300 px-3 py-2.5 text-center text-sm font-medium text-brand-700 hover:bg-slate-50">
+                  {t('Change photo')}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => uploadImage(e.target.files?.[0])} />
                 </label>
               )}
             </div>
             <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setError(null); save.mutate(); }}>
-              <Field label="Name" className="sm:col-span-2"><Input disabled={!canEdit} required value={info.name} onChange={set('name')} /></Field>
-              <Field label="Category">
+              <Field label={t('Item name')} className="sm:col-span-2"><Input disabled={!canEdit} required value={info.name} onChange={set('name')} /></Field>
+              <Field label={t('Category')}>
                 <Select disabled={!canEdit} value={info.category_id} onChange={set('category_id')}>
                   {(categories.data || []).map((c) => <option key={c.id} value={c.id}>{c.path}</option>)}
                 </Select>
               </Field>
-              <Field label="Brand">
+              <Field label={t('Brand')}>
                 <Select disabled={!canEdit} value={info.brand_id} onChange={set('brand_id')}>
-                  <option value="">No brand</option>
+                  <option value="">{t('No brand')}</option>
                   {(brands.data || []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </Select>
               </Field>
-              <Field label="Sold by">
+              <Field label={t('Sold by')}>
                 <Select disabled={!canEdit} value={info.unit} onChange={set('unit')}>
-                  {(shop.meta.units || []).map((u) => <option key={u.code} value={u.code}>{u.label}</option>)}
+                  {(shop.meta.units || []).map((u) => <option key={u.code} value={u.code}>{t(u.label)}</option>)}
                 </Select>
               </Field>
-              <Field label="Status">
+              <Field label={t('Show on the Sell screen?')}>
                 <Select disabled={!canEdit} value={info.is_active ? '1' : '0'} onChange={(e) => setInfo((f) => ({ ...f, is_active: e.target.value === '1' }))}>
-                  <option value="1">Active — shown at POS</option>
-                  <option value="0">Hidden</option>
+                  <option value="1">{t('Yes — shown, can be sold')}</option>
+                  <option value="0">{t('No — hidden')}</option>
                 </Select>
               </Field>
               {(shop.features.serials || p.track_serial) && (
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-brand-600" disabled={!canEdit} checked={info.track_serial} onChange={(e) => setInfo((f) => ({ ...f, track_serial: e.target.checked }))} />Track serial / IMEI numbers</label>
+                <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_serial} onChange={(e) => setInfo((f) => ({ ...f, track_serial: e.target.checked }))} />{t('Track serial / IMEI numbers')}</label>
               )}
               {(shop.features.expiry || p.track_expiry) && (
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-brand-600" disabled={!canEdit} checked={info.track_expiry} onChange={(e) => setInfo((f) => ({ ...f, track_expiry: e.target.checked }))} />Track batch &amp; expiry</label>
+                <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_expiry} onChange={(e) => setInfo((f) => ({ ...f, track_expiry: e.target.checked }))} />{t('Track batch & expiry date')}</label>
               )}
-              {info.track_serial && <Field label="Warranty (months)"><Input type="number" min="0" max="240" disabled={!canEdit} value={info.warranty_months} onChange={set('warranty_months')} /></Field>}
-              <Field label="Description" className="sm:col-span-2"><Textarea disabled={!canEdit} rows={2} value={info.description} onChange={set('description')} /></Field>
+              {info.track_serial && <Field label={t('Warranty (months)')}><Input type="number" min="0" max="240" disabled={!canEdit} value={info.warranty_months} onChange={set('warranty_months')} /></Field>}
+              <Field label={t('Description')} className="sm:col-span-2"><Textarea disabled={!canEdit} rows={2} value={info.description} onChange={set('description')} /></Field>
               {canEdit && (
-                <div className="flex gap-2 sm:col-span-2">
-                  <Button type="submit" loading={save.isPending}>Save changes</Button>
-                  {can('products.delete') && <Button variant="ghost" icon={Trash2} className="text-red-600 hover:bg-red-50" onClick={remove}>Delete product</Button>}
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
+                  <Button type="submit" size="lg" loading={save.isPending}>{t('Save changes')}</Button>
+                  {can('products.delete') && <Button variant="ghost" size="lg" icon={Trash2} className="text-red-600 hover:bg-red-50" onClick={remove}>{t('Delete item')}</Button>}
                 </div>
               )}
             </form>
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Variants, prices &amp; barcodes</h3>
-              {canEdit && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setAddingVariant(true)}>Add variant</Button>}
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-slate-900">{t('Prices, barcodes & types')}</h3>
+                <p className="text-xs text-slate-500">{t('Change a price here, then press Save on that row.')}</p>
+              </div>
+              {canEdit && <Button variant="secondary" icon={Plus} onClick={() => setAddingVariant(true)}>{t('Add a type')}</Button>}
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full min-w-[820px] text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>{[shop.option1, shop.option2, 'Barcode', 'Cost', 'Price', 'Alert at', 'Stock', ''].map((h, i) => <th key={i} className="px-3 py-2 text-left font-semibold">{h}</th>)}</tr>
+                <thead className="bg-slate-50 text-xs text-slate-500">
+                  <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), t('Warn when below'), t('Stock'), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? 'Serials' : 'Batches'} />)}
+                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} />)}
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-xs text-slate-500">Stock is changed through Purchases or Inventory → Adjust, so every change is recorded.</p>
+            <p className="mt-2 text-xs text-slate-500">{t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.')}</p>
           </div>
         </div>
       )}
@@ -278,6 +289,8 @@ function ProductDetail({ id, onClose }) {
 }
 
 function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTracking, trackingLabel }) {
+  const t = useT();
+  const shop = useShop();
   const toast = useToast();
   const confirm = useConfirm();
   const [row, setRow] = useState({ color: v.color || '', size: v.size || '', purchase_price: v.purchase_price ?? '', selling_price: v.selling_price, low_stock_threshold: v.low_stock_threshold });
@@ -297,40 +310,41 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
     selling_price: Number(row.selling_price),
     low_stock_threshold: Number(row.low_stock_threshold || 0),
     ...(v.purchase_price !== undefined ? { purchase_price: Number(row.purchase_price || 0) } : {}),
-  }), 'Variant saved');
+  }), t('Saved'));
 
   const saveBarcode = () => {
     if (!barcode.trim() || barcode === v.barcode) return;
-    run(() => api.post(`/product-variants/${v.id}/barcode/assign`, { barcode_number: barcode.trim() }), 'Barcode updated').catch(() => setBarcode(v.barcode));
+    run(() => api.post(`/product-variants/${v.id}/barcode/assign`, { barcode_number: barcode.trim() }), t('Barcode changed')).catch(() => setBarcode(v.barcode));
   };
 
   const remove = async () => {
-    if (!(await confirm({ title: 'Delete variant?', message: 'Variants with stock can\'t be deleted.', danger: true, confirmLabel: 'Delete' }))) return;
-    run(() => api.del(`/product-variants/${v.id}`), 'Variant deleted');
+    if (!(await confirm({ title: t('Delete this type?'), message: t("A type that still has stock can't be deleted."), danger: true, confirmLabel: t('Delete') }))) return;
+    run(() => api.del(`/product-variants/${v.id}`), t('Type deleted'));
   };
 
-  const cell = 'h-9';
+  const cell = 'h-10';
   return (
     <tr className="border-t border-slate-100">
       <td className="p-1.5"><Input className={cell} disabled={!canEdit} value={row.color} placeholder="—" onChange={(e) => setRow({ ...row, color: e.target.value })} /></td>
       <td className="p-1.5"><Input className={cell} disabled={!canEdit} value={row.size} placeholder="—" onChange={(e) => setRow({ ...row, size: e.target.value })} /></td>
       <td className="p-1.5">
-        <Input className={`${cell} w-40 font-mono`} disabled={!canBarcode} value={barcode} onChange={(e) => setBarcode(e.target.value)} onBlur={saveBarcode} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveBarcode(); } }} title="Scan a new barcode here to replace it" />
+        <Input className={`${cell} w-40 font-mono`} dir="ltr" disabled={!canBarcode} value={barcode} onChange={(e) => setBarcode(e.target.value)} onBlur={saveBarcode} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveBarcode(); } }} title={t('Scan a new barcode here to replace it')} />
       </td>
       <td className="p-1.5">{v.purchase_price !== undefined ? <Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.purchase_price} onChange={(e) => setRow({ ...row, purchase_price: e.target.value })} /> : <span className="text-slate-400">—</span>}</td>
       <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.selling_price} onChange={(e) => setRow({ ...row, selling_price: e.target.value })} /></td>
       <td className="p-1.5"><Input className={`${cell} w-20`} type="number" min="0" step="any" disabled={!canEdit} value={row.low_stock_threshold} onChange={(e) => setRow({ ...row, low_stock_threshold: e.target.value })} /></td>
-      <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}>{qty(v.stock_qty)} {unit}</Badge></td>
-      <td className="whitespace-nowrap p-1.5 text-right">
+      <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge></td>
+      <td className="whitespace-nowrap p-1.5 text-end">
         {onTracking && !dirty && <Button size="sm" variant="ghost" onClick={onTracking}>{trackingLabel}</Button>}
-        {canEdit && dirty && <Button size="sm" loading={busy} onClick={save}>Save</Button>}
-        {canDelete && !dirty && <button type="button" onClick={remove} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Delete variant"><Trash2 className="size-4" /></button>}
+        {canEdit && dirty && <Button loading={busy} onClick={save}>{t('Save')}</Button>}
+        {canDelete && !dirty && <button type="button" onClick={remove} className="rounded-lg p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label={t('Delete this type')} title={t('Delete this type')}><Trash2 className="size-5" /></button>}
       </td>
     </tr>
   );
 }
 
 function AddVariantModal({ product, onClose, onSaved }) {
+  const t = useT();
   const shop = useShop();
   const toast = useToast();
   const [row, setRow] = useState({ color: '', size: '', barcode: '', purchase_price: '', selling_price: product.variants[0]?.selling_price || '', stock_qty: '' });
@@ -348,7 +362,7 @@ function AddVariantModal({ product, onClose, onSaved }) {
         color: row.color.trim() || null, size: row.size.trim() || null, barcode: row.barcode.trim() || null,
         purchase_price: Number(row.purchase_price || 0), selling_price: Number(row.selling_price || 0), stock_qty: Number(row.stock_qty || 0),
       }] });
-      toast('Variant added');
+      toast(t('Type added'));
       onSaved();
       onClose();
     } catch (err) {
@@ -359,15 +373,15 @@ function AddVariantModal({ product, onClose, onSaved }) {
   };
 
   return (
-    <Modal open onClose={onClose} title={`Add variant to ${product.name}`} footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button type="submit" form="variant-form" loading={busy}>Add variant</Button></>}>
+    <Modal open onClose={onClose} title={t('Add a type to {name}', { name: product.name })} footer={<><Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button><Button type="submit" size="lg" form="variant-form" loading={busy}>{t('Add type')}</Button></>}>
       <form id="variant-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2"><ErrorBox error={error} /></div>
-        <Field label={shop.option1}><Input value={row.color} onChange={set('color')} /></Field>
-        <Field label={shop.option2}><Input value={row.size} onChange={set('size')} /></Field>
-        <Field label="Barcode" hint="Scan, or leave empty to generate" className="sm:col-span-2"><Input className="font-mono" value={row.barcode} onChange={set('barcode')} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} /></Field>
-        <Field label="Cost price"><Input type="number" min="0" step="0.01" value={row.purchase_price} onChange={set('purchase_price')} /></Field>
-        <Field label="Selling price" required><Input type="number" min="0" step="0.01" required value={row.selling_price} onChange={set('selling_price')} /></Field>
-        <Field label={`Opening stock (${shop.unitLabel(product.unit)})`}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>
+        <Field label={t(shop.option1)}><Input value={row.color} onChange={set('color')} /></Field>
+        <Field label={t(shop.option2)}><Input value={row.size} onChange={set('size')} /></Field>
+        <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className="sm:col-span-2"><Input className="font-mono" dir="ltr" value={row.barcode} onChange={set('barcode')} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} /></Field>
+        <Field label={t('Buying price (cost)')}><Input type="number" min="0" step="0.01" value={row.purchase_price} onChange={set('purchase_price')} /></Field>
+        <Field label={t('Selling price')} required><Input type="number" min="0" step="0.01" required value={row.selling_price} onChange={set('selling_price')} /></Field>
+        <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: t(shop.unitLabel(product.unit)) })}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>
       </form>
     </Modal>
   );
@@ -376,6 +390,8 @@ function AddVariantModal({ product, onClose, onSaved }) {
 
 // Serial numbers (in stock / sold) or batches with expiry for one variant.
 function TrackingModal({ product, variant, onClose }) {
+  const t = useT();
+  const shop = useShop();
   const serials = useQuery({ queryKey: ['serials', variant.id], queryFn: () => api.get(`/product-variants/${variant.id}/serials`), enabled: !!product.track_serial, select: (r) => r.data });
   const batches = useQuery({ queryKey: ['batches', variant.id], queryFn: () => api.get(`/product-variants/${variant.id}/batches`), enabled: !!product.track_expiry, select: (r) => r.data });
   const today = new Date().toISOString().slice(0, 10);
@@ -383,13 +399,13 @@ function TrackingModal({ product, variant, onClose }) {
     <Modal open onClose={onClose} title={`${product.name}${variantLabel(variant) ? ` — ${variantLabel(variant)}` : ''}`}>
       {product.track_serial && (
         <div className="mb-5">
-          <h4 className="mb-2 text-sm font-semibold text-slate-800">Serial / IMEI numbers</h4>
-          {serials.isLoading ? <Loading /> : !serials.data?.length ? <p className="text-sm text-slate-500">No serials recorded yet. They are added with opening stock or Purchases.</p> : (
+          <h4 className="mb-2 text-sm font-semibold text-slate-800">{t('Serial / IMEI numbers')}</h4>
+          {serials.isLoading ? <Loading /> : !serials.data?.length ? <p className="text-sm text-slate-500">{t('No serial numbers yet. They are added when you add the item or buy stock.')}</p> : (
             <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
               {serials.data.map((x) => (
-                <div key={x.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="font-mono">{x.serial}</span>
-                  <Badge color={x.status === 'in_stock' ? 'green' : x.status === 'sold' ? 'blue' : 'gray'}>{x.status.replace(/_/g, ' ')}</Badge>
+                <div key={x.id} className="flex items-center justify-between px-3 py-2.5 text-sm">
+                  <span className="num font-mono">{x.serial}</span>
+                  <Badge color={x.status === 'in_stock' ? 'green' : x.status === 'sold' ? 'blue' : 'gray'}>{t(SERIAL_STATUS[x.status] || x.status.replace(/_/g, ' '))}</Badge>
                 </div>
               ))}
             </div>
@@ -398,16 +414,16 @@ function TrackingModal({ product, variant, onClose }) {
       )}
       {product.track_expiry && (
         <div>
-          <h4 className="mb-2 text-sm font-semibold text-slate-800">Batches in stock</h4>
-          {batches.isLoading ? <Loading /> : !batches.data?.length ? <p className="text-sm text-slate-500">No batches in stock. Batches are created when you record a purchase with batch / expiry.</p> : (
+          <h4 className="mb-2 text-sm font-semibold text-slate-800">{t('Batches in stock')}</h4>
+          {batches.isLoading ? <Loading /> : !batches.data?.length ? <p className="text-sm text-slate-500">{t('No batches in stock. A batch is made when you buy stock and enter a batch / expiry date.')}</p> : (
             <Table>
-              <thead><tr><Th>Batch</Th><Th>Expiry</Th><Th className="text-right">Qty left</Th></tr></thead>
+              <thead><tr><Th className="text-start">{t('Batch')}</Th><Th className="text-start">{t('Expiry')}</Th><Th className="text-end">{t('Left')}</Th></tr></thead>
               <tbody>
                 {batches.data.map((b) => (
                   <tr key={b.id}>
                     <Td className="font-mono">{b.batch_no || '—'}</Td>
-                    <Td>{b.expiry_date ? <Badge color={b.expiry_date < today ? 'red' : 'gray'}>{b.expiry_date}</Badge> : '—'}</Td>
-                    <Td className="text-right">{qty(b.quantity)} {product.unit}</Td>
+                    <Td>{b.expiry_date ? <Badge color={b.expiry_date < today ? 'red' : 'gray'}><span className="num">{b.expiry_date}</span></Badge> : '—'}</Td>
+                    <Td className="text-end"><span className="num">{qty(b.quantity)}</span> {t(shop.unitLabel(product.unit))}</Td>
                   </tr>
                 ))}
               </tbody>

@@ -1,37 +1,40 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  BarChart3, Boxes, ClipboardList, FolderTree, LayoutDashboard, LogOut, Menu, Package, ReceiptText,
+  BarChart3, Boxes, ClipboardList, FolderTree, Home, Languages, LayoutDashboard, LogOut, Menu, Package, ReceiptText,
   ScanBarcode, Settings, ShoppingCart, Truck, UserCircle, Users, UsersRound, Warehouse, X,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
+import { useLang } from '../lib/i18n';
 import { cx } from './ui';
 
+// Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
-  const products = shop.businessType === 'restaurant' ? 'Menu items' : 'Products';
+  const products = shop.businessType === 'restaurant' ? 'Menu items' : 'Items & stock';
   return [
     { title: null, items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/pos', label: 'POS / Billing', icon: ShoppingCart, perm: 'sales.create' },
+      { to: '/', label: 'Home', icon: Home, end: true },
+      { to: '/pos', label: 'Sell', icon: ShoppingCart, perm: 'sales.create' },
     ] },
     { title: 'Sales', items: [
-      { to: '/sales', label: 'Sales history', icon: ReceiptText, perm: 'sales.create' },
-      { to: '/customers', label: 'Customers', icon: Users, perm: 'customers.view' },
+      { to: '/sales', label: 'Old bills', icon: ReceiptText, perm: 'sales.create' },
+      { to: '/customers', label: 'Customers & udhaar', icon: Users, perm: 'customers.view' },
     ] },
-    { title: 'Catalog', items: [
+    { title: 'Items', items: [
       { to: '/products', label: products, icon: Package, perm: 'products.view' },
       { to: '/categories', label: 'Categories & brands', icon: FolderTree, perm: ['categories.manage', 'brands.manage'] },
-      { to: '/barcodes', label: 'Barcode labels', icon: ScanBarcode, perm: 'barcodes.manage' },
+      { to: '/barcodes', label: 'Print barcode stickers', icon: ScanBarcode, perm: 'barcodes.manage' },
     ] },
     { title: 'Stock', items: [
-      { to: '/inventory', label: 'Inventory', icon: Warehouse, perm: 'inventory.view' },
-      { to: '/purchases', label: 'Purchases', icon: Boxes, perm: 'purchases.view' },
+      { to: '/purchases', label: 'Buy stock (purchases)', icon: Boxes, perm: 'purchases.view' },
+      { to: '/inventory', label: 'Stock count', icon: Warehouse, perm: 'inventory.view' },
       { to: '/suppliers', label: 'Suppliers', icon: Truck, perm: 'suppliers.manage' },
     ] },
     { title: 'Business', items: [
+      { to: '/dashboard', label: 'Today\'s summary', icon: LayoutDashboard },
       { to: '/reports', label: 'Reports', icon: BarChart3, perm: 'reports.view' },
-      { to: '/users', label: 'Users', icon: UsersRound, perm: 'users.manage' },
+      { to: '/users', label: 'Staff', icon: UsersRound, perm: 'users.manage' },
       { to: '/activity', label: 'Activity log', icon: ClipboardList, perm: 'activity_logs.view' },
       { to: '/settings', label: 'Settings', icon: Settings, perm: 'settings.manage' },
     ] },
@@ -40,13 +43,14 @@ export function navSections(shop) {
 
 function Sidebar({ onNavigate }) {
   const { can } = useAuth();
+  const { t } = useLang();
   const shop = useShop();
   return (
-    <nav className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-5">
+    <nav className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-5">
       <div className="flex items-center gap-3 px-2">
-        <div className="grid size-9 place-items-center rounded-lg bg-brand-600 font-bold text-white">C</div>
+        <div className="grid size-10 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-white">C</div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-white">{shop.shopName}</div>
+          <div className="truncate font-semibold text-white">{shop.shopName}</div>
           <div className="text-xs text-slate-400">CorePOS</div>
         </div>
       </div>
@@ -55,8 +59,8 @@ function Sidebar({ onNavigate }) {
         if (!items.length) return null;
         return (
           <div key={section.title || 'main'}>
-            {section.title && <div className="mb-1 px-2 text-xs font-medium uppercase tracking-wider text-slate-500">{section.title}</div>}
-            <div className="space-y-0.5">
+            {section.title && <div className="mb-1 px-3 text-xs font-medium uppercase tracking-wider text-slate-500">{t(section.title)}</div>}
+            <div className="space-y-1">
               {items.map(({ to, label, icon: Icon, end }) => (
                 <NavLink
                   key={to}
@@ -64,11 +68,11 @@ function Sidebar({ onNavigate }) {
                   end={end}
                   onClick={onNavigate}
                   className={({ isActive }) => cx(
-                    'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
-                    isActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white',
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
+                    isActive ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white',
                   )}
                 >
-                  <Icon className="size-4.5 shrink-0" />{label}
+                  <Icon className="size-5 shrink-0" />{t(label)}
                 </NavLink>
               ))}
             </div>
@@ -79,39 +83,62 @@ function Sidebar({ onNavigate }) {
   );
 }
 
+export function LanguageSwitch({ className }) {
+  const { lang, setLang } = useLang();
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(lang === 'ur' ? 'en' : 'ur')}
+      className={cx('flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-700 hover:bg-slate-50', className)}
+      title="English / اردو"
+    >
+      <Languages className="size-5 text-brand-600" />
+      {lang === 'ur' ? <span style={{ fontFamily: 'var(--font-sans)' }}>English</span> : <span style={{ fontFamily: 'var(--font-urdu)' }}>اردو</span>}
+    </button>
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
   return (
     <div className="flex h-full">
-      <aside className="hidden w-60 shrink-0 bg-slate-900 lg:block"><Sidebar /></aside>
+      <aside className="hidden w-64 shrink-0 bg-slate-900 lg:block"><Sidebar /></aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-900/50" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-slate-900">
-            <button type="button" className="absolute right-2 top-3 p-2 text-slate-400" onClick={() => setOpen(false)} aria-label="Close menu"><X className="size-5" /></button>
+          <aside className="absolute inset-y-0 start-0 w-72 bg-slate-900">
+            <button type="button" className="absolute end-2 top-3 p-2 text-slate-400" onClick={() => setOpen(false)} aria-label="Close menu"><X className="size-6" /></button>
             <Sidebar onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
-          <button type="button" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="size-5" /></button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-100">
-              <UserCircle className="size-7 text-slate-400" />
-              <div className="hidden sm:block">
-                <div className="text-sm font-medium leading-tight text-slate-900">{user?.name}</div>
-                <div className="text-xs leading-tight text-slate-500">{user?.role}</div>
-              </div>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:px-4">
+          <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="size-7" /></button>
+          {pathname !== '/' && (
+            <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-base font-semibold text-slate-700 hover:bg-slate-200">
+              <Home className="size-5" />{t('Home')}
             </button>
-            <button type="button" onClick={logout} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Sign out" aria-label="Sign out"><LogOut className="size-5" /></button>
-          </div>
+          )}
+          <div className="flex-1" />
+          <LanguageSwitch />
+          <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-start hover:bg-slate-100">
+            <UserCircle className="size-8 text-slate-400" />
+            <div className="hidden sm:block">
+              <div className="text-sm font-semibold leading-tight text-slate-900">{user?.name}</div>
+              <div className="text-xs leading-tight text-slate-500">{t(user?.role || '')}</div>
+            </div>
+          </button>
+          <button type="button" onClick={logout} className="flex items-center gap-2 rounded-xl p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" title={t('Sign out')} aria-label={t('Sign out')}>
+            <LogOut className="size-6 rtl:rotate-180" />
+          </button>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />

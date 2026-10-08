@@ -1,17 +1,22 @@
-// Barcode label rendering shared by the Barcode labels page and the
-// Settings → Barcode preview. Barcodes are drawn client-side with jsbarcode.
+// Barcode sticker rendering shared by the "Print barcode stickers" page and
+// the Settings → Barcode stickers preview. Barcodes are drawn client-side
+// with jsbarcode. Item names print exactly as entered; the price line and the
+// font of the shop name follow the chosen language.
 import JsBarcode from 'jsbarcode';
-import { money, variantLabel } from '../../lib/format';
+import { num, variantLabel } from '../../lib/format';
+import { useLang } from '../../lib/i18n';
 import { cx } from '../../components/ui';
 
+// `label` / FORMATS values are English keys — show them through t()
+// (Urdu in src/i18n/ur/settings.js).
 export const LABEL_SIZES = {
   small: { w: 38, h: 25, label: 'Small — 38 × 25 mm', barH: 9 },
   large: { w: 50, h: 30, label: 'Large — 50 × 30 mm', barH: 11 },
 };
 
 export const FORMATS = {
-  code128: 'CODE128 — works with any code',
-  ean13: 'EAN-13 for 13-digit retail codes (CODE128 for the rest)',
+  code128: 'CODE128 — works for every item',
+  ean13: 'EAN-13 — for 13-digit pack barcodes (CODE128 for the rest)',
 };
 
 // A barcode that is missing or still a placeholder from product creation.
@@ -63,6 +68,9 @@ export function barcodeSvg(code, format) {
 
 // One printable label. `item` is a ProductVariantResource (with product_name).
 export function BarcodeLabel({ item, size = 'small', showShop, shopName, showPrice = true, format = 'code128', className, style }) {
+  const { t, isUrdu } = useLang();
+  // Urdu (Nastaliq) needs its own font and more line height to avoid clipping.
+  const langText = isUrdu ? { fontFamily: 'var(--font-urdu)', lineHeight: 1.6 } : null;
   const dim = LABEL_SIZES[size] || LABEL_SIZES.small;
   const code = item.barcode || '';
   const svg = needsBarcode(code) ? null : barcodeSvg(code, pickFormat(code, format));
@@ -74,18 +82,18 @@ export function BarcodeLabel({ item, size = 'small', showShop, shopName, showPri
       className={cx('flex flex-col overflow-hidden bg-white text-center text-black', className)}
       style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: '1.2mm 1.5mm', fontFamily: 'Arial, Helvetica, sans-serif', lineHeight: 1.1, ...style }}
     >
-      {showShop && shopName && <div className="truncate font-semibold uppercase" style={{ fontSize: small ? '5.5pt' : '6.5pt', letterSpacing: '0.03em' }}>{shopName}</div>}
-      <div className="truncate font-semibold" style={{ fontSize: small ? '7pt' : '8.5pt' }}>{item.product_name}</div>
-      {opts && <div className="truncate" style={{ fontSize: small ? '6pt' : '7pt' }}>{opts}</div>}
+      {showShop && shopName && <div dir="auto" className={cx('truncate font-semibold', !isUrdu && 'uppercase')} style={{ fontSize: small ? '5.5pt' : '6.5pt', letterSpacing: isUrdu ? 0 : '0.03em', ...langText }}>{shopName}</div>}
+      <div dir="auto" className="truncate font-semibold" style={{ fontSize: small ? '7pt' : '8.5pt' }}>{item.product_name}</div>
+      {opts && <div dir="auto" className="truncate" style={{ fontSize: small ? '6pt' : '7pt' }}>{opts}</div>}
       <div className="flex min-h-0 flex-1 flex-col justify-center" style={{ marginTop: '0.6mm' }}>
         {svg ? (
           <div style={{ height: `${dim.barH}mm` }} dangerouslySetInnerHTML={{ __html: svg }} />
         ) : (
-          <div className="grid place-items-center border border-dashed border-black/40" style={{ height: `${dim.barH}mm`, fontSize: '6pt' }}>No barcode</div>
+          <div className="grid place-items-center border border-dashed border-black/40" style={{ height: `${dim.barH}mm`, fontSize: '6pt', ...langText }}>{t('No barcode')}</div>
         )}
-        <div className="font-mono" style={{ fontSize: small ? '6pt' : '7pt', marginTop: '0.3mm' }}>{svg ? code : ''}</div>
+        <div className="font-mono" dir="ltr" style={{ fontSize: small ? '6pt' : '7pt', marginTop: '0.3mm' }}>{svg ? code : ''}</div>
       </div>
-      {showPrice && <div className="font-bold" style={{ fontSize: small ? '9pt' : '11pt' }}>{money(item.selling_price)}</div>}
+      {showPrice && <div className="font-bold" style={{ fontSize: small ? '9pt' : '11pt', ...langText, lineHeight: isUrdu ? 1.3 : undefined }}>{t('Rs {amount}', { amount: num(item.selling_price) })}</div>}
     </div>
   );
 }
