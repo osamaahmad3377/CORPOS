@@ -104,7 +104,7 @@ function OfferList() {
   };
 
   const chip = (key, label) => (
-    <button type="button" onClick={() => setFilter(key)} className={cx('min-h-11 rounded-full px-4 text-sm font-medium ring-1 ring-inset', filter === key ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50')}>{label}</button>
+    <button type="button" onClick={() => setFilter(key)} className={cx('min-h-11 rounded-full px-4 text-sm font-medium ring-1 ring-inset', filter === key ? 'bg-brand-600 text-brand-ink ring-brand-600' : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50')}>{label}</button>
   );
 
   return (
@@ -191,7 +191,7 @@ function Choice({ active, onClick, icon: Icon, title, hint }) {
       aria-pressed={active}
       className={cx('flex min-h-16 items-start gap-3 rounded-xl border-2 p-3 text-start transition-colors', active ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white hover:border-slate-300')}
     >
-      {Icon && <Icon className={cx('mt-0.5 size-6 shrink-0', active ? 'text-brand-600' : 'text-slate-400')} />}
+      {Icon && <Icon className={cx('mt-0.5 size-6 shrink-0', active ? 'text-brand-700' : 'text-slate-400')} />}
       <span>
         <span className="block font-semibold text-slate-900">{title}</span>
         {hint && <span className="mt-0.5 block text-sm text-slate-500">{hint}</span>}

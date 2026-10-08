@@ -133,7 +133,7 @@ function SalesList() {
                   key={key}
                   type="button"
                   onClick={() => setF({ from: d === 0 ? today() : daysAgo(d), to: today() })}
-                  className={cx('h-11 border-e border-slate-300 px-4 last:border-e-0', range === key ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}
+                  className={cx('h-11 border-e border-slate-300 px-4 last:border-e-0', range === key ? 'bg-brand-600 text-brand-ink' : 'bg-white text-slate-600 hover:bg-slate-50')}
                 >{t(label)}</button>
               ))}
             </div>
@@ -360,10 +360,10 @@ function SaleDetail() {
             <div className="mb-2 text-sm font-semibold text-slate-500">{t('Customer')}</div>
             {sale.customer_id ? (
               <div className="flex items-center gap-3">
-                <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600"><User className="size-5" /></div>
+                <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><User className="size-5" /></div>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-slate-900">{sale.customer}</div>
-                  {can('customers.view') && <Link to={`/customers/${sale.customer_id}`} className="inline-block py-1 text-sm font-medium text-brand-600 hover:underline">{t('See customer & udhaar')}</Link>}
+                  {can('customers.view') && <Link to={`/customers/${sale.customer_id}`} className="inline-block py-1 text-sm font-medium text-brand-700 hover:underline">{t('See customer & udhaar')}</Link>}
                 </div>
               </div>
             ) : <div className="text-slate-500">{t('Walk-in customer')}</div>}

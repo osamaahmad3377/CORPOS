@@ -114,6 +114,7 @@ export default {
 
   // ---- items: wholesale price
   'Wholesale price': 'ہول سیل قیمت',
+  'Retail price': 'ریٹیل قیمت',
   'Wholesale price (optional)': 'ہول سیل قیمت (اگر ہو)',
   'Leave empty to use the selling price.': 'خالی چھوڑیں تو عام قیمت لگے گی۔',
   'Price for wholesale customers (Rs). Leave empty to use the selling price.': 'ہول سیل گاہکوں کے لیے قیمت (روپے)۔ خالی چھوڑیں تو عام قیمت لگے گی۔',

@@ -417,7 +417,7 @@ export default function Pos() {
         <>
         <div className="border-b border-slate-200 bg-white p-4">
           <form onSubmit={onScan} className="relative">
-            <ScanBarcode className="pointer-events-none absolute start-4 top-1/2 size-6 -translate-y-1/2 text-brand-600" />
+            <ScanBarcode className="pointer-events-none absolute start-4 top-1/2 size-6 -translate-y-1/2 text-brand-700" />
             <Input
               ref={scanRef}
               className="h-14 ps-13 pe-28 text-lg"
@@ -434,7 +434,7 @@ export default function Pos() {
           {cats.length > 0 && (
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
               {[{ id: '', path: t('All items') }, ...cats].map((c) => (
-                <button key={c.id || 'all'} type="button" onClick={() => setCategoryId(String(c.id))} className={cx('whitespace-nowrap rounded-full border-2 px-4 py-1.5 text-base font-medium transition', String(categoryId) === String(c.id) ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300')}>
+                <button key={c.id || 'all'} type="button" onClick={() => setCategoryId(String(c.id))} className={cx('whitespace-nowrap rounded-full px-4 py-2 text-[15px] font-semibold transition', String(categoryId) === String(c.id) ? 'bg-brand-600 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_2px_6px_-2px_var(--color-brand-600)]' : 'bg-white text-slate-600 shadow-xs ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900')}>
                   {c.path}
                 </button>
               ))}
@@ -455,18 +455,21 @@ export default function Pos() {
                 const stock = tracked ? (p.variants || []).reduce((a, v) => a + Number(v.stock_qty), 0) : Infinity;
                 const prices = (p.variants || []).map((v) => Number(v.selling_price));
                 return (
-                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-2xl border-2 border-slate-200 bg-white text-start shadow-sm transition hover:border-brand-400 active:scale-[0.98] disabled:opacity-50">
+                  <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-start shadow-card transition duration-150 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift active:translate-y-0 active:scale-[0.98] disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none">
                     {img ? (
                       <div className="aspect-[4/3] bg-slate-100"><img src={img} alt="" className="size-full object-cover" /></div>
                     ) : (
                       // no photo: a compact coloured band with the initial
-                      <div className="grid h-14 place-items-center bg-brand-50 text-2xl font-extrabold text-brand-700">{(p.name || '?').trim().charAt(0).toUpperCase()}</div>
+                      <div className="relative grid h-16 place-items-center overflow-hidden bg-gradient-to-br from-brand-50 to-brand-100">
+                        <span aria-hidden className="absolute -end-4 -top-6 size-16 rounded-full bg-[rgb(255_255_255/0.40)] dark:bg-[rgb(255_255_255/0.04)]" />
+                        <span className="relative grid size-10 place-items-center rounded-xl bg-[rgb(255_255_255/0.80)] dark:bg-[rgb(255_255_255/0.06)] text-xl font-bold text-brand-700 shadow-xs ring-1 ring-brand-600/10">{(p.name || '?').trim().charAt(0).toUpperCase()}</span>
+                      </div>
                     )}
-                    <div className="flex flex-1 flex-col p-3">
-                      <div className="line-clamp-2 text-base font-semibold leading-snug text-slate-900">{p.name}</div>
+                    <div className="flex flex-1 flex-col p-3.5">
+                      <div className="line-clamp-2 text-[15px] font-semibold leading-snug text-slate-900">{p.name}</div>
                       <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-1">
-                        <span className="num text-lg font-bold text-brand-700">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
-                        {tracked && <span className={cx('text-sm', stock <= 0 ? 'font-semibold text-red-600' : 'text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>}
+                        <span className="num text-lg font-bold tracking-tight text-slate-900">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
+                        {tracked && <span className={cx('rounded-full px-2 py-0.5 text-xs font-semibold', stock <= 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>}
                       </div>
                     </div>
                   </button>
@@ -480,7 +483,7 @@ export default function Pos() {
       </section>
 
       {/* ------------------------------------------------ bill */}
-      <aside className="flex min-h-0 w-full flex-col border-s border-slate-200 bg-white lg:w-[440px]">
+      <aside className="flex min-h-0 w-full flex-col border-s border-slate-200/80 bg-white shadow-[-8px_0_24px_-16px_rgb(16_24_40/0.12)] lg:w-[440px]">
         <div className="space-y-2 border-b border-slate-200 p-3">
           {drawerClosed && (
             <Link to="/cash" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
@@ -565,7 +568,7 @@ export default function Pos() {
                       <span className="text-sm text-slate-500">{t(shop.unitLabel(l.unit))}</span>
                       <div className="ms-auto flex items-center gap-1 text-sm text-slate-500">
                         {t('Discount')}
-                        <input className="num h-10 w-20 rounded-lg border border-slate-300 px-2 text-end text-base" type="number" min="0" step="0.01" value={l.discount || ''} placeholder="0" onChange={(e) => setCart((c) => c.map((x) => (x.variant_id === l.variant_id ? { ...x, discount: e.target.value } : x)))} />
+                        <input className="num h-10 w-20 rounded-xl border border-slate-200 bg-white px-2 text-end text-base shadow-xs focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" type="number" min="0" step="0.01" value={l.discount || ''} placeholder="0" onChange={(e) => setCart((c) => c.map((x) => (x.variant_id === l.variant_id ? { ...x, discount: e.target.value } : x)))} />
                       </div>
                     </div>
                     {l.serialTracked && l.serials.length > 0 && <p className="mt-1 truncate font-mono text-xs text-slate-500">{l.serials.join(', ')}</p>}
@@ -578,13 +581,13 @@ export default function Pos() {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 p-4 text-base">
+        <div className="space-y-2 border-t border-slate-200/80 bg-slate-50/60 p-4 text-base">
           <div className="flex justify-between text-slate-600"><span>{t('Subtotal ({n} items)', { n: totals.items })}</span><span className="num">{money(totals.subtotal)}</span></div>
           <div className="flex items-center justify-between gap-2 text-slate-600">
             <span>{t('Discount')}</span>
             <div className="flex items-center gap-1">
-              <input className="num h-10 w-20 rounded-lg border border-slate-300 px-2 text-end" type="number" min="0" step="0.01" placeholder="0" value={discount.value} onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))} />
-              <select className="h-10 rounded-lg border border-slate-300 px-1" value={discount.mode} onChange={(e) => setDiscount((d) => ({ ...d, mode: e.target.value }))}>
+              <input className="num h-10 w-20 rounded-xl border border-slate-200 bg-white px-2 text-end shadow-xs focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" type="number" min="0" step="0.01" placeholder="0" value={discount.value} onChange={(e) => setDiscount((d) => ({ ...d, value: e.target.value }))} />
+              <select className="h-10 rounded-xl border border-slate-200 bg-white px-1 shadow-xs" value={discount.mode} onChange={(e) => setDiscount((d) => ({ ...d, mode: e.target.value }))}>
                 <option value="amount">Rs</option><option value="percent">%</option>
               </select>
               <span className="num w-24 text-end">-{money(totals.cashierDiscount)}</span>
@@ -607,7 +610,10 @@ export default function Pos() {
             </div>
           )}
           {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span className="num">{money(totals.tax)}</span></div>}
-          <div className="flex items-center justify-between pt-1"><span className="text-xl font-bold text-slate-900">{t('Total')}</span><span className="num text-3xl font-bold text-slate-900">{money(totals.total)}</span></div>
+          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-xs ring-1 ring-slate-200/80">
+            <span className="text-lg font-semibold text-slate-600">{t('Total')}</span>
+            <span className="num text-[32px] font-bold leading-none tracking-tight text-slate-900">{money(totals.total)}</span>
+          </div>
           {restaurant && <Input placeholder={t('Kitchen note (e.g. less spicy)')} value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
           <div className="grid grid-cols-3 gap-2 pt-1">
             {restaurant
@@ -621,7 +627,7 @@ export default function Pos() {
           </Button>
           {preview.error && <p className="text-sm text-red-600">{t(preview.error.message)}</p>}
           {can('quotations.manage') && cart.length > 0 && !restaurant && (
-            <button type="button" onClick={saveQuote} disabled={busy} className="flex w-full items-center justify-center gap-2 py-1 text-sm font-semibold text-slate-500 hover:text-brand-600">
+            <button type="button" onClick={saveQuote} disabled={busy} className="flex w-full items-center justify-center gap-2 py-1 text-sm font-semibold text-slate-500 hover:text-brand-700">
               <FileText className="size-4" />{t('Save as quotation instead')}
             </button>
           )}
@@ -1092,16 +1098,16 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                   onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
                   className={cx(
                     'relative flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition active:scale-[0.97]',
-                    busy ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
+                    busy ? 'border-brand-600 bg-brand-600 text-brand-ink' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
                     selected && !busy && 'ring-4 ring-brand-200',
                   )}
                 >
-                  <span className={cx('text-xs font-semibold uppercase tracking-wide', busy ? 'text-white/80' : 'text-slate-400')}>{t('Table')}</span>
+                  <span className={cx('text-xs font-semibold uppercase tracking-wide', busy ? 'text-brand-ink/75' : 'text-slate-400')}>{t('Table')}</span>
                   <span className={cx('num max-w-full truncate font-extrabold leading-none', no.length > 3 ? 'text-xl' : 'text-3xl')}>{no}</span>
                   {busy ? (
                     <>
                       <span className="num mt-1 text-sm font-bold">{money(sum)}</span>
-                      <span className="mt-0.5 flex items-center gap-1 text-xs text-white/85"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
+                      <span className="mt-0.5 flex items-center gap-1 text-xs text-brand-ink/80"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
                       <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
                     </>
                   ) : (

@@ -188,7 +188,7 @@ function Step({ n, title, hint, children, className }) {
   return (
     <Card className={className}>
       <div className="flex items-start gap-3 border-b border-slate-100 px-5 py-4">
-        <span className="num grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">{n}</span>
+        <span className="num grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-lg font-bold text-brand-ink">{n}</span>
         <div className="min-w-0">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           {hint && <p className="text-sm text-slate-500">{hint}</p>}

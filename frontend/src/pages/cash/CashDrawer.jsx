@@ -83,7 +83,7 @@ function OpenDayCard() {
 }
 
 function SummaryTile({ icon: Icon, label, value, hint, tone = 'brand', big }) {
-  const tones = { brand: 'bg-brand-50 text-brand-600', green: 'bg-emerald-50 text-emerald-600', amber: 'bg-amber-50 text-amber-600', teal: 'bg-teal-50 text-teal-600' };
+  const tones = { brand: 'bg-brand-50 text-brand-700', green: 'bg-emerald-50 text-emerald-600', amber: 'bg-amber-50 text-amber-600', teal: 'bg-teal-50 text-teal-600' };
   return (
     <Card className={cx('p-5', big && 'border-2 border-emerald-200 bg-emerald-50/40')}>
       <div className="flex items-center gap-3">
@@ -201,7 +201,7 @@ function OpenDrawer({ session }) {
       {can('sales.create') && (
         <p className="text-sm text-slate-500">
           {t('Udhaar collected from customers in cash (Old bills → Receive payment) is added automatically.')}{' '}
-          <Link to="/pos" className="font-medium text-brand-600 hover:underline">{t('Go to Sell')}</Link>
+          <Link to="/pos" className="font-medium text-brand-700 hover:underline">{t('Go to Sell')}</Link>
         </p>
       )}
 

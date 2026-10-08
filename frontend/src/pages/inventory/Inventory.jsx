@@ -316,7 +316,7 @@ function AdjustModal({ initial, onClose }) {
                   type === x.value ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50',
                 )}
               >
-                <x.icon className={cx('mt-0.5 size-6 shrink-0', type === x.value ? 'text-brand-600' : 'text-slate-400')} />
+                <x.icon className={cx('mt-0.5 size-6 shrink-0', type === x.value ? 'text-brand-700' : 'text-slate-400')} />
                 <span>
                   <span className="block text-base font-semibold text-slate-900">{t(x.label)}</span>
                   <span className="block text-sm text-slate-500">{t(x.hint)}</span>

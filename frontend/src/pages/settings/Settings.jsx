@@ -306,7 +306,7 @@ function BrandForm({ d, set }) {
             <Button>{t('Take payment')}</Button>
             <Button variant="secondary">{t('Cancel')}</Button>
             <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-700">{t('Badge')}</span>
-            <span className="font-semibold text-brand-600">{t('Link text')}</span>
+            <span className="font-semibold text-brand-700">{t('Link text')}</span>
           </div>
         </div>
 
@@ -585,7 +585,7 @@ function BusinessForm({ d, set, err }) {
 
         {suggest && (
           <div className="flex flex-col gap-3 rounded-lg border border-brand-100 bg-brand-50 p-4 sm:flex-row sm:items-center">
-            <Lightbulb className="size-6 shrink-0 text-brand-600" />
+            <Lightbulb className="size-6 shrink-0 text-brand-700" />
             <div className="flex-1 text-[15px] text-slate-700">
               <div className="font-semibold text-slate-900">{t('Switch the whole system to {type}?', { type: t(suggest.label) })}</div>
               <div className="mt-1">{suggest.code === 'restaurant'

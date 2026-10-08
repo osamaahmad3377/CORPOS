@@ -17,7 +17,7 @@ export function CashTabs() {
   const t = useT();
   const tab = ({ isActive }) => cx(
     'inline-flex h-12 items-center gap-2 rounded-lg px-4 text-base font-medium',
-    isActive ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50',
+    isActive ? 'bg-brand-600 text-brand-ink shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50',
   );
   return (
     <div className="mb-5 flex flex-wrap gap-2">

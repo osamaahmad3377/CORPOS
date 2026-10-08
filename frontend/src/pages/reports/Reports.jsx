@@ -107,7 +107,7 @@ function DailySales() {
   }, [sales]);
 
   const columns = [
-    { key: 'invoice_number', en: 'Bill', render: (s) => <Link to={`/sales/${s.invoice_number}`} className="font-medium text-slate-800 hover:text-brand-600">{s.invoice_number}</Link> },
+    { key: 'invoice_number', en: 'Bill', render: (s) => <Link to={`/sales/${s.invoice_number}`} className="font-medium text-slate-800 hover:text-brand-700">{s.invoice_number}</Link> },
     { key: 'sale_date', en: 'Time', render: (s) => <Num>{d.time(s.sale_date)}</Num>, csv: (s) => d.time(s.sale_date) },
     { key: 'customer', en: 'Customer', render: (s) => s.customer || <span className="text-slate-400">{t('Walk-in')}</span>, csv: (s) => s.customer || 'Walk-in' },
     { key: 'cashier', en: 'Cashier' },
@@ -598,7 +598,7 @@ function CustomersReport() {
           <FilterBox label={t('Search')} className="w-full sm:w-64"><Input placeholder={t('Name or phone')} value={search} onChange={(e) => setSearch(e.target.value)} /></FilterBox>
           {hasDue && (
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-slate-700">
-              <input type="checkbox" className="size-5 rounded border-slate-300 text-brand-600" checked={onlyDue} onChange={(e) => setOnlyDue(e.target.checked)} />
+              <input type="checkbox" className="size-5 rounded border-slate-300 text-brand-700" checked={onlyDue} onChange={(e) => setOnlyDue(e.target.checked)} />
               {t('Only customers who owe money')}
             </label>
           )}

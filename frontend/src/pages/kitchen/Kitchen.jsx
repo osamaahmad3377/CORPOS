@@ -49,7 +49,7 @@ export default function Kitchen() {
       />
       <div className="mb-5 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
-          <button key={f.key} type="button" onClick={() => setFilter(f.key)} className={cx('rounded-full border-2 px-4 py-1.5 text-base font-semibold', filter === f.key ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700')}>
+          <button key={f.key} type="button" onClick={() => setFilter(f.key)} className={cx('rounded-full border-2 px-4 py-1.5 text-base font-semibold', filter === f.key ? 'border-brand-600 bg-brand-600 text-brand-ink' : 'border-slate-200 bg-white text-slate-700')}>
             {t(f.label)} <span className="num ms-1 opacity-80">{count(f.key)}</span>
           </button>
         ))}
@@ -68,7 +68,7 @@ export default function Kitchen() {
                 <div className="flex items-start justify-between gap-2 border-b border-slate-100 p-4">
                   <div>
                     <div className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
-                      <TypeIcon className="size-6 text-brand-600" />
+                      <TypeIcon className="size-6 text-brand-700" />
                       {o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')}
                     </div>
                     <div className="num text-sm text-slate-500">{o.invoice_number}{o.waiter ? ` · ${o.waiter}` : ''}</div>

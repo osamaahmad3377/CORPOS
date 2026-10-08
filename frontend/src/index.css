@@ -16,11 +16,28 @@
   --color-brand-500: #34dc85;
   --color-brand-600: #1bd173;
   --color-brand-700: #14a65b;
+  /* text on top of the brand colour — set at runtime by applyBrand() */
+  --color-brand-ink: #0b1324;
+  /* app background behind cards, and the dark navigation */
+  --color-canvas: #f3f5f8;
+  --color-ink-950: #0a0f1c;
+  --color-ink-900: #0f1626;
+  --color-ink-800: #172033;
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 2px 6px -1px rgb(16 24 40 / 0.05);
+  --shadow-lift: 0 2px 4px rgb(16 24 40 / 0.04), 0 12px 24px -6px rgb(16 24 40 / 0.12);
+  --shadow-pop: 0 24px 48px -12px rgb(16 24 40 / 0.25), 0 4px 10px -4px rgb(16 24 40 / 0.08);
+  --animate-pop-in: pop-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --animate-fade-in: fade-in 140ms ease-out;
+  @keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 }
 
 html, body, #root { height: 100%; }
 /* Slightly larger everything — easier to read for every user. */
 html { font-size: 17px; }
+/* Inter's friendlier alternates (open 4/6/9, single-storey a) */
+html { font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
 
 /* Urdu: Nastaliq script needs more size and line height to stay readable. */
 html[dir=rtl] { font-size: 18px; }
@@ -32,11 +49,22 @@ html[dir=rtl] input[type=password], html[dir=rtl] .font-mono, html[dir=rtl] .ltr
   direction: ltr; font-family: var(--font-sans);
 }
 html[dir=rtl] input[type=number] { text-align: right; }
-.num { font-family: var(--font-sans); unicode-bidi: isolate; direction: ltr; white-space: nowrap; }
+.num { font-family: var(--font-sans); unicode-bidi: isolate; direction: ltr; white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* Nastaliq letters are tall — tight line-heights make lines overlap. */
 html[dir=rtl] [class*="leading-"] { line-height: 1.75; }
 html[dir=rtl] h1, html[dir=rtl] h2, html[dir=rtl] h3 { line-height: 1.7; }
-body { @apply bg-slate-50 text-slate-900 antialiased; }
+body { @apply bg-canvas text-slate-900 antialiased; }
+::selection { background: color-mix(in srgb, var(--color-brand-600) 28%, transparent); }
+
+/* slim, quiet scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--color-slate-300) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--color-slate-300); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: var(--color-slate-400); }
+
+/* table rows highlight under the pointer */
+.data-table tbody tr { transition: background-color 120ms; }
+.data-table tbody tr:hover > td { background-color: color-mix(in srgb, var(--color-slate-100) 60%, transparent); }
 
 /* Number inputs: no spinners (cashiers type, scanners type). */
 input[type=number]::-webkit-inner-spin-button,
@@ -55,6 +83,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
    pale tints are remapped while html.dark is set. */
 html.dark {
   color-scheme: dark;
+  --color-canvas: #0a1020;
   --color-slate-50: #0b1120;
   --color-slate-100: #172033;
   --color-slate-200: #243247;
@@ -80,7 +109,13 @@ html.dark {
   --color-red-100: rgb(239 68 68 / 0.2);
   --color-red-600: #f87171;
   --color-red-700: #fca5a5;
+  --color-blue-50: rgb(59 130 246 / 0.12);
   --color-blue-100: rgb(59 130 246 / 0.18);
+  --color-indigo-50: rgb(99 102 241 / 0.13);
+  --color-violet-50: rgb(139 92 246 / 0.13);
+  --color-rose-50: rgb(244 63 94 / 0.12);
+  --color-teal-50: rgb(20 184 166 / 0.12);
+  --color-orange-50: rgb(249 115 22 / 0.12);
   --color-blue-700: #93c5fd;
   --color-indigo-100: rgb(99 102 241 / 0.2);
   --color-indigo-700: #a5b4fc;

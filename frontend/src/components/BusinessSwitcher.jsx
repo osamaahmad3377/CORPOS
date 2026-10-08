@@ -62,7 +62,7 @@ export default function BusinessSwitcher() {
     <div className="fixed inset-0 z-[60] grid place-items-center bg-white/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3 text-center">
         <BusinessBadge b={opening} className="size-16" />
-        <span className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Loader2 className="size-5 animate-spin text-brand-600" />{t('Opening {name}…', { name: opening.name })}</span>
+        <span className="flex items-center gap-2 text-lg font-semibold text-slate-800"><Loader2 className="size-5 animate-spin text-brand-700" />{t('Opening {name}…', { name: opening.name })}</span>
       </div>
     </div>
   );
@@ -112,7 +112,7 @@ export default function BusinessSwitcher() {
                 <span className="block truncate font-semibold text-slate-900">{b.name}</span>
                 <span className="block truncate text-xs text-slate-500">{t(b.type_label)}</span>
               </span>
-              {b.current ? <Check className="size-5 text-brand-600" /> : !b.can_open && <Lock className="size-4 text-slate-400" />}
+              {b.current ? <Check className="size-5 text-brand-700" /> : !b.can_open && <Lock className="size-4 text-slate-400" />}
             </button>
           ))}
           {can('settings.manage') && (

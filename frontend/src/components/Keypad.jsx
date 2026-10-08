@@ -30,7 +30,7 @@ export default function Keypad({ value, onChange, allowDecimal = true, onEnter, 
       <button type="button" className={cx(key, 'grid place-items-center text-slate-600')} onClick={() => press('back')} aria-label="Delete"><Delete className="size-7" /></button>
       <button type="button" className={cx(key, 'text-lg text-red-600')} onClick={() => press('clear')}>{t('Clear')}</button>
       {onEnter && (
-        <button type="button" className="col-span-2 h-16 rounded-xl bg-brand-600 text-xl font-bold text-white shadow-sm transition active:scale-95" onClick={onEnter}>
+        <button type="button" className="col-span-2 h-16 rounded-xl bg-brand-600 text-xl font-bold text-brand-ink shadow-sm transition active:scale-95" onClick={onEnter}>
           {enterLabel || t('OK')}
         </button>
       )}

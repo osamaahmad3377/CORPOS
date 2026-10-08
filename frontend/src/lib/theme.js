@@ -54,6 +54,7 @@ export function brandScale(hex) {
   const c = hexToHsl(hex) || hexToHsl(DEFAULT_BRAND);
   const { h, s, l } = c;
   const sat = (k) => s * k;
+  const light = onBrand(hex) !== '#ffffff';
   return {
     50: hsl(h, sat(0.9), 97),
     100: hsl(h, sat(0.9), 94),
@@ -62,16 +63,26 @@ export function brandScale(hex) {
     400: hsl(h, sat(0.9), Math.min(l + 14, 68)),
     500: hsl(h, s, Math.min(l + 6, 60)),
     600: hex,
-    700: hsl(h, s, Math.max(l - 8, 12)),
-    800: hsl(h, s, Math.max(l - 16, 9)),
-    900: hsl(h, s, Math.max(l - 24, 7)),
+    // 700+ are used for brand-coloured text on white: a bright brand colour
+    // (one that needs dark text on it) gets deeper shades so text stays readable.
+    700: hsl(h, s, Math.max(l - (light ? 18 : 8), 12)),
+    800: hsl(h, s, Math.max(l - (light ? 26 : 16), 9)),
+    900: hsl(h, s, Math.max(l - (light ? 32 : 24), 7)),
   };
 }
 
-// Readable text colour on top of the brand colour.
+// Readable text colour on top of the brand colour. White is the usual
+// choice; only when white would be hard to read (contrast below 3:1 — bright
+// greens, yellows, limes) the text turns near-black.
+function luminance(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return 0.2;
+  const n = parseInt(m[1], 16);
+  const ch = (v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+}
 export function onBrand(hex) {
-  const c = hexToHsl(hex);
-  return c && c.l > 62 ? '#0f172a' : '#ffffff';
+  return 1.05 / (luminance(hex) + 0.05) >= 3 ? '#ffffff' : '#0b1324';
 }
 
 export function applyBrand(hex) {
@@ -88,6 +99,7 @@ export function applyBrand(hex) {
   }
   for (const [k, v] of Object.entries(scale)) root.style.setProperty(`--color-brand-${k}`, v);
   root.style.setProperty('--brand-ink', onBrand(hex));
+  root.style.setProperty('--color-brand-ink', onBrand(hex));
 }
 
 const MODE_KEY = 'corepos_theme';

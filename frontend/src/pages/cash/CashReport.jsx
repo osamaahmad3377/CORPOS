@@ -62,7 +62,7 @@ export default function CashReport() {
               {[['receipt', 'Receipt printer'], ['a4', 'A4 page']].map(([k, label]) => (
                 <button
                   key={k} type="button" onClick={() => setPaper(k)}
-                  className={cx('h-11 border-e border-slate-300 px-4 last:border-e-0', paper === k ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}
+                  className={cx('h-11 border-e border-slate-300 px-4 last:border-e-0', paper === k ? 'bg-brand-600 text-brand-ink' : 'bg-white text-slate-600 hover:bg-slate-50')}
                 >{t(label)}</button>
               ))}
             </div>

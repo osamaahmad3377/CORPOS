@@ -168,7 +168,7 @@ function Step({ n, title, hint, children, className }) {
   return (
     <Card className={className}>
       <div className="flex items-start gap-3 border-b border-slate-100 px-5 py-4">
-        <span className="num grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">{n}</span>
+        <span className="num grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-lg font-bold text-brand-ink">{n}</span>
         <div className="min-w-0">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           {hint && <p className="text-sm text-slate-500">{hint}</p>}
@@ -321,7 +321,7 @@ function QuoteEditor() {
             <div className="p-5">
               {customer ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-brand-200 bg-brand-50 px-4 py-3">
-                  <UserRound className="size-6 shrink-0 text-brand-600" />
+                  <UserRound className="size-6 shrink-0 text-brand-700" />
                   <div className="min-w-0 flex-1">
                     <div className="text-base font-semibold text-slate-900">{customer.name}</div>
                     {customer.phone && <div className="text-sm text-slate-600"><span className="num">{customer.phone}</span></div>}
@@ -566,7 +566,7 @@ function QuoteDetail() {
               action={(
                 <div className="flex shrink-0 rounded-lg border border-slate-300 p-0.5" role="group" aria-label={t('Paper size')}>
                   {[['a4', t('A4 page')], ['80mm', t('Small receipt')]].map(([k, label]) => (
-                    <button key={k} type="button" onClick={() => choosePaper(k)} className={cx('rounded-md px-3 py-2 text-sm font-medium', paper === k ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100')}>{label}</button>
+                    <button key={k} type="button" onClick={() => choosePaper(k)} className={cx('rounded-md px-3 py-2 text-sm font-medium', paper === k ? 'bg-brand-600 text-brand-ink' : 'text-slate-600 hover:bg-slate-100')}>{label}</button>
                   ))}
                 </div>
               )}

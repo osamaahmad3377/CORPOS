@@ -131,7 +131,7 @@ export default function Products() {
                     <Td className="text-slate-600">{p.category}</Td>
                     <Td className="whitespace-nowrap"><span className="num font-medium">{priceRange(p.variants)}</span> <span className="text-xs text-slate-400">/ {t(shop.unitLabel(p.unit)).toLowerCase()}</span></Td>
                     <Td className="text-end"><Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className="text-sm">{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge></Td>
-                    <Td className="text-end"><span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-600"><Pencil className="size-4" />{t('Open')}</span></Td>
+                    <Td className="text-end"><span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-700"><Pencil className="size-4" />{t('Open')}</span></Td>
                   </tr>
                 );
               })}

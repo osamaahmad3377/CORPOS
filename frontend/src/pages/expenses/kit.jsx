@@ -60,7 +60,7 @@ export function PeriodPicker({ value, onChange, className }) {
           onClick={() => onChange(p.id)}
           className={cx(
             'min-h-11 rounded-lg border px-4 text-[15px] font-medium transition-colors',
-            value === p.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+            value === p.id ? 'border-brand-600 bg-brand-600 text-brand-ink' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
           )}
           aria-pressed={value === p.id}
         >

@@ -92,7 +92,7 @@ export const VariantFinder = forwardRef(function VariantFinder(
 
   return (
     <div ref={boxRef} className={cx('relative', className)}>
-      <ScanBarcode className={cx('pointer-events-none absolute top-1/2 -translate-y-1/2', size === 'lg' ? 'start-4 size-6 text-brand-600' : 'start-3 size-5 text-slate-400')} />
+      <ScanBarcode className={cx('pointer-events-none absolute top-1/2 -translate-y-1/2', size === 'lg' ? 'start-4 size-6 text-brand-700' : 'start-3 size-5 text-slate-400')} />
       <Input
         ref={inputRef}
         autoFocus={autoFocus}

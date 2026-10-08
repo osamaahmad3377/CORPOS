@@ -87,23 +87,32 @@ function Sidebar({ onNavigate }) {
   const shop = useShop();
   const [logoBroken, setLogoBroken] = useState(false);
   useEffect(() => setLogoBroken(false), [shop.logoUrl]);
+  const hasLogo = shop.logoUrl && !logoBroken;
   return (
-    <nav className="flex h-full flex-col overflow-y-auto">
-      {/* Shop branding: the uploaded logo, or just the shop name if none */}
-      <NavLink to="/" onClick={onNavigate} className="flex min-h-20 items-center justify-center border-b border-slate-100 px-4 py-4" title={shop.shopName}>
-        {shop.logoUrl && !logoBroken ? (
-          <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-16 w-auto max-w-full object-contain" />
+    // Fixed dark colours (not the slate scale), so it stays the same in light and dark mode.
+    <nav className="flex h-full flex-col overflow-y-auto bg-ink-900 text-white [scrollbar-color:#2a3550_transparent]">
+      {/* Shop branding: the uploaded logo on a white card, or the shop name */}
+      <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block">
+        {hasLogo ? (
+          <span className="flex min-h-[76px] items-center justify-center rounded-2xl bg-[#fff] px-4 py-3 shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]">
+            <img src={shop.logoUrl} alt={shop.shopName} onError={() => setLogoBroken(true)} className="max-h-14 w-auto max-w-full object-contain" />
+          </span>
         ) : (
-          <span className="line-clamp-2 text-center text-lg font-bold leading-snug text-slate-900">{shop.shopName}</span>
+          <span className="flex items-center gap-3 rounded-2xl bg-[rgb(255_255_255/0.05)] px-3 py-3 ring-1 ring-inset ring-[rgb(255_255_255/0.08)]">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]">
+              {(shop.shopName || 'C').trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-white">{shop.shopName}</span>
+          </span>
         )}
       </NavLink>
-      <div className="flex-1 space-y-5 px-3 py-4">
+      <div className="flex-1 space-y-6 px-3 py-5">
         {navSections(shop).map((section) => {
           const items = section.items.filter((i) => !i.perm || can(i.perm));
           if (!items.length) return null;
           return (
             <div key={section.title || 'main'}>
-              {section.title && <div className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{t(section.title)}</div>}
+              {section.title && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64708a]">{t(section.title)}</div>}
               <div className="space-y-0.5">
                 {items.map(({ to, label, icon: Icon, end }) => (
                   <NavLink
@@ -112,11 +121,17 @@ function Sidebar({ onNavigate }) {
                     end={end}
                     onClick={onNavigate}
                     className={({ isActive }) => cx(
-                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
-                      isActive ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                      'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
+                      isActive ? 'bg-[rgb(255_255_255/0.09)] text-white' : 'text-[#aab3c5] hover:bg-[rgb(255_255_255/0.05)] hover:text-white',
                     )}
                   >
-                    <Icon className="size-5 shrink-0" />{t(label)}
+                    {({ isActive }) => (
+                      <>
+                        {isActive && <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-brand-500" />}
+                        <Icon className={cx('size-5 shrink-0 transition-colors', isActive ? 'text-brand-500' : 'text-[#7c879d] group-hover:text-white')} />
+                        {t(label)}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -124,8 +139,8 @@ function Sidebar({ onNavigate }) {
           );
         })}
       </div>
-      <div className="border-t border-slate-100 px-4 py-3 text-center text-[11px] text-slate-400" dir="ltr">
-        CorePOS by <span className="font-semibold text-slate-500">NextCore</span>
+      <div className="mx-3 mb-3 rounded-xl bg-[rgb(255_255_255/0.04)] px-3 py-2.5 text-center text-[11px] text-[#7c879d]" dir="ltr">
+        CorePOS by <span className="font-semibold text-[#c3cad8]">NextCore</span>
       </div>
     </nav>
   );
@@ -140,7 +155,7 @@ export function LanguageSwitch({ className }) {
       className={cx('flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[15px] font-semibold text-slate-700 hover:bg-slate-50', className)}
       title="English / اردو"
     >
-      <Languages className="size-5 text-brand-600" />
+      <Languages className="size-5 text-brand-700" />
       {lang === 'ur' ? <span style={{ fontFamily: 'var(--font-sans)' }}>English</span> : <span style={{ fontFamily: 'var(--font-urdu)' }}>اردو</span>}
     </button>
   );
@@ -170,21 +185,21 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex h-full bg-slate-50">
-      <aside className="hidden w-64 shrink-0 border-e border-slate-200 bg-white lg:block"><Sidebar /></aside>
+    <div className="flex h-full bg-canvas">
+      <aside className="hidden w-64 shrink-0 bg-ink-900 lg:block"><Sidebar /></aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 start-0 w-72 bg-white shadow-xl">
-            <button type="button" className="absolute end-2 top-4 p-2 text-slate-400" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
+          <aside className="absolute inset-y-0 start-0 w-72 bg-ink-900 shadow-xl">
+            <button type="button" className="absolute end-2 top-4 z-10 rounded-lg p-2 text-[#aab3c5] hover:text-white" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
             <Sidebar onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:px-4">
+        <header className="relative z-20 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-slate-200/70 bg-white/85 px-3 shadow-[0_1px_0_rgb(16_24_40/0.02)] backdrop-blur-xl sm:px-5">
           {/* start: menu + home */}
           <div className="flex items-center gap-2">
             <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-7" /></button>
@@ -206,7 +221,7 @@ export default function Layout() {
             <LanguageSwitch className="hidden sm:flex" />
             <ThemeSwitch />
             <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-start hover:bg-slate-100">
-              <span className="grid size-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{(user?.name || '?').charAt(0).toUpperCase()}</span>
+              <span className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-brand-ink ring-2 ring-white">{(user?.name || '?').charAt(0).toUpperCase()}</span>
               <span className="hidden xl:block">
                 <span className="block text-sm font-semibold leading-tight text-slate-900">{user?.name}</span>
                 <span className="block text-xs leading-tight text-slate-500">{t(user?.role || '')}</span>
@@ -227,5 +242,5 @@ export default function Layout() {
 
 // Standard padded page wrapper.
 export function Page({ children, className }) {
-  return <div className={cx('mx-auto max-w-7xl p-4 sm:p-6', className)}>{children}</div>;
+  return <div className={cx('mx-auto max-w-7xl p-4 sm:p-6 lg:p-8', className)}>{children}</div>;
 }

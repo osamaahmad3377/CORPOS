@@ -12,7 +12,7 @@ import { Badge, Button, Card, CardHeader, EmptyState, Loading, PageHeader, StatC
 
 function SeeAll({ to }) {
   const t = useT();
-  return <Link to={to} className="-my-1 rounded-lg px-3 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50">{t('See all')}</Link>;
+  return <Link to={to} className="-my-1 rounded-lg px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">{t('See all')}</Link>;
 }
 
 // Last-30-days sales as simple bars (no chart library needed).
@@ -141,7 +141,7 @@ export default function Dashboard() {
               {(recent.data?.data || []).map((sale) => (
                 <tr key={sale.invoice_number}>
                   <Td>
-                    <Link to={`/sales/${sale.invoice_number}`} className="num font-medium text-slate-800 hover:text-brand-600">{sale.invoice_number}</Link>
+                    <Link to={`/sales/${sale.invoice_number}`} className="num font-medium text-slate-800 hover:text-brand-700">{sale.invoice_number}</Link>
                     <div className="num text-xs text-slate-500">{dateTime(sale.sale_date)}</div>
                   </Td>
                   <Td className="text-end font-medium"><span className="num">{money(sale.grand_total)}</span></Td>

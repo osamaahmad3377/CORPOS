@@ -269,7 +269,7 @@ function UserForm({ user, roles, onClose }) {
         )}
         {!self && (
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-slate-700">
-            <input type="checkbox" className="size-5 rounded border-slate-300 text-brand-600" checked={form.is_active} onChange={set('is_active')} />
+            <input type="checkbox" className="size-5 rounded border-slate-300 text-brand-700" checked={form.is_active} onChange={set('is_active')} />
             {t('Allowed to sign in')}
           </label>
         )}

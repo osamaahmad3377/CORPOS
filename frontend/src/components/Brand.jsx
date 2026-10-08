@@ -13,7 +13,7 @@ export function ShopLogo({ className = 'size-10', rounded = 'rounded-xl' }) {
     return <img src={shop.logoUrl} alt={shop.shopName} onError={() => setBroken(true)} className={cx(className, rounded, 'bg-white object-contain')} />;
   }
   return (
-    <div className={cx(className, rounded, 'grid shrink-0 place-items-center bg-brand-600 font-bold text-white')} style={{ color: 'var(--brand-ink, #fff)' }}>
+    <div className={cx(className, rounded, 'grid shrink-0 place-items-center bg-brand-600 font-bold text-brand-ink')} style={{ color: 'var(--brand-ink, #fff)' }}>
       {(shop.shopName || 'C').trim().charAt(0).toUpperCase()}
     </div>
   );
