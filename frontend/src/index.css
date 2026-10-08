@@ -11,11 +11,11 @@
   /* Inter first: it has no Urdu letters, so Urdu falls through to Nastaliq
      while English words / product names keep the clean Latin font. */
   --font-urdu: "Inter Variable", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", sans-serif;
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+  --color-brand-50: #edfcf4;
+  --color-brand-100: #d4f8e5;
+  --color-brand-500: #34dc85;
+  --color-brand-600: #1bd173;
+  --color-brand-700: #14a65b;
 }
 
 html, body, #root { height: 100%; }

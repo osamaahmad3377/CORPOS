@@ -18,7 +18,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
 // Every key SettingController@update accepts (minus shop.logo), with defaults.
 const DEFAULTS = {
-  brand: { primary_color: '#4f46e5', theme: 'light', show_logo_on_receipt: '1' },
+  brand: { primary_color: '#1bd173', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
   receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },

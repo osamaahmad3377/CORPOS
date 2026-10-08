@@ -4,7 +4,10 @@
 // Light/dark mode is a per-computer choice (like language), defaulting to
 // the shop setting.
 
+export const DEFAULT_BRAND = '#1BD173'; // CorePOS green (logo colour)
+
 export const BRAND_PRESETS = [
+  { name: 'CorePOS green', hex: '#1bd173' },
   { name: 'Indigo', hex: '#4f46e5' },
   { name: 'Blue', hex: '#2563eb' },
   { name: 'Sky', hex: '#0284c7' },
@@ -48,7 +51,7 @@ const hsl = (h, s, l) => `hsl(${h.toFixed(1)} ${Math.max(0, Math.min(100, s)).to
 
 // 600 = the chosen colour; lighter/darker steps keep its hue.
 export function brandScale(hex) {
-  const c = hexToHsl(hex) || hexToHsl('#4f46e5');
+  const c = hexToHsl(hex) || hexToHsl(DEFAULT_BRAND);
   const { h, s, l } = c;
   const sat = (k) => s * k;
   return {

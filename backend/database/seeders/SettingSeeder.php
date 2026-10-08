@@ -38,7 +38,7 @@ class SettingSeeder extends Seeder
                 'default_unit' => 'pcs',
             ],
             'brand' => [
-                'primary_color' => '#4f46e5',
+                'primary_color' => '#1bd173',
                 'theme' => 'light',
                 'logo' => '',
                 'show_logo_on_receipt' => '1',

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Banknote, ChefHat, CreditCard, FileText, Gift, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  Banknote, ChefHat, CreditCard, FileText, Gift, Grid3x3, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -497,11 +497,24 @@ export default function Pos() {
                       {l.serialTracked ? (
                         <Button variant="secondary" icon={ListChecks} onClick={() => setSerialPick({ line: l, preselect: l.serials })}>{t('{n} serial numbers', { n: l.serials.length })}</Button>
                       ) : (
+                        <>
                         <div className="flex items-center overflow-hidden rounded-xl border-2 border-slate-200" dir="ltr">
                           <button type="button" onClick={() => bump(l.variant_id, -1)} className="grid size-11 place-items-center text-slate-600 hover:bg-slate-100 active:bg-slate-200" aria-label="Less"><Minus className="size-5" /></button>
-                          <button type="button" onClick={() => setQtyEdit(l)} className={cx('num h-11 min-w-16 border-x-2 border-slate-200 px-2 text-center text-lg font-bold', problem && 'bg-red-50 text-red-700')}>{l.qty === '' ? '—' : qty(l.qty)}</button>
+                          {/* type any quantity (12, 1.5 kg…); Enter goes back to the scanner */}
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={l.qty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setQty(l.variant_id, e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusScan(); } }}
+                            className={cx('num h-11 w-20 border-x-2 border-slate-200 bg-transparent px-1 text-center text-lg font-bold outline-none focus:bg-brand-50', problem && 'bg-red-50 text-red-700')}
+                            aria-label={t('Quantity')}
+                          />
                           <button type="button" onClick={() => bump(l.variant_id, 1)} className="grid size-11 place-items-center text-slate-600 hover:bg-slate-100 active:bg-slate-200" aria-label="More"><Plus className="size-5" /></button>
                         </div>
+                        <button type="button" onClick={() => setQtyEdit(l)} className="grid size-11 place-items-center rounded-xl border-2 border-slate-200 text-slate-500 hover:bg-slate-100" title={t('Number pad')} aria-label={t('Number pad')}><Grid3x3 className="size-5" /></button>
+                        </>
                       )}
                       <span className="text-sm text-slate-500">{t(shop.unitLabel(l.unit))}</span>
                       <div className="ms-auto flex items-center gap-1 text-sm text-slate-500">

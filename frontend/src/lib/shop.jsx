@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
-import { applyBrand, applyMode, setStoredMode, storedMode } from './theme';
+import { DEFAULT_BRAND, applyBrand, applyMode, setStoredMode, storedMode } from './theme';
 
 // Shop-wide configuration: settings (shop/receipt/tax/business/product) and
 // the static lists from /meta (units, payment methods, business types).
@@ -12,7 +12,7 @@ export function ShopProvider({ children }) {
   const meta = useQuery({ queryKey: ['meta'], queryFn: () => api.get('/meta'), staleTime: Infinity });
 
   // brand colour + light/dark (per computer, default = shop setting)
-  const brandColor = /^#[0-9a-f]{6}$/i.test(settings.data?.brand?.primary_color || '') ? settings.data.brand.primary_color : '#4f46e5';
+  const brandColor = /^#[0-9a-f]{6}$/i.test(settings.data?.brand?.primary_color || '') ? settings.data.brand.primary_color : DEFAULT_BRAND;
   const [mode, setModeState] = useState(() => storedMode() || 'light');
   useEffect(() => {
     if (!storedMode() && settings.data?.brand?.theme) setModeState(settings.data.brand.theme);

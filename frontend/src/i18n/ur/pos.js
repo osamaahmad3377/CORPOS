@@ -76,4 +76,6 @@ export default {
   'Customer will earn {n} points on this bill': 'اس بل پر گاہک کو {n} پوائنٹس ملیں گے',
   'Save as quotation instead': 'اس کی بجائے کوٹیشن بنائیں',
   WhatsApp: 'واٹس ایپ',
+  'Quantity': 'مقدار',
+  'Number pad': 'نمبر پیڈ',
 };
