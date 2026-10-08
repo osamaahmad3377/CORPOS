@@ -34,6 +34,8 @@
 }
 
 html, body, #root { height: 100%; }
+:root { --chart-surface: #ffffff; }
+html.dark { --chart-surface: #111a2b; }
 /* Slightly larger everything — easier to read for every user. */
 html { font-size: 17px; }
 /* Inter's friendlier alternates (open 4/6/9, single-storey a) */

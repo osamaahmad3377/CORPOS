@@ -1,0 +1,23 @@
+// Urdu for the Home page overview (charts and figures).
+export default {
+  Shortcuts: 'فوری کام',
+  'No sales in these days yet': 'ان دنوں میں ابھی کوئی سیل نہیں',
+  'vs the {n} days before': 'پچھلے {n} دنوں کے مقابلے میں',
+  'Business overview': 'کاروبار کا خلاصہ',
+  'How your sales are going': 'آپ کی سیل کیسی جا رہی ہے',
+  Period: 'مدت',
+  'Last {n} days': 'پچھلے {n} دن',
+  'Sales minus the cost of the items': 'سیل میں سے چیزوں کی لاگت نکال کر',
+  'Sales trend': 'سیل کا رجحان',
+  'Money taken each day': 'ہر دن کی وصولی',
+  'Share of sales by payment method': 'ادائیگی کے طریقے کے حساب سے سیل',
+  'Best sellers': 'سب سے زیادہ بکنے والی',
+  'Top 5 items by sales': 'سیل کے حساب سے پہلی 5 چیزیں',
+  'Busy hours': 'مصروف اوقات',
+  'Bills by time of day': 'دن کے وقت کے حساب سے بل',
+  bills: 'بل',
+  'Busiest time: {time} ({n} bills)': 'سب سے مصروف وقت: {time} ({n} بل)',
+  'Sales by menu category': 'مینو قسم کے حساب سے سیل',
+  'Sales by category': 'قسم کے حساب سے سیل',
+  'Where your money comes from': 'آپ کی آمدنی کہاں سے آتی ہے',
+};

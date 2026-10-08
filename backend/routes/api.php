@@ -145,6 +145,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
         Route::get('top-products', [DashboardController::class, 'topProducts']);
         Route::get('low-stock', [DashboardController::class, 'lowStock']);
         Route::get('recent-sales', [DashboardController::class, 'recentSales']);
+        Route::get('insights', [DashboardController::class, 'insights']);
     });
 
     Route::middleware('permission:reports.view')->prefix('reports')->group(function () {
