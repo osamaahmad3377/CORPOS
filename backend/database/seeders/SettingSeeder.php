@@ -49,6 +49,9 @@ class SettingSeeder extends Seeder
                 'point_value' => '1',
                 'min_redeem' => '100',
             ],
+            'restaurant' => [
+                'tables' => '12',
+            ],
             'features' => [
                 'restaurant' => '0',
                 'serials' => '0',

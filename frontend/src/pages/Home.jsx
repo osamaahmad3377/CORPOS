@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  BadgePercent, BarChart3, Boxes, FileText, HandCoins, LayoutDashboard, Package, PackagePlus, ReceiptText, Settings, ShoppingCart, Vault, Wallet, Warehouse,
+  BadgePercent, BarChart3, Boxes, ChefHat, FileText, UtensilsCrossed, HandCoins, LayoutDashboard, Package, PackagePlus, ReceiptText, Settings, ShoppingCart, Vault, Wallet, Warehouse,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -44,9 +44,20 @@ export default function Home() {
   const shop = useShop();
   const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats') });
   const s = stats.data || {};
-  const restaurant = shop.businessType === 'restaurant' || shop.features.restaurant;
+  const restaurant = shop.isRestaurant;
 
-  const tiles = [
+  const tiles = restaurant ? [
+    { to: '/kitchen', icon: ChefHat, title: t('Kitchen screen'), hint: t('Orders the kitchen has to cook'), color: 'orange' },
+    can('products.create') && { to: '/products?new=1', icon: PackagePlus, title: t('Add a dish'), hint: t('New item on the menu'), color: 'blue' },
+    can('products.view') && { to: '/products', icon: UtensilsCrossed, title: t('Menu items'), hint: t('Prices and dishes'), color: 'indigo' },
+    can('sales.create') && { to: '/sales', icon: ReceiptText, title: t('Old bills'), hint: t('Reprint, return, take payment'), color: 'violet' },
+    can('cash.manage') && { to: '/cash', icon: Vault, title: t('Cash drawer'), hint: t('Open the day, close and count cash'), color: 'teal' },
+    can('expenses.manage') && { to: '/expenses', icon: Wallet, title: t('Expenses'), hint: t('Rent, bills, salaries'), color: 'rose' },
+    can('promotions.manage') && { to: '/offers', icon: BadgePercent, title: t('Deals & loyalty'), hint: t('Discounts and customer points'), color: 'amber' },
+    { to: '/dashboard', icon: LayoutDashboard, title: t('Today\'s summary'), hint: t('Sales, best items'), color: 'rose' },
+    can('reports.view') && { to: '/reports', icon: BarChart3, title: t('Reports'), hint: t('Daily, monthly, profit'), color: 'slate' },
+    can('settings.manage') && { to: '/settings', icon: Settings, title: t('Settings'), hint: t('Tables, receipt, printers'), color: 'slate' },
+  ].filter(Boolean) : [
     can('products.create') && { to: '/products?new=1', icon: PackagePlus, title: t('Add new item'), hint: t('Type it in or scan its barcode'), color: 'blue' },
     can('products.view') && { to: '/products', icon: Package, title: restaurant ? t('Menu items') : t('My items'), hint: t('See prices and stock'), color: 'indigo' },
     can('customers.view') && { to: '/customers', icon: HandCoins, title: t('Udhaar / Customers'), hint: t('Who owes you money'), color: 'amber' },
@@ -85,8 +96,8 @@ export default function Home() {
         <Link to="/pos" className={cx('mb-5 flex items-center justify-center gap-4 rounded-2xl px-6 py-7 shadow-md transition sm:py-9', TONES.green)}>
           <ShoppingCart className="size-12 rtl:-scale-x-100" strokeWidth={1.8} />
           <span className="text-start">
-            <span className="block text-3xl font-bold sm:text-4xl">{t('Sell / Make a bill')}</span>
-            <span className="mt-1 block text-base text-white/85 rtl:mt-4">{t('Scan items or tap them, then take payment')}</span>
+            <span className="block text-3xl font-bold sm:text-4xl">{restaurant ? t('Take order / Tables') : t('Sell / Make a bill')}</span>
+            <span className="mt-1 block text-base text-white/85 rtl:mt-4">{restaurant ? t('Pick a table, add dishes, send to kitchen, take payment') : t('Scan items or tap them, then take payment')}</span>
           </span>
         </Link>
       )}

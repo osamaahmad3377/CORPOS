@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  BadgePercent, BarChart3, Boxes, ClipboardList, FileText, FolderTree, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
+  BadgePercent, BarChart3, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
   Moon, ReceiptText, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -12,7 +12,8 @@ import { NextcoreLogo } from './Brand';
 
 // Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
-  const products = shop.businessType === 'restaurant' ? 'Menu items' : 'Items & stock';
+  if (shop.isRestaurant) return restaurantSections();
+  const products = 'Items & stock';
   return [
     { title: null, items: [
       { to: '/', label: 'Home', icon: Home, end: true },
@@ -38,6 +39,39 @@ export function navSections(shop) {
       { to: '/dashboard', label: 'Today\'s summary', icon: LayoutDashboard },
       { to: '/expenses', label: 'Expenses', icon: Wallet, perm: 'expenses.manage' },
       { to: '/offers', label: 'Offers & loyalty', icon: BadgePercent, perm: 'promotions.manage' },
+      { to: '/reports', label: 'Reports', icon: BarChart3, perm: 'reports.view' },
+      { to: '/users', label: 'Staff', icon: UsersRound, perm: 'users.manage' },
+      { to: '/activity', label: 'Activity log', icon: ClipboardList, perm: 'activity_logs.view' },
+      { to: '/settings', label: 'Settings', icon: Settings, perm: 'settings.manage' },
+    ] },
+  ];
+}
+
+// Restaurant POS menu: orders & tables first, kitchen, menu; no retail-only pages.
+function restaurantSections() {
+  return [
+    { title: null, items: [
+      { to: '/', label: 'Home', icon: Home, end: true },
+      { to: '/pos', label: 'Orders & tables', icon: ShoppingCart, perm: 'sales.create' },
+      { to: '/kitchen', label: 'Kitchen screen', icon: ChefHat, perm: 'sales.create' },
+    ] },
+    { title: 'Sales', items: [
+      { to: '/sales', label: 'Old bills', icon: ReceiptText, perm: 'sales.create' },
+      { to: '/customers', label: 'Customers & udhaar', icon: Users, perm: 'customers.view' },
+      { to: '/cash', label: 'Cash drawer', icon: Vault, perm: 'cash.manage' },
+    ] },
+    { title: 'Menu', items: [
+      { to: '/products', label: 'Menu items', icon: UtensilsCrossed, perm: 'products.view' },
+      { to: '/categories', label: 'Menu categories', icon: FolderTree, perm: ['categories.manage', 'brands.manage'] },
+      { to: '/offers', label: 'Deals & loyalty', icon: BadgePercent, perm: 'promotions.manage' },
+    ] },
+    { title: 'Supplies', items: [
+      { to: '/purchases', label: 'Buy supplies', icon: Boxes, perm: 'purchases.view' },
+      { to: '/suppliers', label: 'Suppliers', icon: Truck, perm: 'suppliers.manage' },
+      { to: '/expenses', label: 'Expenses', icon: Wallet, perm: 'expenses.manage' },
+    ] },
+    { title: 'Business', items: [
+      { to: '/dashboard', label: 'Today\'s summary', icon: LayoutDashboard },
       { to: '/reports', label: 'Reports', icon: BarChart3, perm: 'reports.view' },
       { to: '/users', label: 'Staff', icon: UsersRound, perm: 'users.manage' },
       { to: '/activity', label: 'Activity log', icon: ClipboardList, perm: 'activity_logs.view' },

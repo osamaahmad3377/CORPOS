@@ -64,6 +64,7 @@ class ProductController extends Controller
                 'description' => $validated['description'] ?? null,
                 'unit' => $validated['unit'] ?? 'pcs',
                 'track_serial' => $validated['track_serial'] ?? false,
+                'track_stock' => $validated['track_stock'] ?? true,
                 'track_expiry' => $validated['track_expiry'] ?? false,
                 'warranty_months' => $validated['warranty_months'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,

@@ -15,6 +15,7 @@ class ProductVariantResource extends JsonResource
             'product_name' => $this->whenLoaded('product', fn () => $this->product?->name),
             'unit' => $this->whenLoaded('product', fn () => $this->product?->unit ?? 'pcs'),
             'track_serial' => $this->whenLoaded('product', fn () => (bool) $this->product?->track_serial),
+            'track_stock' => $this->whenLoaded('product', fn () => $this->product?->track_stock !== false),
             'track_expiry' => $this->whenLoaded('product', fn () => (bool) $this->product?->track_expiry),
             'color' => $this->color,
             'size' => $this->size,

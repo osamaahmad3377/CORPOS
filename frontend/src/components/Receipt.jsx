@@ -30,7 +30,8 @@ export function ReceiptCredit() {
   );
 }
 
-export default function Receipt({ sale }) {
+// preBill: the guest bill printed before payment (restaurants) — no paid lines.
+export default function Receipt({ sale, preBill = false }) {
   const shop = useShop();
   const { t, isUrdu } = useLang();
   const s = shop.settings;
@@ -50,6 +51,7 @@ export default function Receipt({ sale }) {
         {s.receipt?.header && <div className="mt-1 italic">{s.receipt.header}</div>}
       </div>
 
+      {preBill && <div className="mt-2 text-center text-[14px] font-bold">{t('BILL')}</div>}
       <div className="my-2 border-t border-dashed border-black" />
       <Row label={t('Bill #')} value={sale.invoice_number} />
       <Row label={t('Date')} value={dateTime(sale.sale_date)} />
@@ -78,9 +80,15 @@ export default function Receipt({ sale }) {
       <div className="my-1 border-t border-black" />
       <Row label={t('TOTAL')} value={money(sale.grand_total)} strong big />
       {Number(sale.refunded_amount) > 0 && <Row label={t('Returned')} value={`-${money(sale.refunded_amount)}`} />}
-      <Row label={`${t('Paid')} (${t(shop.paymentLabel(sale.payment_method))})`} value={money(sale.payment_received)} />
-      {Number(sale.change_amount) > 0 && <Row label={t('Change')} value={money(sale.change_amount)} />}
-      {due > 0 && <Row label={t('Balance due')} value={money(due)} strong />}
+      {preBill ? (
+        <div className="mt-1 text-center text-[11px]">{t('Not paid yet — please pay at the counter')}</div>
+      ) : (
+        <>
+          <Row label={`${t('Paid')} (${t(shop.paymentLabel(sale.payment_method))})`} value={money(sale.payment_received)} />
+          {Number(sale.change_amount) > 0 && <Row label={t('Change')} value={money(sale.change_amount)} />}
+          {due > 0 && <Row label={t('Balance due')} value={money(due)} strong />}
+        </>
+      )}
       {(pointsEarned > 0 || pointsUsed > 0) && (
         <div className="mt-1 text-[11px]">
           {pointsUsed > 0 && <div>{t('Points used: {n}', { n: pointsUsed })}</div>}

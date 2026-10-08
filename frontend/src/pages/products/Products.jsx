@@ -167,7 +167,7 @@ function ProductDetail({ id, onClose }) {
   const canEdit = can('products.edit');
 
   useEffect(() => {
-    if (p) setInfo({ name: p.name, category_id: p.category_id, brand_id: p.brand_id || '', unit: p.unit, description: p.description || '', is_active: p.is_active, track_serial: !!p.track_serial, track_expiry: !!p.track_expiry, warranty_months: p.warranty_months ?? '' });
+    if (p) setInfo({ name: p.name, category_id: p.category_id, brand_id: p.brand_id || '', unit: p.unit, description: p.description || '', is_active: p.is_active, track_serial: !!p.track_serial, track_expiry: !!p.track_expiry, warranty_months: p.warranty_months ?? '', track_stock: p.track_stock !== false });
   }, [p]);
 
   const refresh = () => {
@@ -248,6 +248,7 @@ function ProductDetail({ id, onClose }) {
                   <option value="0">{t('No — hidden')}</option>
                 </Select>
               </Field>
+                <label className="flex items-center gap-3 py-1 text-sm sm:col-span-2"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_stock} onChange={(e) => setInfo((f) => ({ ...f, track_stock: e.target.checked }))} />{t('Count stock for this item')}</label>
               {(shop.features.serials || p.track_serial) && (
                 <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_serial} onChange={(e) => setInfo((f) => ({ ...f, track_serial: e.target.checked }))} />{t('Track serial / IMEI numbers')}</label>
               )}

@@ -85,7 +85,7 @@ class PosInstall extends Command
                 );
             }
 
-            $this->applyBusinessType($data['business_type'] ?? 'general');
+            \App\Services\BusinessTypeService::apply($data['business_type'] ?? 'general');
 
             User::create([
                 'name' => $data['admin_name'],
@@ -99,43 +99,6 @@ class PosInstall extends Command
         $this->line(json_encode(['ok' => true]));
 
         return self::SUCCESS;
-    }
-
-    /** Starter categories + option labels/unit that suit the trade. */
-    private function applyBusinessType(string $type): void
-    {
-        $preset = config("pos.business_types.{$type}");
-
-        $settings = [
-            'business.type' => $type,
-            'product.option1_label' => $preset['options'][0],
-            'product.option2_label' => $preset['options'][1],
-            'product.default_unit' => $preset['unit'],
-        ];
-        foreach (config('pos.features') as $feature) {
-            $settings["features.{$feature}"] = in_array($feature, $preset['features'] ?? [], true) ? '1' : '0';
-        }
-        foreach ($settings as $key => $value) {
-            Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => Str::before($key, '.')]);
-        }
-
-        foreach ($preset['categories'] as $parent => $children) {
-            $root = Category::create(['name' => $parent, 'slug' => $this->slug($parent), 'is_active' => true]);
-            foreach ($children as $child) {
-                Category::create(['name' => $child, 'slug' => $this->slug("{$parent} {$child}"), 'parent_id' => $root->id, 'is_active' => true]);
-            }
-        }
-    }
-
-    private function slug(string $name): string
-    {
-        $base = Str::slug($name) ?: 'category';
-        $slug = $base;
-        for ($i = 2; Category::withTrashed()->where('slug', $slug)->exists(); $i++) {
-            $slug = "{$base}-{$i}";
-        }
-
-        return $slug;
     }
 
     private function isInstalled(): bool

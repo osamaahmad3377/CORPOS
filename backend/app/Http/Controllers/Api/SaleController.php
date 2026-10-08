@@ -114,7 +114,7 @@ class SaleController extends Controller
 
                 foreach ($requestedByVariant as $variantId => $requestedQty) {
                     $variant = $variants[$variantId];
-                    if (Qty::round($variant->stock_qty) < $requestedQty) {
+                    if ($variant->product?->track_stock !== false && Qty::round($variant->stock_qty) < $requestedQty) {
                         throw ValidationException::withMessages([
                             'items' => ["Insufficient stock for {$variant->sku}. Available: ".Qty::format($variant->stock_qty).'.'],
                         ]);
@@ -258,7 +258,7 @@ class SaleController extends Controller
 
             foreach ($requestedByVariant as $variantId => $requestedQty) {
                 $variant = $variants[$variantId];
-                if (Qty::round($variant->stock_qty) < $requestedQty) {
+                if ($variant->product?->track_stock !== false && Qty::round($variant->stock_qty) < $requestedQty) {
                     throw ValidationException::withMessages([
                         'items' => ["Insufficient stock for {$variant->sku}. Available: ".Qty::format($variant->stock_qty).'.'],
                     ]);

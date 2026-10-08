@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Banknote, ChefHat, CreditCard, FileText, Gift, Grid3x3, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -33,7 +33,8 @@ function lineFrom(variant, product, shop) {
     unit,
     fractional: shop.isFractional(unit),
     price: Number(variant.selling_price),
-    stock: Number(variant.stock_qty),
+    // made-to-order items (dishes) have no stock limit
+    stock: (variant.track_stock ?? product?.track_stock) === false ? Infinity : Number(variant.stock_qty),
     qty: 1,
     discount: 0,
     // serial/IMEI items: one chosen serial per unit, qty follows the list
@@ -70,7 +71,16 @@ export default function Pos() {
   const [pointsToUse, setPointsToUse] = useState('');
   const [quoteId, setQuoteId] = useState(null);
   const [receiptPhone, setReceiptPhone] = useState('');
-  const restaurant = shop.features.restaurant;
+  const restaurant = shop.isRestaurant;
+  const [view, setView] = useState('tables'); // restaurant: 'tables' | 'menu'
+  const [tableMenu, setTableMenu] = useState(null); // busy table tapped
+  const heldOrders = useQuery({
+    queryKey: ['sales', 'held', 'tables'],
+    queryFn: () => api.get('/sales', { status: 'held', per_page: 100 }),
+    enabled: restaurant,
+    refetchInterval: 15_000,
+    select: (r) => r.data || [],
+  });
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const level = priceLevel || customer?.price_level || 'retail';
@@ -262,6 +272,7 @@ export default function Pos() {
       if (restaurant) {
         setKot({ ...res.data, items: res.data.items?.length ? res.data.items : cart.map((l) => ({ product_name: l.name, color: null, size: l.label, quantity: l.qty })) });
         toast(t('Order {inv} sent to kitchen', { inv: res.data.invoice_number }));
+        setView('tables');
         if (printerPrefs().kitchen?.auto ?? printerPrefs().receipt?.auto) setTimeout(() => printNow('kitchen'), 350);
       } else {
         toast(t('Bill saved for later as {inv}', { inv: res.data.invoice_number }));
@@ -349,6 +360,7 @@ export default function Pos() {
     qc.invalidateQueries({ queryKey: ['customers'] });
     const full = sale.items?.length && sale.items[0].product_name ? sale : (await api.get(`/sales/${sale.invoice_number}`)).data;
     setReceipt(full);
+    if (restaurant) setView('tables');
     if (printerPrefs().receipt?.auto) setTimeout(() => printNow('receipt'), 350);
     clearSale();
     qc.invalidateQueries({ queryKey: ['products'] });
@@ -378,14 +390,36 @@ export default function Pos() {
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
       {/* ------------------------------------------------ items */}
-      <section className="flex min-h-0 flex-1 flex-col">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {restaurant && (
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 pt-3">
+            {[['tables', 'Tables', LayoutGrid], ['menu', 'Menu', UtensilsCrossed]].map(([k, label, Icon]) => (
+              <button key={k} type="button" onClick={() => setView(k)} className={cx('-mb-px flex items-center gap-2 border-b-[3px] px-4 pb-3 pt-1 text-base font-bold transition', view === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800')}>
+                <Icon className="size-5" />{t(label)}
+              </button>
+            ))}
+            <div className="flex-1" />
+            {(heldOrders.data || []).length > 0 && <span className="pb-3 text-sm text-slate-500">{t('{n} open orders', { n: heldOrders.data.length })}</span>}
+          </div>
+        )}
+        {restaurant && view === 'tables' ? (
+          <TablesView
+            tables={shop.tables}
+            orders={heldOrders.data || []}
+            current={order}
+            onPickTable={(no) => { setOrder((o) => ({ ...o, type: 'dine_in', table: String(no) })); setView('menu'); focusScan(); }}
+            onNew={(type) => { setOrder((o) => ({ ...o, type, table: '' })); setView('menu'); focusScan(); }}
+            onOpenOrder={setTableMenu}
+          />
+        ) : (
+        <>
         <div className="border-b border-slate-200 bg-white p-4">
           <form onSubmit={onScan} className="relative">
             <ScanBarcode className="pointer-events-none absolute start-4 top-1/2 size-6 -translate-y-1/2 text-brand-600" />
             <Input
               ref={scanRef}
               className="h-14 ps-13 pe-28 text-lg"
-              placeholder={t('Scan barcode or type item name…')}
+              placeholder={restaurant ? t('Search the menu…') : t('Scan barcode or type item name…')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
@@ -415,18 +449,22 @@ export default function Pos() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {grid.map((p) => {
                 const img = primaryImage(p);
-                const stock = (p.variants || []).reduce((a, v) => a + Number(v.stock_qty), 0);
+                const tracked = p.track_stock !== false;
+                const stock = tracked ? (p.variants || []).reduce((a, v) => a + Number(v.stock_qty), 0) : Infinity;
                 const prices = (p.variants || []).map((v) => Number(v.selling_price));
                 return (
                   <button key={p.id} type="button" onClick={() => addProduct(p)} disabled={stock <= 0} className="group flex flex-col overflow-hidden rounded-2xl border-2 border-slate-200 bg-white text-start shadow-sm transition hover:border-brand-400 active:scale-[0.98] disabled:opacity-50">
-                    <div className="grid aspect-[4/3] place-items-center bg-slate-100">
-                      {img ? <img src={img} alt="" className="size-full object-cover" /> : <ImageIcon className="size-8 text-slate-300" />}
-                    </div>
+                    {img ? (
+                      <div className="aspect-[4/3] bg-slate-100"><img src={img} alt="" className="size-full object-cover" /></div>
+                    ) : (
+                      // no photo: a compact coloured band with the initial
+                      <div className="grid h-14 place-items-center bg-brand-50 text-2xl font-extrabold text-brand-700">{(p.name || '?').trim().charAt(0).toUpperCase()}</div>
+                    )}
                     <div className="flex flex-1 flex-col p-3">
                       <div className="line-clamp-2 text-base font-semibold leading-snug text-slate-900">{p.name}</div>
                       <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-1">
                         <span className="num text-lg font-bold text-brand-700">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
-                        <span className={cx('text-sm', stock <= 0 ? 'font-semibold text-red-600' : 'text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>
+                        {tracked && <span className={cx('text-sm', stock <= 0 ? 'font-semibold text-red-600' : 'text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>}
                       </div>
                     </div>
                   </button>
@@ -435,6 +473,8 @@ export default function Pos() {
             </div>
           )}
         </div>
+        </>
+        )}
       </section>
 
       {/* ------------------------------------------------ bill */}
@@ -452,12 +492,16 @@ export default function Pos() {
                   <button key={o.code} type="button" onClick={() => setOrder((x) => ({ ...x, type: o.code }))} className={cx('flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 transition', order.type === o.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t(o.label)}</button>
                 ))}
               </div>
-              {order.type === 'dine_in' && <Input className="h-12 w-24 text-center" placeholder={t('Table')} value={order.table} onChange={(e) => setOrder((o) => ({ ...o, table: e.target.value }))} />}
+              {order.type === 'dine_in' && (
+                <button type="button" onClick={() => setView('tables')} className={cx('flex h-12 min-w-24 items-center justify-center gap-1.5 rounded-xl border-2 px-3 text-base font-bold', order.table ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-dashed border-slate-300 text-slate-500')}>
+                  <LayoutGrid className="size-4" />{order.table ? t('Table {n}', { n: order.table }) : t('Pick table')}
+                </button>
+              )}
             </div>
           )}
           <CustomerPicker value={customer} onChange={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} canCreate={can('customers.create')} />
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+          <div className={cx('flex items-center justify-between gap-2', restaurant && !quoteId && 'hidden')}>
+            <div className={cx('flex rounded-xl bg-slate-100 p-1 text-sm font-semibold', restaurant && 'hidden')}>
               {[['retail', 'Retail price'], ['wholesale', 'Wholesale price']].map(([code, label]) => (
                 <button key={code} type="button" onClick={() => setPriceLevel(code)} className={cx('whitespace-nowrap rounded-lg px-3 py-1.5 transition', level === code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500')}>{t(label)}</button>
               ))}
@@ -629,7 +673,20 @@ export default function Pos() {
       />
 
       {paying && <PayModal totals={totals} customer={customer} onClose={() => { setPaying(false); focusScan(); }} payload={payload} onDone={completed} />}
-      {resuming && <ResumeModal restaurant={restaurant} onClose={() => { setResuming(false); focusScan(); }} onDone={completed} onEdit={editHeld} />}
+      {resuming && <ResumeModal restaurant={restaurant} initialInvoice={typeof resuming === 'string' ? resuming : null} onClose={() => { setResuming(false); focusScan(); }} onDone={completed} onEdit={(sale) => { editHeld(sale); setView('menu'); }} />}
+      {tableMenu && (
+        <Modal open onClose={() => setTableMenu(null)} size="sm" title={tableMenu.table_no ? t('Table {n}', { n: tableMenu.table_no }) : tableMenu.invoice_number}>
+          <div className="mb-4 rounded-xl bg-slate-50 p-4 text-center">
+            <div className="num text-3xl font-bold text-slate-900">{money(tableMenu.grand_total)}</div>
+            <div className="text-sm text-slate-500">{t('{n} items', { n: tableMenu.items_count })} · {tableMenu.invoice_number}</div>
+          </div>
+          <div className="grid gap-2">
+            <Button size="lg" variant="secondary" icon={Plus} onClick={async () => { const res = await api.get(`/sales/${tableMenu.invoice_number}`); setTableMenu(null); await editHeld(res.data); setView('menu'); }}>{t('Add more items')}</Button>
+            <Button size="lg" variant="secondary" icon={Printer} onClick={() => { setResuming(tableMenu.invoice_number); setTableMenu(null); }}>{t('Print bill')}</Button>
+            <Button size="lg" variant="success" icon={Banknote} onClick={() => { setResuming(tableMenu.invoice_number); setTableMenu(null); }}>{t('Take payment')}</Button>
+          </div>
+        </Modal>
+      )}
       {serialPick && <SerialPicker line={serialPick.line} preselect={serialPick.preselect} onClose={() => { setSerialPick(null); focusScan(); }} onDone={(list) => { setSerials(serialPick.line, list); setSerialPick(null); focusScan(); }} />}
       <Modal open={!!kot} onClose={() => { setKot(null); focusScan(); }} size="sm" title={t('Kitchen order')}
         footer={<><Button variant="secondary" onClick={() => { setKot(null); focusScan(); }}>{t('Close')}</Button><Button icon={Printer} onClick={() => printNow('kitchen')}>{t('Print slip')}</Button></>}
@@ -838,7 +895,7 @@ function PayModal({ totals, customer, payload, onClose, onDone }) {
 
 // ---------------------------------------------------------------- held bills
 
-function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
+function ResumeModal({ restaurant, initialInvoice, onClose, onDone, onEdit }) {
   const shop = useShop();
   const t = useT();
   const held = useQuery({ queryKey: ['sales', 'held'], queryFn: () => api.get('/sales', { status: 'held', per_page: 50 }), select: (r) => r.data || [] });
@@ -868,11 +925,20 @@ function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
     }
   };
 
+  useEffect(() => { if (initialInvoice) open(initialInvoice); }, [initialInvoice]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const orderLabel = (code) => t(ORDER_TYPES.find((o) => o.code === code)?.label || '');
 
   return (
     <Modal open onClose={onClose} size="lg" title={selected ? selected.invoice_number : restaurant ? t('Open orders') : t('Saved bills')}
-      footer={selected && <><Button variant="secondary" onClick={() => setSelected(null)}>{t('Back')}</Button><Button variant="secondary" onClick={() => onEdit(selected)}>{t('Add more items')}</Button><Button variant="success" loading={busy} onClick={complete}>{t('Finish sale')}</Button></>}
+      footer={selected && (
+        <>
+          <Button variant="secondary" onClick={() => (initialInvoice ? onClose() : setSelected(null))}>{t('Back')}</Button>
+          <Button variant="secondary" icon={Printer} onClick={() => printNow('receipt')}>{t('Print bill')}</Button>
+          <Button variant="secondary" onClick={() => onEdit(selected)}>{t('Add more items')}</Button>
+          <Button variant="success" loading={busy} onClick={complete}>{t('Finish sale')}</Button>
+        </>
+      )}
     >
       {!selected ? (
         held.isLoading ? <Loading /> : !held.data?.length ? <p className="py-8 text-center text-base text-slate-500">{restaurant ? t('No open orders.') : t('No saved bills.')}</p> : (
@@ -891,6 +957,7 @@ function ResumeModal({ restaurant, onClose, onDone, onEdit }) {
       ) : (
         <div className="space-y-4">
           <ErrorBox error={error} />
+          <div className="hidden print:block"><Receipt sale={selected} preBill /></div>
           <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             {selected.items.map((it) => (
               <div key={it.id} className="flex justify-between px-3 py-2 text-base"><span>{it.product_name} {variantLabel(it) && `(${variantLabel(it)})`} × <span className="num">{qty(it.quantity)}</span></span><span className="num">{money(it.total_price)}</span></div>
@@ -949,5 +1016,98 @@ function SerialPicker({ line, preselect, onClose, onDone }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+// ---------------------------------------------------------------- restaurant tables
+
+function minutesSince(iso) {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+}
+
+function TablesView({ tables, orders, current, onPickTable, onNew, onOpenOrder }) {
+  const t = useT();
+  const byTable = {};
+  for (const o of orders) if (o.order_type === 'dine_in' && o.table_no) (byTable[o.table_no] ||= []).push(o);
+  const others = orders.filter((o) => o.order_type !== 'dine_in' || !o.table_no);
+  const statusTone = { ready: 'bg-emerald-600 text-white', preparing: 'bg-amber-500 text-white', new: 'bg-slate-700 text-white' };
+  const statusLabel = { ready: 'Ready', preparing: 'Cooking', new: 'Sent to kitchen' };
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <button type="button" onClick={() => onNew('takeaway')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+          <span className="grid size-12 place-items-center rounded-xl bg-orange-100 text-orange-700"><ShoppingBag className="size-6" /></span>
+          <span><span className="block text-lg font-bold text-slate-900">{t('Takeaway')}</span><span className="text-sm text-slate-500">{t('New takeaway order')}</span></span>
+        </button>
+        <button type="button" onClick={() => onNew('delivery')} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-start shadow-sm hover:border-brand-400">
+          <span className="grid size-12 place-items-center rounded-xl bg-blue-100 text-blue-700"><Truck className="size-6" /></span>
+          <span><span className="block text-lg font-bold text-slate-900">{t('Delivery')}</span><span className="text-sm text-slate-500">{t('New delivery order')}</span></span>
+        </button>
+      </div>
+
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-800">{t('Tables')}</h2>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1"><span className="size-3 rounded border-2 border-slate-300 bg-white" />{t('Free')}</span>
+          <span className="flex items-center gap-1"><span className="size-3 rounded bg-brand-600" />{t('Busy')}</span>
+        </div>
+      </div>
+      {tables === 0 ? (
+        <p className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">{t('No tables set. Add tables in Settings → Restaurant.')}</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
+          {Array.from({ length: tables }, (_, i) => String(i + 1)).map((no) => {
+            const list = byTable[no] || [];
+            const busy = list.length > 0;
+            const total = list.reduce((a, o) => a + Number(o.grand_total), 0);
+            const first = list[0];
+            const st = first?.kitchen_status || 'new';
+            const selected = current?.type === 'dine_in' && current?.table === no;
+            return (
+              <button
+                key={no}
+                type="button"
+                onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
+                className={cx(
+                  'relative flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-2 text-center shadow-sm transition active:scale-[0.97]',
+                  busy ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400',
+                  selected && !busy && 'ring-4 ring-brand-200',
+                )}
+              >
+                <span className={cx('text-xs font-semibold uppercase tracking-wide', busy ? 'text-white/80' : 'text-slate-400')}>{t('Table')}</span>
+                <span className="num text-3xl font-extrabold leading-none">{no}</span>
+                {busy ? (
+                  <>
+                    <span className="num mt-1 text-sm font-bold">{money(total)}</span>
+                    <span className="mt-0.5 flex items-center gap-1 text-xs text-white/85"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
+                    <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
+                  </>
+                ) : (
+                  <span className="mt-1 text-xs text-slate-400">{t('Free')}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-6 text-base font-bold text-slate-800">{t('Takeaway & delivery orders')}</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {others.map((o) => (
+              <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-start hover:border-brand-400">
+                <span>
+                  <span className="block font-bold text-slate-900">{t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
+                  <span className="text-sm text-slate-500">{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
+                </span>
+                <span className="num text-lg font-bold">{money(o.grand_total)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

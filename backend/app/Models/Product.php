@@ -18,6 +18,7 @@ class Product extends Model
         'brand_id',
         'description',
         'unit',
+        'track_stock',
         'track_serial',
         'track_expiry',
         'warranty_months',
@@ -29,6 +30,7 @@ class Product extends Model
         return [
             'is_active' => 'boolean',
             'track_serial' => 'boolean',
+            'track_stock' => 'boolean',
             'track_expiry' => 'boolean',
         ];
     }

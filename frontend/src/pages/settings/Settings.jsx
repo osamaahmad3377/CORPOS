@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Check, ImageUp, Printer, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
+import { Briefcase, Check, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
 import { BRAND_PRESETS } from '../../lib/theme';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
@@ -12,7 +12,7 @@ import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
 import {
-  Button, Card, CardHeader, Field, Input, Loading, PageHeader, Select, Textarea, cx, useToast,
+  Button, Card, CardHeader, Field, Input, Loading, PageHeader, Select, Textarea, cx, useConfirm, useToast,
 } from '../../components/ui';
 import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
@@ -26,6 +26,7 @@ const DEFAULTS = {
   business: { type: 'general' },
   product: { option1_label: '', option2_label: '', default_unit: 'pcs' },
   features: { restaurant: '0', serials: '0', expiry: '0' },
+  restaurant: { tables: '12' },
 };
 
 // Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
@@ -37,6 +38,7 @@ const SECTIONS = [
   { key: 'barcode', label: 'Barcode stickers', icon: ScanBarcode, groups: ['barcode'], preview: 'label' },
   { key: 'business', label: 'Your business & items', icon: Briefcase, groups: ['business', 'product'] },
   { key: 'features', label: 'Extra tools', icon: Puzzle, groups: ['features'] },
+  { key: 'restaurant', label: 'Restaurant', icon: UtensilsCrossed, groups: ['restaurant'], onlyRestaurant: true },
   { key: 'printers', label: 'Printers', icon: Printer, groups: [] },
   { key: 'language', label: 'Language', icon: Languages, groups: [] },
 ];
@@ -99,7 +101,7 @@ export default function Settings() {
       <PageHeader title={t('Settings')} subtitle={t('Set up your shop name, bill, tax, barcode stickers and language.')} />
       <div className="grid gap-6 lg:grid-cols-[minmax(200px,max-content)_1fr]">
         <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
-          {SECTIONS.map(({ key, label, icon: Icon, groups }) => {
+          {SECTIONS.filter((x) => !x.onlyRestaurant || shop.features.restaurant).map(({ key, label, icon: Icon, groups }) => {
             const dirty = !sameGroups(draft, saved, groups);
             return (
               <NavLink
@@ -178,7 +180,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
   };
 
   const props = { d: draft, set, err, canEdit };
-  const Form = { shop: ShopForm, receipt: ReceiptForm, tax: TaxForm, barcode: BarcodeForm, business: BusinessForm, features: FeaturesForm, brand: BrandForm }[section];
+  const Form = { shop: ShopForm, receipt: ReceiptForm, tax: TaxForm, barcode: BarcodeForm, business: BusinessForm, features: FeaturesForm, brand: BrandForm, restaurant: RestaurantForm }[section];
 
   return (
     <div className={cx('grid min-w-0 items-start gap-6', meta.preview ? 'xl:grid-cols-[1fr_auto]' : 'max-w-3xl')}>
@@ -323,6 +325,27 @@ function BrandForm({ d, set }) {
   );
 }
 
+function RestaurantForm({ d, set, err }) {
+  const t = useT();
+  const n = Math.max(0, Math.min(200, Number(d.restaurant.tables || 0)));
+  return (
+    <>
+      <CardHeader title={t('Restaurant')} subtitle={t('Tables shown on the Sell screen. Takeaway and delivery are always there.')} />
+      <div className="space-y-5 p-5">
+        <Field label={t('How many tables?')} error={err('restaurant', 'tables')}>
+          <div className="sm:max-w-40"><Input type="number" min="0" max="200" step="1" value={d.restaurant.tables} onChange={set('restaurant', 'tables')} /></div>
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: Math.min(n, 40) }, (_, i) => (
+            <span key={i} className="num grid size-12 place-items-center rounded-xl border-2 border-slate-200 bg-white text-sm font-bold text-slate-600">{i + 1}</span>
+          ))}
+          {n > 40 && <span className="self-center text-sm text-slate-500">+{n - 40}</span>}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function FeaturesForm({ d, set }) {
   const t = useT();
   const on = (k) => d.features[k] === '1';
@@ -435,20 +458,38 @@ function BusinessForm({ d, set, err }) {
   const [suggest, setSuggest] = useState(null);
   const current = types.find((x) => x.code === d.business.type);
 
+  const confirm = useConfirm();
+  const toast = useToast();
+  const [switching, setSwitching] = useState(false);
+  const savedType = shop.businessType;
+
   const onType = (e) => {
     const code = e.target.value;
     set('business', 'type')(code);
     const bt = types.find((x) => x.code === code);
-    if (!bt) return setSuggest(null);
-    const differs = bt.options?.[0] !== d.product.option1_label || bt.options?.[1] !== d.product.option2_label || bt.unit !== d.product.default_unit;
-    return setSuggest(differs ? bt : null);
+    return setSuggest(bt && code !== savedType ? bt : null);
   };
 
-  const apply = () => {
-    set('product', 'option1_label')(suggest.options?.[0] || '');
-    set('product', 'option2_label')(suggest.options?.[1] || '');
-    set('product', 'default_unit')(suggest.unit || 'pcs');
-    setSuggest(null);
+  // Switch the whole system to the chosen trade: words, unit, tools, categories.
+  const apply = async () => {
+    const restaurant = suggest.code === 'restaurant';
+    const ok = await confirm({
+      title: t('Switch to {type}?', { type: t(suggest.label) }),
+      message: restaurant
+        ? t('CorePOS will work like a restaurant POS: tables, kitchen slips and kitchen screen are switched on, items become your menu (no stock counting for dishes), and menu categories are added. Your existing items, bills and customers are kept.')
+        : t('Item words, unit and extra tools change to suit this trade, and its starter categories are added. Your existing items, bills and customers are kept.'),
+      confirmLabel: t('Yes, switch'),
+    });
+    if (!ok) return;
+    setSwitching(true);
+    try {
+      await api.post('/settings/business-type', { type: suggest.code });
+      toast(t('Switched to {type}', { type: t(suggest.label) }));
+      window.location.assign('/'); // fresh start with the new setup
+    } catch (e2) {
+      toast(e2.message, 'error');
+      setSwitching(false);
+    }
   };
 
   const o1 = t(d.product.option1_label || 'Option 1');
@@ -457,7 +498,7 @@ function BusinessForm({ d, set, err }) {
     <>
       <CardHeader title={t('Your business & items')} subtitle={t('Words that fit your trade. They are used on the item form, the Sell screen and stickers.')} />
       <div className="space-y-6 p-5">
-        <Field label={t('What kind of shop is this?')} hint={t('Changing this does not change your items or categories.')} error={err('business', 'type')}>
+        <Field label={t('What kind of shop is this?')} hint={t('Pick your trade, then press Switch. Your items, bills and customers are kept.')} error={err('business', 'type')}>
           <Select value={d.business.type} onChange={onType}>
             {!current && <option value={d.business.type}>{d.business.type}</option>}
             {types.map((x) => <option key={x.code} value={x.code}>{t(x.label)}</option>)}
@@ -468,12 +509,14 @@ function BusinessForm({ d, set, err }) {
           <div className="flex flex-col gap-3 rounded-lg border border-brand-100 bg-brand-50 p-4 sm:flex-row sm:items-center">
             <Lightbulb className="size-6 shrink-0 text-brand-600" />
             <div className="flex-1 text-[15px] text-slate-700">
-              <div className="font-semibold text-slate-900">{t('Use the usual setup for {type}?', { type: t(suggest.label) })}</div>
-              <div className="mt-1">{t('Item types: {first} and {second}. Sold by: {unit}.', { first: t(suggest.options?.[0] || ''), second: t(suggest.options?.[1] || ''), unit: t(shop.unitLabel(suggest.unit)) })}</div>
+              <div className="font-semibold text-slate-900">{t('Switch the whole system to {type}?', { type: t(suggest.label) })}</div>
+              <div className="mt-1">{suggest.code === 'restaurant'
+                ? t('Tables, kitchen slips, kitchen screen and a menu — CorePOS will look and work like a restaurant POS.')
+                : t('Item types: {first} and {second}. Sold by: {unit}.', { first: t(suggest.options?.[0] || ''), second: t(suggest.options?.[1] || ''), unit: t(shop.unitLabel(suggest.unit)) })}</div>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Button variant="secondary" onClick={() => setSuggest(null)}>{t('Keep mine')}</Button>
-              <Button icon={Check} onClick={apply}>{t('Use these')}</Button>
+              <Button variant="secondary" onClick={() => { setSuggest(null); set('business', 'type')(savedType); }}>{t('Not now')}</Button>
+              <Button icon={Check} loading={switching} onClick={apply}>{t('Switch')}</Button>
             </div>
           </div>
         )}

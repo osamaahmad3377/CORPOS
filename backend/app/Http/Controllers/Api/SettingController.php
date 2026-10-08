@@ -58,6 +58,9 @@ class SettingController extends Controller
             'point_value' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'min_redeem' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ],
+        'restaurant' => [
+            'tables' => ['nullable', 'integer', 'min:0', 'max:200'],
+        ],
         'features' => [
             'restaurant' => ['nullable', 'in:0,1'],
             'serials' => ['nullable', 'in:0,1'],
@@ -81,6 +84,23 @@ class SettingController extends Controller
         }
 
         return response()->json($grouped);
+    }
+
+    /** Switch business type and apply its preset (labels, unit, modules, categories). */
+    public function applyBusinessType(Request $request)
+    {
+        $data = $request->validate([
+            'type' => ['required', 'string', \Illuminate\Validation\Rule::in(array_keys(config('pos.business_types')))],
+            'add_categories' => ['sometimes', 'boolean'],
+        ]);
+        \App\Services\BusinessTypeService::apply($data['type'], $data['add_categories'] ?? true);
+        if ($data['type'] === 'restaurant') {
+            // dishes are made to order — stop asking for stock counts
+            \App\Models\Product::query()->update(['track_stock' => false]);
+        }
+        \App\Services\ActivityLogger::log($request->user(), 'update', 'settings', "Switched business type to {$data['type']}.");
+
+        return $this->index();
     }
 
     /** Shop logo shown in the menu, login, home and on receipts. */

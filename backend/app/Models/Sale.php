@@ -14,6 +14,7 @@ class Sale extends Model
     protected $fillable = [
         'order_type',
         'table_no',
+        'kitchen_status',
         'invoice_number',
         'idempotency_key',
         'customer_id',

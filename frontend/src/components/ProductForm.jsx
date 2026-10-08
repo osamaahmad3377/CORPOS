@@ -50,7 +50,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
 
   useEffect(() => {
     if (!open) return;
-    setForm({ name: initialName, category_id: '', brand_id: '', unit: shop.defaultUnit, description: '', track_serial: false, track_expiry: false, warranty_months: '' });
+    setForm({ name: initialName, category_id: '', brand_id: '', unit: shop.defaultUnit, description: '', track_serial: false, track_expiry: false, warranty_months: '', track_stock: !shop.isRestaurant });
     setHasOptions(false);
     setMore(false);
     setRows([emptyRow(initialBarcode)]);
@@ -109,6 +109,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
         unit: form.unit,
         description: form.description || null,
         track_serial: !!form.track_serial,
+        track_stock: form.track_stock !== false,
         track_expiry: !!form.track_expiry,
         warranty_months: form.warranty_months === '' ? null : Number(form.warranty_months),
         variants,
@@ -164,7 +165,11 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
               <Field label={t('Buying price (cost)')} hint={t('What you paid (Rs) — used to work out profit')}>
                 <Input type="number" min="0" step="0.01" className="h-12 text-lg" value={rows[0].purchase_price} onChange={(e) => setRow(0, 'purchase_price', e.target.value)} />
               </Field>
-              {hideStock ? null : form.track_serial ? (
+              <label className="flex items-start gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm sm:col-span-2">
+                <input type="checkbox" className="mt-0.5 size-5 accent-brand-600" checked={form.track_stock !== false} onChange={(e) => setForm((f) => ({ ...f, track_stock: e.target.checked }))} />
+                <span><span className="block font-medium text-slate-800">{t('Count stock for this item')}</span><span className="block text-xs text-slate-500">{t('Turn off for things made to order (dishes, services) — they can always be sold.')}</span></span>
+              </label>
+              {hideStock || form.track_stock === false ? null : form.track_serial ? (
                 <Field label={t('Serial / IMEI numbers in stock ({n})', { n: serialList(rows[0].serials).length })} hint={t('Scan or type one per line. Stock = how many numbers you enter.')} className="sm:col-span-2">
                   <Textarea rows={3} className="font-mono" dir="ltr" value={rows[0].serials} onChange={(e) => setRow(0, 'serials', e.target.value)} placeholder={'356789012345678\n356789012345679'} />
                 </Field>

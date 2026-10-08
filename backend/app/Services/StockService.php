@@ -41,6 +41,11 @@ class StockService
     {
         Qty::assertAllowed($variant, $delta);
 
+        // made-to-order items (restaurant dishes, services): no stock to move
+        if ($variant->product && $variant->product->track_stock === false) {
+            return new StockAdjustment(['variant_id' => $variant->id, 'adjustment_type' => $type, 'quantity_change' => 0]);
+        }
+
         $before = Qty::round($variant->stock_qty);
         $delta = Qty::round($delta);
         $after = Qty::round($before + $delta);

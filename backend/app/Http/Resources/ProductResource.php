@@ -23,6 +23,7 @@ class ProductResource extends JsonResource
             'unit_label' => config('pos.units.'.($this->unit ?? 'pcs').'.label', $this->unit),
             'fractional' => \App\Support\Qty::unitIsFractional($this->unit ?? 'pcs'),
             'track_serial' => (bool) $this->track_serial,
+            'track_stock' => $this->track_stock !== false,
             'track_expiry' => (bool) $this->track_expiry,
             'warranty_months' => $this->warranty_months,
             'is_active' => $this->is_active,

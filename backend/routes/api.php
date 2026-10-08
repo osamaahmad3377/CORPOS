@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     Route::middleware('permission:settings.manage')->group(function () {
         Route::put('settings', [SettingController::class, 'update']);
         Route::post('settings/logo', [SettingController::class, 'uploadLogo']);
+        Route::post('settings/business-type', [SettingController::class, 'applyBusinessType']);
         Route::delete('settings/logo', [SettingController::class, 'removeLogo']);
     });
 

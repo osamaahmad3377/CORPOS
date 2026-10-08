@@ -50,6 +50,9 @@ export function ShopProvider({ children }) {
       isFractional: (code) => !!units[code]?.fractional,
       paymentLabel: (code) => m.payment_methods.find((p) => p.code === code)?.label || code,
       refetchSettings: settings.refetch,
+      // restaurant POS (tables, kitchen) — on for restaurants or when switched on
+      isRestaurant: s.business?.type === 'restaurant' || s.features?.restaurant === '1',
+      tables: Math.max(0, Math.min(200, Number(s.restaurant?.tables ?? 12))),
       // white-label
       brandColor,
       logoUrl: s.brand?.logo ? `/storage/${s.brand.logo}` : null,
