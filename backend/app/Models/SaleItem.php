@@ -16,6 +16,8 @@ class SaleItem extends Model
         'unit_price',
         'discount_per_item',
         'total_price',
+        'promotion_id',
+        'promo_discount',
     ];
 
     protected function casts(): array
@@ -26,6 +28,7 @@ class SaleItem extends Model
             'unit_price' => 'decimal:2',
             'discount_per_item' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'promo_discount' => 'decimal:2',
         ];
     }
 
@@ -39,6 +42,11 @@ class SaleItem extends Model
         // withTrashed so a discontinued/deleted variant still resolves its
         // name on historical invoices instead of showing blank.
         return $this->belongsTo(ProductVariant::class, 'variant_id')->withTrashed();
+    }
+
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class)->withTrashed();
     }
 
     public function serialNumbers(): \Illuminate\Database\Eloquent\Relations\HasMany

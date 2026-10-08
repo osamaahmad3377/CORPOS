@@ -21,6 +21,7 @@ class StoreProductVariantsRequest extends FormRequest
             'variants.*.barcode' => ['nullable', 'string', 'max:50', 'distinct', 'unique:barcodes,barcode_number', 'unique:product_variants,barcode'],
             'variants.*.purchase_price' => ['required_with:variants', 'numeric', 'min:0'],
             'variants.*.selling_price' => ['required_with:variants', 'numeric', 'min:0'],
+            'variants.*.wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.stock_qty' => ['required_with:variants', 'numeric', 'min:0', 'max:9999999'],
             'variants.*.low_stock_threshold' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'variants.*.serials' => ['nullable', 'array'],
@@ -34,6 +35,7 @@ class StoreProductVariantsRequest extends FormRequest
             'sizes.*' => ['string', 'max:50'],
             'purchase_price' => ['required_with:colors', 'numeric', 'min:0'],
             'selling_price' => ['required_with:colors', 'numeric', 'min:0'],
+            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'stock_qty' => ['required_with:colors', 'numeric', 'min:0', 'max:9999999'],
             'low_stock_threshold' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
         ];

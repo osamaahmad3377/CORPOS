@@ -269,9 +269,9 @@ function ProductDetail({ id, onClose }) {
               {canEdit && <Button variant="secondary" icon={Plus} onClick={() => setAddingVariant(true)}>{t('Add a type')}</Button>}
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[820px] text-sm">
+              <table className="w-full min-w-[920px] text-sm">
                 <thead className="bg-slate-50 text-xs text-slate-500">
-                  <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), t('Warn when below'), t('Stock'), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
+                  <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), t('Wholesale price'), t('Warn when below'), t('Stock'), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} />)}
@@ -293,10 +293,10 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
   const shop = useShop();
   const toast = useToast();
   const confirm = useConfirm();
-  const [row, setRow] = useState({ color: v.color || '', size: v.size || '', purchase_price: v.purchase_price ?? '', selling_price: v.selling_price, low_stock_threshold: v.low_stock_threshold });
+  const [row, setRow] = useState({ color: v.color || '', size: v.size || '', purchase_price: v.purchase_price ?? '', selling_price: v.selling_price, wholesale_price: v.wholesale_price ?? '', low_stock_threshold: v.low_stock_threshold });
   const [barcode, setBarcode] = useState(v.barcode);
   const [busy, setBusy] = useState(false);
-  const dirty = row.color !== (v.color || '') || row.size !== (v.size || '') || String(row.selling_price) !== String(v.selling_price)
+  const dirty = row.color !== (v.color || '') || row.size !== (v.size || '') || String(row.selling_price) !== String(v.selling_price) || String(row.wholesale_price) !== String(v.wholesale_price ?? '')
     || (v.purchase_price !== undefined && String(row.purchase_price) !== String(v.purchase_price)) || String(row.low_stock_threshold) !== String(v.low_stock_threshold);
 
   const run = async (fn, okMsg) => {
@@ -308,6 +308,7 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
     color: row.color.trim() || null,
     size: row.size.trim() || null,
     selling_price: Number(row.selling_price),
+    wholesale_price: row.wholesale_price === '' || row.wholesale_price == null ? null : Number(row.wholesale_price),
     low_stock_threshold: Number(row.low_stock_threshold || 0),
     ...(v.purchase_price !== undefined ? { purchase_price: Number(row.purchase_price || 0) } : {}),
   }), t('Saved'));
@@ -332,6 +333,7 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
       </td>
       <td className="p-1.5">{v.purchase_price !== undefined ? <Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.purchase_price} onChange={(e) => setRow({ ...row, purchase_price: e.target.value })} /> : <span className="text-slate-400">—</span>}</td>
       <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.selling_price} onChange={(e) => setRow({ ...row, selling_price: e.target.value })} /></td>
+      <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} placeholder="—" title={t('Wholesale price (optional)')} value={row.wholesale_price} onChange={(e) => setRow({ ...row, wholesale_price: e.target.value })} /></td>
       <td className="p-1.5"><Input className={`${cell} w-20`} type="number" min="0" step="any" disabled={!canEdit} value={row.low_stock_threshold} onChange={(e) => setRow({ ...row, low_stock_threshold: e.target.value })} /></td>
       <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge></td>
       <td className="whitespace-nowrap p-1.5 text-end">
@@ -347,7 +349,7 @@ function AddVariantModal({ product, onClose, onSaved }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
-  const [row, setRow] = useState({ color: '', size: '', barcode: '', purchase_price: '', selling_price: product.variants[0]?.selling_price || '', stock_qty: '' });
+  const [row, setRow] = useState({ color: '', size: '', barcode: '', purchase_price: '', selling_price: product.variants[0]?.selling_price || '', wholesale_price: product.variants[0]?.wholesale_price || '', stock_qty: '' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const step = shop.isFractional(product.unit) ? '0.001' : '1';
@@ -361,6 +363,7 @@ function AddVariantModal({ product, onClose, onSaved }) {
       await api.post(`/products/${product.id}/variants`, { variants: [{
         color: row.color.trim() || null, size: row.size.trim() || null, barcode: row.barcode.trim() || null,
         purchase_price: Number(row.purchase_price || 0), selling_price: Number(row.selling_price || 0), stock_qty: Number(row.stock_qty || 0),
+        wholesale_price: row.wholesale_price === '' || row.wholesale_price == null ? null : Number(row.wholesale_price),
       }] });
       toast(t('Type added'));
       onSaved();
@@ -381,6 +384,7 @@ function AddVariantModal({ product, onClose, onSaved }) {
         <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className="sm:col-span-2"><Input className="font-mono" dir="ltr" value={row.barcode} onChange={set('barcode')} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} /></Field>
         <Field label={t('Buying price (cost)')}><Input type="number" min="0" step="0.01" value={row.purchase_price} onChange={set('purchase_price')} /></Field>
         <Field label={t('Selling price')} required><Input type="number" min="0" step="0.01" required value={row.selling_price} onChange={set('selling_price')} /></Field>
+        <Field label={t('Wholesale price (optional)')} hint={t('Leave empty to use the selling price.')}><Input type="number" min="0" step="0.01" value={row.wholesale_price} onChange={set('wholesale_price')} /></Field>
         <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: t(shop.unitLabel(product.unit)) })}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>
       </form>
     </Modal>

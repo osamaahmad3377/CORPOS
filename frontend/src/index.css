@@ -3,6 +3,9 @@
 @import "@fontsource/noto-nastaliq-urdu/400.css";
 @import "@fontsource/noto-nastaliq-urdu/700.css";
 
+/* class-based dark mode (html.dark) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter Variable", "Segoe UI", system-ui, sans-serif;
   /* Inter first: it has no Urdu letters, so Urdu falls through to Nastaliq
@@ -46,3 +49,63 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
   .print-area { position: absolute; left: 0; top: 0; }
   @page { margin: 4mm; }
 }
+
+/* ---------------------------------------------------------------- dark mode
+   Instead of adding dark: variants to every page, the neutral scale and the
+   pale tints are remapped while html.dark is set. */
+html.dark {
+  color-scheme: dark;
+  --color-slate-50: #0b1120;
+  --color-slate-100: #172033;
+  --color-slate-200: #243247;
+  --color-slate-300: #334360;
+  --color-slate-400: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b0bccd;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+  --color-emerald-50: rgb(16 185 129 / 0.13);
+  --color-emerald-100: rgb(16 185 129 / 0.2);
+  --color-emerald-700: #34d399;
+  --color-emerald-800: #6ee7b7;
+  --color-amber-50: rgb(245 158 11 / 0.13);
+  --color-amber-100: rgb(245 158 11 / 0.2);
+  --color-amber-200: rgb(245 158 11 / 0.3);
+  --color-amber-700: #fbbf24;
+  --color-amber-800: #fcd34d;
+  --color-amber-900: #fde68a;
+  --color-red-50: rgb(239 68 68 / 0.13);
+  --color-red-100: rgb(239 68 68 / 0.2);
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-blue-100: rgb(59 130 246 / 0.18);
+  --color-blue-700: #93c5fd;
+  --color-indigo-100: rgb(99 102 241 / 0.2);
+  --color-indigo-700: #a5b4fc;
+  --color-violet-100: rgb(139 92 246 / 0.2);
+  --color-violet-700: #c4b5fd;
+  --color-rose-100: rgb(244 63 94 / 0.18);
+  --color-rose-700: #fda4af;
+  --color-teal-100: rgb(20 184 166 / 0.18);
+  --color-teal-700: #5eead4;
+  --color-orange-100: rgb(249 115 22 / 0.18);
+  --color-orange-700: #fdba74;
+}
+html.dark .bg-white { background-color: #111a2b; }
+/* things that are meant to stay dark (amount boxes, tooltips) */
+html.dark .bg-slate-900 { background-color: #020617; }
+html.dark .bg-slate-800 { background-color: #0f172a; }
+html.dark .text-white { color: #fff; }
+
+/* Paper is always white: undo dark mode when printing. */
+@media print {
+  html.dark {
+    --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0; --color-slate-300: #cbd5e1;
+    --color-slate-400: #94a3b8; --color-slate-500: #64748b; --color-slate-600: #475569; --color-slate-700: #334155;
+    --color-slate-800: #1e293b; --color-slate-900: #0f172a; --color-slate-950: #020617;
+  }
+  html.dark .bg-white, html.dark .print-area { background-color: #fff !important; color: #000; }
+}
+html.dark [class*="bg-white/"] { background-color: rgb(17 26 43 / 0.9); }

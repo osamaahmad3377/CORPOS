@@ -34,6 +34,10 @@ class StoreSaleRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:completed,held'],
             'notes' => ['nullable', 'string'],
             'idempotency_key' => ['nullable', 'string', 'max:64'],
+            // wholesale / retail prices — default: the customer's price type, else retail
+            'price_level' => ['nullable', 'string', 'in:retail,wholesale'],
+            // loyalty points the customer uses as money off this bill
+            'points_redeemed' => ['nullable', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 }

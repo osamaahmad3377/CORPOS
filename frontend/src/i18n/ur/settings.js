@@ -173,4 +173,25 @@ export default {
 
   // printed sticker
   'Rs {amount}': '{amount} روپے',
+  // Brand & look
+  'Brand & look': 'برانڈ اور ڈیزائن',
+  'Your logo and colours — used on the screens and on printed bills.': 'آپ کا لوگو اور رنگ — اسکرین اور پرنٹ شدہ بلوں پر۔',
+  'Shop logo': 'دکان کا لوگو',
+  'Upload logo': 'لوگو اپ لوڈ کریں',
+  'Change logo': 'لوگو بدلیں',
+  'Logo saved': 'لوگو محفوظ ہو گیا',
+  'Logo removed': 'لوگو ہٹا دیا گیا',
+  'PNG or JPG, square works best, up to 2 MB. Saved straight away.': 'PNG یا JPG، چوکور بہتر ہے، 2 MB تک۔ فوراً محفوظ ہو جاتا ہے۔',
+  'Brand colour': 'برانڈ کا رنگ',
+  'Any other colour': 'کوئی اور رنگ',
+  Preview: 'نمونہ',
+  Badge: 'نشان',
+  'Link text': 'لنک',
+  'Screen theme (default)': 'اسکرین کا انداز (عام)',
+  Light: 'روشن',
+  Dark: 'گہرا',
+  'Same as computer': 'کمپیوٹر کے مطابق',
+  'Each computer can still switch light/dark from the top bar.': 'ہر کمپیوٹر اوپر والی پٹی سے روشن/گہرا بدل سکتا ہے۔',
+  'Print logo on bills': 'بلوں پر لوگو پرنٹ کریں',
+  'Shows your logo at the top of every printed bill.': 'ہر پرنٹ شدہ بل کے اوپر آپ کا لوگو آئے گا۔',
 };

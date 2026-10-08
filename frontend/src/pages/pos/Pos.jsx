@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Banknote, ChefHat, CreditCard, ImageIcon, ListChecks, Minus, PauseCircle, PlayCircle, Plus, Printer, ScanBarcode,
-  ShoppingCart, Smartphone, Trash2, UserPlus, X,
+  Banknote, ChefHat, CreditCard, FileText, Gift, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
+import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -62,7 +64,18 @@ export default function Pos() {
   const [qtyEdit, setQtyEdit] = useState(null); // cart line being edited on the keypad
   const [order, setOrder] = useState({ type: 'dine_in', table: '', note: '' }); // restaurant mode
   const [kot, setKot] = useState(null); // kitchen slip to print
+  const [priceLevel, setPriceLevel] = useState(null); // null = follow the customer
+  const [pointsToUse, setPointsToUse] = useState('');
+  const [quoteId, setQuoteId] = useState(null);
+  const [receiptPhone, setReceiptPhone] = useState('');
   const restaurant = shop.features.restaurant;
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const level = priceLevel || customer?.price_level || 'retail';
+
+  // Cash drawer: gentle reminder when the day hasn't been opened.
+  const cash = useQuery({ queryKey: ['cash', 'current'], queryFn: () => api.get('/cash/current'), staleTime: 30_000 });
+  const drawerClosed = cash.data && cash.data.data === null && cash.data.can_manage;
 
   const focusScan = useCallback(() => setTimeout(() => scanRef.current?.focus(), 30), []);
 
@@ -116,6 +129,9 @@ export default function Pos() {
   const clearSale = () => {
     setCart([]);
     setCustomer(null);
+    setPriceLevel(null);
+    setPointsToUse('');
+    setQuoteId(null);
     setDiscount({ value: '', mode: 'amount' });
     setOrder((o) => ({ type: o.type, table: '', note: '' }));
     focusScan();
@@ -158,15 +174,59 @@ export default function Pos() {
     }
   };
 
+  // ------------------------------------------------------------ server preview
+  // Offers, wholesale prices and loyalty points are worked out by the server;
+  // ask it for the exact bill whenever the cart changes (debounced).
+  const previewBody = useMemo(() => ({
+    customer_id: customer?.id || null,
+    items: cart.filter((l) => Number(l.qty) > 0).map((l) => ({ variant_id: l.variant_id, quantity: Number(l.qty), discount_per_item: Number(l.discount || 0) })),
+    price_level: level,
+    points_redeemed: Number(pointsToUse || 0) || undefined,
+  }), [cart, customer?.id, level, pointsToUse]);
+  const [previewKey, setPreviewKey] = useState(null);
+  useEffect(() => { const h = setTimeout(() => setPreviewKey(JSON.stringify(previewBody)), 250); return () => clearTimeout(h); }, [previewBody]);
+  const previewEnabled = !!previewKey && cart.length > 0 && !cart.some((l) => !(Number(l.qty) > 0));
+  const preview = useQuery({
+    queryKey: ['sales', 'preview', previewKey, discount.value, discount.mode],
+    queryFn: () => {
+      const body = JSON.parse(previewKey);
+      return api.post('/sales/preview', { ...body, discount_amount: 0 }).then((base) => {
+        // the cashier's bill discount is applied on the server-priced subtotal
+        const sub = base.data.subtotal;
+        const dv = Number(discount.value || 0);
+        const d = Math.min(Math.max(discount.mode === 'percent' ? (sub * dv) / 100 : dv, 0), sub);
+        return d > 0 ? api.post('/sales/preview', { ...body, discount_amount: Math.round(d * 100) / 100 }) : base;
+      });
+    },
+    enabled: previewEnabled,
+    placeholderData: (p) => p,
+    retry: false,
+  });
+  const pv = previewEnabled && preview.data?.data ? preview.data.data : null;
+  const pvLine = useMemo(() => Object.fromEntries((pv?.items || []).map((it) => [it.variant_id, it])), [pv]);
+
   // ------------------------------------------------------------ totals
   const totals = useMemo(() => {
+    if (pv) {
+      return {
+        subtotal: pv.subtotal,
+        discount: Math.round((pv.discount_amount + pv.points_discount) * 100) / 100,
+        cashierDiscount: pv.discount_amount,
+        tax: pv.tax_amount,
+        total: pv.grand_total,
+        items: cart.length,
+        promo: pv.promo_discount,
+        pointsEarned: pv.points_earned,
+        pointsDiscount: pv.points_discount,
+      };
+    }
     const subtotal = cart.reduce((a, l) => a + l.price * Number(l.qty || 0) - Number(l.discount || 0), 0);
     const dv = Number(discount.value || 0);
     const saleDiscount = Math.min(Math.max(discount.mode === 'percent' ? (subtotal * dv) / 100 : dv, 0), subtotal);
     const tax = shop.taxEnabled ? Math.round((subtotal - saleDiscount) * shop.taxPercent) / 100 : 0;
     const round2 = (n) => Math.round(n * 100) / 100;
-    return { subtotal: round2(subtotal), discount: round2(saleDiscount), tax: round2(tax), total: round2(subtotal - saleDiscount + tax), items: cart.length };
-  }, [cart, discount, shop.taxEnabled, shop.taxPercent]);
+    return { subtotal: round2(subtotal), discount: round2(saleDiscount), cashierDiscount: round2(saleDiscount), tax: round2(tax), total: round2(subtotal - saleDiscount + tax), items: cart.length };
+  }, [cart, discount, shop.taxEnabled, shop.taxPercent, pv]);
 
   const lineProblem = (l) => {
     if (!(Number(l.qty) > 0)) return t('Enter a quantity above 0');
@@ -180,8 +240,10 @@ export default function Pos() {
   const payload = (extra) => ({
     customer_id: customer?.id || null,
     items: cart.map((l) => ({ variant_id: l.variant_id, quantity: Number(l.qty), unit_price: l.price, discount_per_item: Number(l.discount || 0), ...(l.serialTracked ? { serials: l.serials } : {}) })),
-    discount_amount: totals.discount,
+    discount_amount: totals.cashierDiscount,
     tax_amount: totals.tax,
+    price_level: level,
+    ...(Number(pointsToUse) > 0 ? { points_redeemed: Number(pointsToUse) } : {}),
     ...(restaurant ? { order_type: order.type, table_no: order.table.trim() || null, notes: order.note.trim() || null } : {}),
     ...extra,
   });
@@ -226,9 +288,58 @@ export default function Pos() {
     toast(t('Bill {inv} opened again — add items, then take payment', { inv: sale.invoice_number }), 'info');
   };
 
+  // Turn a quotation into a sale: /pos?quote=<id>
+  useEffect(() => {
+    const id = searchParams.get('quote');
+    if (!id) return;
+    setSearchParams({}, { replace: true });
+    api.get(`/quotations/${id}`).then((res) => {
+      const q = res.data;
+      if (q.status === 'converted') { toast(t('This quotation is already a sale.'), 'error'); return; }
+      const lines = q.items.filter((it) => it.is_available !== false).map((it) => ({
+        variant_id: it.variant_id, name: it.product_name, label: variantLabel(it), unit: it.unit || 'pcs', fractional: shop.isFractional(it.unit),
+        price: Number(it.current_price ?? it.unit_price), stock: Number(it.stock_qty ?? Infinity), qty: Number(it.quantity), discount: Number(it.discount_per_item || 0),
+        serialTracked: !!it.track_serial, serials: [],
+      }));
+      setCart(lines);
+      setDiscount({ value: Number(q.discount_amount) > 0 ? String(Number(q.discount_amount)) : '', mode: 'amount' });
+      setCustomer(q.customer_id ? { id: q.customer_id, name: q.customer_name, phone: q.customer_phone || '' } : null);
+      setQuoteId(q.id);
+      if (q.items.some((it) => it.current_price && Number(it.current_price) !== Number(it.unit_price))) toast(t('Some prices changed since the quotation — today\'s prices are used.'), 'info');
+      else toast(t('Quotation {n} loaded — take payment to finish', { n: q.quote_number }), 'info');
+    }).catch((err) => toast(err.message, 'error'));
+  }, [searchParams, setSearchParams, shop, t, toast]);
+
+  const saveQuote = async () => {
+    if (!cart.length) return;
+    setBusy(true);
+    try {
+      const res = await api.post('/quotations', {
+        customer_id: customer?.id || null,
+        items: cart.map((l) => ({ variant_id: l.variant_id, quantity: Number(l.qty), discount_per_item: Number(l.discount || 0) })),
+        discount_amount: totals.cashierDiscount || 0,
+      });
+      qc.invalidateQueries({ queryKey: ['quotations'] });
+      toast(t('Saved as quotation {n}', { n: res.data.quote_number }));
+      clearSale();
+      navigate(`/quotations/${res.data.id}`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const completed = async (sale) => {
     setPaying(false);
     setResuming(false);
+    setReceiptPhone(customer?.phone || '');
+    if (quoteId) {
+      api.post(`/quotations/${quoteId}/mark-converted`, { invoice_number: sale.invoice_number }).catch(() => {});
+      qc.invalidateQueries({ queryKey: ['quotations'] });
+    }
+    qc.invalidateQueries({ queryKey: ['cash'] });
+    qc.invalidateQueries({ queryKey: ['customers'] });
     const full = sale.items?.length && sale.items[0].product_name ? sale : (await api.get(`/sales/${sale.invoice_number}`)).data;
     setReceipt(full);
     clearSale();
@@ -318,6 +429,11 @@ export default function Pos() {
       {/* ------------------------------------------------ bill */}
       <aside className="flex min-h-0 w-full flex-col border-s border-slate-200 bg-white lg:w-[440px]">
         <div className="space-y-2 border-b border-slate-200 p-3">
+          {drawerClosed && (
+            <Link to="/cash" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
+              <Vault className="size-5 shrink-0" />{t('Cash drawer is not opened today — tap to open the day')}
+            </Link>
+          )}
           {restaurant && (
             <div className="flex gap-2">
               <div className="flex flex-1 rounded-xl bg-slate-100 p-1 text-base font-medium">
@@ -328,7 +444,15 @@ export default function Pos() {
               {order.type === 'dine_in' && <Input className="h-12 w-24 text-center" placeholder={t('Table')} value={order.table} onChange={(e) => setOrder((o) => ({ ...o, table: e.target.value }))} />}
             </div>
           )}
-          <CustomerPicker value={customer} onChange={setCustomer} canCreate={can('customers.create')} />
+          <CustomerPicker value={customer} onChange={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} canCreate={can('customers.create')} />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+              {[['retail', 'Retail price'], ['wholesale', 'Wholesale price']].map(([code, label]) => (
+                <button key={code} type="button" onClick={() => setPriceLevel(code)} className={cx('whitespace-nowrap rounded-lg px-3 py-1.5 transition', level === code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500')}>{t(label)}</button>
+              ))}
+            </div>
+            {quoteId && <Badge color="blue"><FileText className="me-1 size-3.5" />{t('From quotation')}</Badge>}
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -348,9 +472,14 @@ export default function Pos() {
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-base font-semibold text-slate-900">{l.name}</div>
-                        <div className="text-sm text-slate-500">{l.label && `${l.label} · `}<span className="num">{money(l.price)}</span> / {t(shop.unitLabel(l.unit))}</div>
+                        <div className="text-sm text-slate-500">{l.label && `${l.label} · `}<span className="num">{money(pvLine[l.variant_id]?.unit_price ?? l.price)}</span> / {t(shop.unitLabel(l.unit))}</div>
+                        {pvLine[l.variant_id]?.promo_discount > 0 && (
+                          <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                            <Tag className="size-3.5" />{pvLine[l.variant_id].promotion_name} <span className="num">−{money(pvLine[l.variant_id].promo_discount)}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="num text-lg font-bold text-slate-900">{money(l.price * Number(l.qty || 0) - Number(l.discount || 0))}</div>
+                      <div className="num text-lg font-bold text-slate-900">{money(pvLine[l.variant_id]?.total_price ?? (l.price * Number(l.qty || 0) - Number(l.discount || 0)))}</div>
                       <button type="button" onClick={() => removeLine(l.variant_id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label={t('Remove')}><Trash2 className="size-5" /></button>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
@@ -388,9 +517,25 @@ export default function Pos() {
               <select className="h-10 rounded-lg border border-slate-300 px-1" value={discount.mode} onChange={(e) => setDiscount((d) => ({ ...d, mode: e.target.value }))}>
                 <option value="amount">Rs</option><option value="percent">%</option>
               </select>
-              <span className="num w-24 text-end">-{money(totals.discount)}</span>
+              <span className="num w-24 text-end">-{money(totals.cashierDiscount)}</span>
             </div>
           </div>
+          {totals.promo > 0 && <div className="flex justify-between text-emerald-700"><span className="flex items-center gap-1"><Tag className="size-4" />{t('Offers applied')}</span><span className="num">−{money(totals.promo)}</span></div>}
+          {pv?.loyalty?.enabled && customer && (
+            <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 font-semibold"><Gift className="size-4" />{t('{n} points available', { n: pv.loyalty.customer_points })}</span>
+                {pv.loyalty.max_redeemable > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <input className="num h-9 w-20 rounded-lg border border-violet-200 bg-white px-2 text-end" type="number" min="0" max={pv.loyalty.max_redeemable} step="1" placeholder="0" value={pointsToUse} onChange={(e) => setPointsToUse(e.target.value)} />
+                    <button type="button" className="rounded-lg px-2 py-1 font-semibold hover:bg-violet-100" onClick={() => setPointsToUse(String(pv.loyalty.max_redeemable))}>{t('Use all')}</button>
+                  </div>
+                ) : <span className="text-xs">{t('Minimum {n} points to use', { n: pv.loyalty.min_redeem })}</span>}
+              </div>
+              {totals.pointsDiscount > 0 && <div className="mt-1 flex justify-between"><span>{t('Points discount')}</span><span className="num">−{money(totals.pointsDiscount)}</span></div>}
+              {totals.pointsEarned > 0 && <div className="mt-1 text-xs">{t('Customer will earn {n} points on this bill', { n: totals.pointsEarned })}</div>}
+            </div>
+          )}
           {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span className="num">{money(totals.tax)}</span></div>}
           <div className="flex items-center justify-between pt-1"><span className="text-xl font-bold text-slate-900">{t('Total')}</span><span className="num text-3xl font-bold text-slate-900">{money(totals.total)}</span></div>
           {restaurant && <Input placeholder={t('Kitchen note (e.g. less spicy)')} value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
@@ -401,9 +546,15 @@ export default function Pos() {
             <Button variant="secondary" icon={PlayCircle} onClick={() => setResuming(true)}>{restaurant ? t('Open orders') : t('Saved bills')}</Button>
             <Button variant="ghost" icon={X} disabled={!cart.length} onClick={clearSale}>{t('Clear')}</Button>
           </div>
-          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError} onClick={() => setPaying(true)}>
+          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError || (previewEnabled && preview.isFetching && !pv)} onClick={() => setPaying(true)}>
             {t('Take payment')} <span className="num">{money(totals.total)}</span>
           </Button>
+          {preview.error && <p className="text-sm text-red-600">{t(preview.error.message)}</p>}
+          {can('quotations.manage') && cart.length > 0 && !restaurant && (
+            <button type="button" onClick={saveQuote} disabled={busy} className="flex w-full items-center justify-center gap-2 py-1 text-sm font-semibold text-slate-500 hover:text-brand-600">
+              <FileText className="size-4" />{t('Save as quotation instead')}
+            </button>
+          )}
         </div>
       </aside>
 
@@ -462,7 +613,13 @@ export default function Pos() {
       </Modal>
 
       <Modal open={!!receipt} onClose={() => { setReceipt(null); focusScan(); }} size="sm" title={t('Sale complete')}
-        footer={<><Button variant="secondary" size="lg" onClick={() => { setReceipt(null); focusScan(); }}>{t('New bill')}</Button><Button icon={Printer} size="lg" onClick={() => window.print()}>{t('Print receipt')}</Button></>}
+        footer={(
+          <>
+            <Button variant="secondary" size="lg" onClick={() => { setReceipt(null); focusScan(); }}>{t('New bill')}</Button>
+            <Button variant="secondary" size="lg" icon={MessageCircle} className="text-emerald-700" onClick={() => openWhatsApp(receiptPhone, buildReceiptText(receipt, shop, t))}>{t('WhatsApp')}</Button>
+            <Button icon={Printer} size="lg" onClick={() => window.print()}>{t('Print receipt')}</Button>
+          </>
+        )}
       >
         {receipt && (
           <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">

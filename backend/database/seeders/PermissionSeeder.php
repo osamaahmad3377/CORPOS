@@ -47,6 +47,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'View Reports', 'slug' => 'reports.view', 'module' => 'reports'],
             ['name' => 'View Activity Logs', 'slug' => 'activity_logs.view', 'module' => 'activity_logs'],
 
+            ['name' => 'Open & Close Cash Drawer', 'slug' => 'cash.manage', 'module' => 'cash'],
+            ['name' => 'View All Cash Drawers', 'slug' => 'cash.view_all', 'module' => 'cash'],
+            ['name' => 'Manage Expenses', 'slug' => 'expenses.manage', 'module' => 'expenses'],
+            ['name' => 'Manage Quotations', 'slug' => 'quotations.manage', 'module' => 'quotations'],
+            ['name' => 'Manage Offers & Loyalty', 'slug' => 'promotions.manage', 'module' => 'promotions'],
+
             ['name' => 'Manage Settings', 'slug' => 'settings.manage', 'module' => 'settings'],
             ['name' => 'Manage Users', 'slug' => 'users.manage', 'module' => 'users'],
         ];

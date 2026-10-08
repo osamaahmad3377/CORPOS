@@ -18,6 +18,8 @@ class CustomerResource extends JsonResource
             'city' => $this->city,
             'notes' => $this->notes,
             'total_purchases' => $this->total_purchases,
+            'price_level' => $this->price_level ?: 'retail',
+            'loyalty_points' => (int) $this->loyalty_points,
             'sales_count' => $this->whenCounted('sales'),
             'last_sale_date' => $this->sales_max_sale_date,
             'total_due' => $this->total_due ?? '0.00',

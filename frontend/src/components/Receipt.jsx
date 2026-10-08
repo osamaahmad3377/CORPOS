@@ -1,9 +1,33 @@
 // Printable receipt for a sale (SaleResource with items). Width follows the
-// receipt.paper_width setting (58mm / 80mm thermal printers).
+// receipt.paper_width setting (58mm / 80mm thermal printers). Shop branding
+// at the top is white-label; the CorePOS/NextCore credit at the bottom is
+// always printed (developer promotion) and is not a setting.
 import { useShop } from '../lib/shop';
+import { useLang } from '../lib/i18n';
 import { dateTime, money, qty, variantLabel } from '../lib/format';
 import { orderTypeLabel } from './KitchenSlip';
-import { useLang } from '../lib/i18n';
+import { NEXTCORE, NextcoreLogo } from './Brand';
+
+function Row({ label, value, strong, big }) {
+  return (
+    <div className={`flex justify-between gap-2 ${strong ? 'font-bold' : ''} ${big ? 'text-[15px]' : ''}`}>
+      <span>{label}</span><span className="num">{value}</span>
+    </div>
+  );
+}
+
+export function ReceiptCredit() {
+  return (
+    <div className="mt-2 border-t border-dashed border-black pt-2 text-center" dir="ltr" style={{ fontFamily: 'Inter Variable, Arial, sans-serif' }}>
+      <div className="flex items-center justify-center gap-1.5" style={{ color: '#000' }}>
+        <span className="text-[9px]">Software by</span>
+        <NextcoreLogo className="h-4" mono />
+      </div>
+      <div className="text-[9px] leading-tight">{NEXTCORE.product} · {NEXTCORE.website}</div>
+      <div className="text-[9px] leading-tight">{NEXTCORE.email}</div>
+    </div>
+  );
+}
 
 export default function Receipt({ sale }) {
   const shop = useShop();
@@ -12,45 +36,65 @@ export default function Receipt({ sale }) {
   const width = s.receipt?.paper_width === '58mm' ? '58mm' : '80mm';
   const showTax = s.receipt?.show_tax_line === '1' && Number(sale.tax_amount) > 0;
   const due = Number(sale.due_amount || 0);
+  const pointsEarned = Number(sale.points_earned || 0);
+  const pointsUsed = Number(sale.points_redeemed || 0);
 
   return (
-    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug text-black`} style={{ width, padding: '2mm' }}>
+    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug`} style={{ width, padding: '2mm', color: '#000', background: '#fff', lineHeight: isUrdu ? 2.1 : undefined }}>
       <div className="text-center">
-        <div className="text-[15px] font-bold">{shop.shopName}</div>
+        {shop.logoOnReceipt && shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}
+        <div className="text-[16px] font-bold leading-tight">{shop.shopName}</div>
         {s.shop?.address && <div>{s.shop.address}</div>}
         {s.shop?.phone && <div>{t('Phone')}: <span className="num">{s.shop.phone}</span></div>}
-        {s.receipt?.header && <div className="mt-1">{s.receipt.header}</div>}
+        {s.receipt?.header && <div className="mt-1 italic">{s.receipt.header}</div>}
       </div>
+
       <div className="my-2 border-t border-dashed border-black" />
-      <div className="flex justify-between"><span>{t('Bill #')}</span><span>{sale.invoice_number}</span></div>
-      <div className="flex justify-between"><span>{t('Date')}</span><span>{dateTime(sale.sale_date)}</span></div>
+      <Row label={t('Bill #')} value={sale.invoice_number} />
+      <Row label={t('Date')} value={dateTime(sale.sale_date)} />
       {sale.cashier && <div className="flex justify-between"><span>{t('Cashier')}</span><span>{sale.cashier}</span></div>}
       {sale.customer && <div className="flex justify-between"><span>{t('Customer')}</span><span>{sale.customer}</span></div>}
       {sale.order_type && <div className="flex justify-between"><span>{t('Order')}</span><span>{t(orderTypeLabel(sale.order_type))}{sale.table_no ? ` · ${t('Table {n}', { n: sale.table_no })}` : ''}</span></div>}
+
       <div className="my-2 border-t border-dashed border-black" />
       {(sale.items || []).map((it) => (
-        <div key={it.id} className="mb-1">
-          <div>{it.product_name}{variantLabel(it) ? ` (${variantLabel(it)})` : ''}</div>
+        <div key={it.id} className="mb-1.5">
+          <div className="font-semibold">{it.product_name}{variantLabel(it) ? ` (${variantLabel(it)})` : ''}</div>
           <div className="flex justify-between">
-            <span>{qty(it.quantity)} {it.unit && it.unit !== 'pcs' ? it.unit : ''} x {money(it.unit_price)}{Number(it.discount_per_item) > 0 ? ` -${money(it.discount_per_item)}` : ''}</span>
-            <span>{money(it.total_price)}</span>
+            <span className="num">{qty(it.quantity)}{it.unit && it.unit !== 'pcs' ? ` ${it.unit}` : ''} × {money(it.unit_price)}</span>
+            <span className="num">{money(it.total_price)}</span>
           </div>
-          {it.serials?.length > 0 && <div className="text-[11px]">S/N: {it.serials.join(', ')}</div>}
+          {Number(it.discount_per_item) > 0 && <div className="flex justify-between text-[11px]"><span>{it.promotion_name || t('Discount')}</span><span className="num">-{money(it.discount_per_item)}</span></div>}
+          {it.serials?.length > 0 && <div className="text-[11px]">S/N: <span className="num">{it.serials.join(', ')}</span></div>}
           {it.warranty_months > 0 && <div className="text-[11px]">{t('Warranty: {n} months', { n: it.warranty_months })}</div>}
         </div>
       ))}
+
       <div className="my-2 border-t border-dashed border-black" />
-      <div className="flex justify-between"><span>{t('Subtotal')}</span><span>{money(sale.subtotal)}</span></div>
-      {Number(sale.discount_amount) > 0 && <div className="flex justify-between"><span>{t('Discount')}</span><span>-{money(sale.discount_amount)}</span></div>}
-      {showTax && <div className="flex justify-between"><span>{shop.taxLabel}</span><span>{money(sale.tax_amount)}</span></div>}
-      <div className="flex justify-between text-[14px] font-bold"><span>{t('TOTAL')}</span><span>{money(sale.grand_total)}</span></div>
-      {Number(sale.refunded_amount) > 0 && <div className="flex justify-between"><span>{t('Returned')}</span><span>-{money(sale.refunded_amount)}</span></div>}
-      <div className="flex justify-between"><span>{t('Paid')} ({t(shop.paymentLabel(sale.payment_method))})</span><span>{money(sale.payment_received)}</span></div>
-      {Number(sale.change_amount) > 0 && <div className="flex justify-between"><span>{t('Change')}</span><span>{money(sale.change_amount)}</span></div>}
-      {due > 0 && <div className="flex justify-between font-bold"><span>{t('Balance due')}</span><span>{money(due)}</span></div>}
-      <div className="my-2 border-t border-dashed border-black" />
-      {s.receipt?.footer && <div className="text-center">{s.receipt.footer}</div>}
-      <div className="mt-1 text-center text-[10px]" dir="ltr">Powered by CorePOS</div>
+      <Row label={t('Subtotal')} value={money(sale.subtotal)} />
+      {Number(sale.discount_amount) > 0 && <Row label={t('Discount')} value={`-${money(sale.discount_amount)}`} />}
+      {showTax && <Row label={shop.taxLabel} value={money(sale.tax_amount)} />}
+      <div className="my-1 border-t border-black" />
+      <Row label={t('TOTAL')} value={money(sale.grand_total)} strong big />
+      {Number(sale.refunded_amount) > 0 && <Row label={t('Returned')} value={`-${money(sale.refunded_amount)}`} />}
+      <Row label={`${t('Paid')} (${t(shop.paymentLabel(sale.payment_method))})`} value={money(sale.payment_received)} />
+      {Number(sale.change_amount) > 0 && <Row label={t('Change')} value={money(sale.change_amount)} />}
+      {due > 0 && <Row label={t('Balance due')} value={money(due)} strong />}
+      {(pointsEarned > 0 || pointsUsed > 0) && (
+        <div className="mt-1 text-[11px]">
+          {pointsUsed > 0 && <div>{t('Points used: {n}', { n: pointsUsed })}</div>}
+          {pointsEarned > 0 && <div>{t('Points earned: {n}', { n: pointsEarned })}</div>}
+        </div>
+      )}
+
+      {s.receipt?.footer && (
+        <>
+          <div className="my-2 border-t border-dashed border-black" />
+          <div className="text-center">{s.receipt.footer}</div>
+        </>
+      )}
+      <div className="mt-1 text-center font-semibold">{t('Thank you! Please come again.')}</div>
+      <ReceiptCredit />
     </div>
   );
 }

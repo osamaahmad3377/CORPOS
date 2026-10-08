@@ -33,9 +33,18 @@ class SaleResource extends JsonResource
             'table_no' => $this->table_no,
             'payment_status' => $this->payment_status,
             'notes' => $this->notes,
+            'price_level' => $this->price_level ?? 'retail',
+            'points_earned' => (int) $this->points_earned,
+            'points_redeemed' => (int) $this->points_redeemed,
+            'points_discount' => $this->points_discount ?? '0.00',
+            'points_reversed' => (int) $this->points_reversed,
             'items_count' => $this->whenCounted('items'),
             'items' => SaleItemResource::collection($this->whenLoaded('items')),
             'returns' => SaleReturnResource::collection($this->whenLoaded('returns')),
+            'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn ($p) => [
+                'id' => $p->id, 'amount' => $p->amount, 'payment_method' => $p->payment_method,
+                'user' => $p->user?->name, 'created_at' => $p->created_at,
+            ])),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

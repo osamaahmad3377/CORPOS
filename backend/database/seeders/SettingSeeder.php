@@ -37,6 +37,18 @@ class SettingSeeder extends Seeder
                 'option2_label' => 'Size',
                 'default_unit' => 'pcs',
             ],
+            'brand' => [
+                'primary_color' => '#4f46e5',
+                'theme' => 'light',
+                'logo' => '',
+                'show_logo_on_receipt' => '1',
+            ],
+            'loyalty' => [
+                'enabled' => '0',
+                'points_per_100' => '1',
+                'point_value' => '1',
+                'min_redeem' => '100',
+            ],
             'features' => [
                 'restaurant' => '0',
                 'serials' => '0',

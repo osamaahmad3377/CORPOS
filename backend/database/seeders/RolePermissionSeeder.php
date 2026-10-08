@@ -29,6 +29,8 @@ class RolePermissionSeeder extends Seeder
             'customers.create',
             'sales.create',
             'sales.view_own',
+            'cash.manage',
+            'quotations.manage',
         ];
 
         return [

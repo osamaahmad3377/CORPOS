@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Off: its signed /storage/{path} route would shadow ours in
+            // routes/web.php that serves product photos and the shop logo.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

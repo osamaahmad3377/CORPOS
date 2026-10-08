@@ -47,6 +47,7 @@ class StoreProductRequest extends FormRequest
             'variants.*.expiry_date' => ['nullable', 'date'],
             'variants.*.purchase_price' => ['required_with:variants', 'numeric', 'min:0'],
             'variants.*.selling_price' => ['required_with:variants', 'numeric', 'min:0'],
+            'variants.*.wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.stock_qty' => ['required_with:variants', 'numeric', 'min:0', 'max:9999999'],
             'variants.*.low_stock_threshold' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
 
@@ -57,6 +58,7 @@ class StoreProductRequest extends FormRequest
             'sizes.*' => ['string', 'max:50'],
             'purchase_price' => ['required_with:colors', 'numeric', 'min:0'],
             'selling_price' => ['required_with:colors', 'numeric', 'min:0'],
+            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'stock_qty' => ['required_with:colors', 'numeric', 'min:0', 'max:9999999'],
             'low_stock_threshold' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
         ];

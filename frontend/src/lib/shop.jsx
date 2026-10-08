@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { applyBrand, applyMode, setStoredMode, storedMode } from './theme';
 
 // Shop-wide configuration: settings (shop/receipt/tax/business/product) and
 // the static lists from /meta (units, payment methods, business types).
@@ -9,6 +10,18 @@ const ShopContext = createContext(null);
 export function ShopProvider({ children }) {
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => api.get('/settings'), staleTime: 60_000 });
   const meta = useQuery({ queryKey: ['meta'], queryFn: () => api.get('/meta'), staleTime: Infinity });
+
+  // brand colour + light/dark (per computer, default = shop setting)
+  const brandColor = /^#[0-9a-f]{6}$/i.test(settings.data?.brand?.primary_color || '') ? settings.data.brand.primary_color : '#4f46e5';
+  const [mode, setModeState] = useState(() => storedMode() || 'light');
+  useEffect(() => {
+    if (!storedMode() && settings.data?.brand?.theme) setModeState(settings.data.brand.theme);
+  }, [settings.data?.brand?.theme]);
+  useEffect(() => {
+    applyMode(mode);
+    applyBrand(brandColor);
+  }, [mode, brandColor]);
+  const setMode = useCallback((m) => { setStoredMode(m); setModeState(m); }, []);
 
   const value = useMemo(() => {
     const s = settings.data || {};
@@ -37,8 +50,15 @@ export function ShopProvider({ children }) {
       isFractional: (code) => !!units[code]?.fractional,
       paymentLabel: (code) => m.payment_methods.find((p) => p.code === code)?.label || code,
       refetchSettings: settings.refetch,
+      // white-label
+      brandColor,
+      logoUrl: s.brand?.logo ? `/storage/${s.brand.logo}` : null,
+      logoOnReceipt: s.brand?.show_logo_on_receipt !== '0',
+      mode,
+      setMode,
+      isDark: mode === 'dark',
     };
-  }, [settings.data, meta.data, settings.isLoading, meta.isLoading, settings.refetch]);
+  }, [settings.data, meta.data, settings.isLoading, meta.isLoading, settings.refetch, brandColor, mode, setMode]);
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
 }

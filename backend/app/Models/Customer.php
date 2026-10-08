@@ -18,12 +18,15 @@ class Customer extends Model
         'city',
         'notes',
         'total_purchases',
+        'price_level',
+        'loyalty_points',
     ];
 
     protected function casts(): array
     {
         return [
             'total_purchases' => 'decimal:2',
+            'loyalty_points' => 'integer',
         ];
     }
 

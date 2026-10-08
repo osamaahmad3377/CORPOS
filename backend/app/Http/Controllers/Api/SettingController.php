@@ -45,6 +45,19 @@ class SettingController extends Controller
             'option2_label' => ['nullable', 'string', 'max:40'],
             'default_unit' => ['nullable', 'string', 'max:20'],
         ],
+        // White-label look: brand colour + logo (logo is set via uploadLogo()).
+        'brand' => [
+            'primary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'theme' => ['nullable', 'in:light,dark,system'],
+            'show_logo_on_receipt' => ['nullable', 'in:0,1'],
+        ],
+        // Loyalty points: earn per Rs 100 spent, each point worth Rs X.
+        'loyalty' => [
+            'enabled' => ['nullable', 'in:0,1'],
+            'points_per_100' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'point_value' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'min_redeem' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+        ],
         'features' => [
             'restaurant' => ['nullable', 'in:0,1'],
             'serials' => ['nullable', 'in:0,1'],
@@ -68,6 +81,32 @@ class SettingController extends Controller
         }
 
         return response()->json($grouped);
+    }
+
+    /** Shop logo shown in the menu, login, home and on receipts. */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate(['logo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048']]);
+
+        $old = Setting::where('key', 'brand.logo')->value('value');
+        $path = $request->file('logo')->store('branding', 'public');
+        Setting::updateOrCreate(['key' => 'brand.logo'], ['value' => $path, 'group' => 'brand']);
+        if ($old && $old !== $path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+        }
+
+        return $this->index();
+    }
+
+    public function removeLogo()
+    {
+        $old = Setting::where('key', 'brand.logo')->value('value');
+        if ($old) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+        }
+        Setting::updateOrCreate(['key' => 'brand.logo'], ['value' => '', 'group' => 'brand']);
+
+        return $this->index();
     }
 
     public function update(Request $request)

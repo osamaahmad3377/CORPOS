@@ -19,6 +19,7 @@ class ProductVariant extends Model
         'barcode',
         'purchase_price',
         'selling_price',
+        'wholesale_price',
         'stock_qty',
         'low_stock_threshold',
         'is_active',
@@ -29,6 +30,7 @@ class ProductVariant extends Model
         return [
             'purchase_price' => 'decimal:2',
             'selling_price' => 'decimal:2',
+            'wholesale_price' => 'decimal:2',
             'stock_qty' => 'float',
             'low_stock_threshold' => 'float',
             'is_active' => 'boolean',

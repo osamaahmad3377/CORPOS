@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Banknote, ChevronRight, FileText, Mail, MapPin, Pencil, Phone, Plus, Printer, ReceiptText, Search, ShoppingBag,
-  Trash2, Users, Wallet, X,
+  ArrowLeft, Banknote, ChevronRight, FileText, Mail, MapPin, MessageCircle, Pencil, Phone, Plus, Printer, ReceiptText, Search, ShoppingBag,
+  Star, Trash2, Users, Wallet, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { date, money, today } from '../../lib/format';
+import { buildStatementText, buildUdhaarReminder, openWhatsApp } from '../../lib/whatsapp';
 import { Page } from '../../components/Layout';
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select,
@@ -117,7 +118,13 @@ function CustomerList() {
                   <tr key={c.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <Td className="py-4">
                       <div className="text-base font-medium text-slate-900">{c.name}</div>
-                      {c.city && <div className="text-xs text-slate-500">{c.city}</div>}
+                      {(c.city || c.price_level === 'wholesale' || Number(c.loyalty_points) > 0) && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                          {c.city && <span>{c.city}</span>}
+                          {c.price_level === 'wholesale' && <Badge color="blue">{t('Wholesale')}</Badge>}
+                          {Number(c.loyalty_points) > 0 && <Badge color="amber"><Star className="me-1 size-3" />{rich(t('{n} points'), { n: <span className="num">{c.loyalty_points}</span> })}</Badge>}
+                        </div>
+                      )}
                     </Td>
                     <Td className="whitespace-nowrap text-slate-600"><span className="num">{c.phone}</span></Td>
                     <Td className="text-end text-slate-600"><span className="num">{c.sales_count ?? 0}</span></Td>
@@ -141,14 +148,14 @@ function CustomerList() {
 
 // ---------------------------------------------------------------- create / edit
 
-const EMPTY = { name: '', phone: '', email: '', city: '', address: '', notes: '' };
+const EMPTY = { name: '', phone: '', email: '', city: '', address: '', notes: '', price_level: 'retail' };
 
 function CustomerForm({ customer, onClose, onSaved }) {
   const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
   const isNew = !customer.id;
-  const [form, setForm] = useState(() => ({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, customer[k] ?? ''])) }));
+  const [form, setForm] = useState(() => ({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, customer[k] ?? EMPTY[k]])) }));
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const save = useMutation({
@@ -184,6 +191,12 @@ function CustomerForm({ customer, onClose, onSaved }) {
         <Field label={t('Phone')} required error={err('phone')} hint={t('Each customer needs a different phone number')}><Input type="tel" className="num" value={form.phone} onChange={set('phone')} placeholder="03xx-xxxxxxx" /></Field>
         <Field label={t('Email (optional)')} error={err('email')}><Input type="email" value={form.email} onChange={set('email')} /></Field>
         <Field label={t('City (optional)')} error={err('city')}><Input value={form.city} onChange={set('city')} /></Field>
+        <Field label={t('Price type')} error={err('price_level')} hint={form.price_level === 'wholesale' ? t('Items that have a wholesale price are sold to this customer at that price.') : t('Normal selling price.')} className="sm:col-span-2">
+          <Select value={form.price_level || 'retail'} onChange={set('price_level')}>
+            <option value="retail">{t('Retail')}</option>
+            <option value="wholesale">{t('Wholesale')}</option>
+          </Select>
+        </Field>
         <Field label={t('Address (optional)')} error={err('address')} className="sm:col-span-2"><Input value={form.address} onChange={set('address')} /></Field>
         <Field label={t('Note (optional)')} error={err('notes')} className="sm:col-span-2"><Textarea rows={2} value={form.notes} onChange={set('notes')} placeholder={t('e.g. pays at month end')} /></Field>
         {save.error && !Object.keys(errs).length && <div className="sm:col-span-2"><ErrorBox error={save.error} /></div>}
@@ -258,6 +271,11 @@ function CustomerDetail() {
         actions={(
           <>
             {canSales && <Button variant="secondary" icon={FileText} onClick={() => setStatement(true)} disabled={!sales.length}>{t('Print statement')}</Button>}
+            {canSales && (
+              <Button variant="secondary" icon={MessageCircle} className="text-emerald-700" disabled={!sales.length} onClick={() => openWhatsApp(c.phone, buildStatementText(c, sales, shop, t))}>
+                {t('Send statement')}
+              </Button>
+            )}
             {can('customers.edit') && <Button variant="secondary" icon={Pencil} onClick={() => setEditing(true)}>{t('Edit')}</Button>}
             {can('customers.delete') && (
               <Button variant="secondary" icon={Trash2} onClick={remove} loading={del.isPending} disabled={hasBills} title={hasBills ? t('Customers with bills cannot be deleted') : t('Delete customer')} className="text-red-600">{t('Delete')}</Button>
@@ -273,13 +291,31 @@ function CustomerDetail() {
           <div className={cx('text-base', due > 0 ? 'text-red-800' : 'text-emerald-800')}>{due > 0 ? t('{name} owes you', { name: c.name }) : t('{name} owes you nothing', { name: c.name })}</div>
           {due > 0 && <div className="num text-3xl font-bold text-red-700">{money(due)}</div>}
         </div>
+        {due > 0 && (
+          <Button size="lg" variant="secondary" icon={MessageCircle} className="h-auto min-h-14 whitespace-normal py-2 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => openWhatsApp(c.phone, buildUdhaarReminder(c, due, shop, t))}>
+            {t('Send udhaar reminder on WhatsApp')}
+          </Button>
+        )}
         {canSales && unpaid.length > 0 && (
           <Button size="xl" variant="success" icon={Banknote} onClick={() => setPaying('auto')}>{t('Take udhaar payment')}</Button>
         )}
       </Card>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2">
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <StatCard icon={ShoppingBag} label={t('Total bought')} value={<span className="num">{money(c.total_purchases)}</span>} />
+        <StatCard
+          icon={Star}
+          label={t('Loyalty points')}
+          tone="green"
+          value={(
+            <span className="flex flex-wrap items-baseline gap-x-3">
+              <span className="num">{Number(c.loyalty_points || 0)}</span>
+              {Number(shop.settings?.loyalty?.point_value) > 0 && Number(c.loyalty_points) > 0 && (
+                <span className="text-sm font-normal text-slate-500">{rich(t('worth {amount}'), { amount: <span className="num">{money(Number(c.loyalty_points) * Number(shop.settings.loyalty.point_value))}</span> })}</span>
+              )}
+            </span>
+          )}
+        />
         <StatCard
           icon={ReceiptText}
           label={t('Bills')}
@@ -301,6 +337,8 @@ function CustomerDetail() {
             {c.email && <li className="flex items-center gap-2"><Mail className="size-5 shrink-0 text-slate-400" /><span className="ltr truncate">{c.email}</span></li>}
             {(c.address || c.city) && <li className="flex items-start gap-2"><MapPin className="mt-1 size-5 shrink-0 text-slate-400" /><span>{[c.address, c.city].filter(Boolean).join(', ')}</span></li>}
           </ul>
+          <div className="mb-1 mt-4 text-sm font-semibold text-slate-500">{t('Price type')}</div>
+          <p>{c.price_level === 'wholesale' ? <Badge color="blue" className="text-sm">{t('Wholesale')}</Badge> : <span className="text-slate-700">{t('Retail')}</span>}</p>
           {c.notes && <><div className="mb-1 mt-4 text-sm font-semibold text-slate-500">{t('Note')}</div><p className="whitespace-pre-line text-slate-700">{c.notes}</p></>}
         </Card>
 

@@ -205,6 +205,7 @@ class ProductController extends Controller
                     'expiry_date' => $variant['expiry_date'] ?? null,
                     'purchase_price' => $variant['purchase_price'],
                     'selling_price' => $variant['selling_price'],
+                    'wholesale_price' => $variant['wholesale_price'] ?? null,
                     'stock_qty' => $variant['stock_qty'],
                     'low_stock_threshold' => $variant['low_stock_threshold'] ?? 5,
                 ];
@@ -221,6 +222,7 @@ class ProductController extends Controller
                         'expiry_date' => null,
                         'purchase_price' => $validated['purchase_price'],
                         'selling_price' => $validated['selling_price'],
+                        'wholesale_price' => $validated['wholesale_price'] ?? null,
                         'stock_qty' => $validated['stock_qty'],
                         'low_stock_threshold' => $validated['low_stock_threshold'] ?? 5,
                     ];
@@ -249,6 +251,7 @@ class ProductController extends Controller
                 'barcode' => 'TMP-'.Str::random(10),
                 'purchase_price' => $spec['purchase_price'],
                 'selling_price' => $spec['selling_price'],
+                'wholesale_price' => $spec['wholesale_price'],
                 'stock_qty' => 0,
                 'low_stock_threshold' => $spec['low_stock_threshold'],
             ]);

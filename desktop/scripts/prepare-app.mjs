@@ -46,7 +46,24 @@ function copyTree(from, to, rel = '') {
   }
 }
 
+// Developer logo (top bar + receipt credit): drop it in /branding and it is
+// bundled; otherwise the built-in NextCore wordmark is used.
+function copyBranding() {
+  const brandDir = path.join(frontendSrc, 'public', 'brand');
+  for (const name of ['nextcore-logo.png', 'nextcore-logo.svg']) {
+    const from = path.join(repo, 'branding', name);
+    if (fs.existsSync(from)) {
+      fs.mkdirSync(brandDir, { recursive: true });
+      fs.copyFileSync(from, path.join(brandDir, name));
+      console.log(`Using NextCore logo from branding/${name}`);
+      return;
+    }
+  }
+  console.log('No branding/nextcore-logo.png yet — using the built-in NextCore wordmark.');
+}
+
 function buildFrontend(publicDir) {
+  copyBranding();
   console.log('Building React frontend from ../frontend …');
   const env = {
     ...process.env,

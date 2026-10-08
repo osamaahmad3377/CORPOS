@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Check, Languages, Lightbulb, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store } from 'lucide-react';
+import { Briefcase, Check, ImageUp, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2 } from 'lucide-react';
+import { BRAND_PRESETS } from '../../lib/theme';
+import { ShopLogo } from '../../components/Brand';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -15,6 +17,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
 // Every key SettingController@update accepts (minus shop.logo), with defaults.
 const DEFAULTS = {
+  brand: { primary_color: '#4f46e5', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
   receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },
@@ -26,6 +29,7 @@ const DEFAULTS = {
 
 // Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
 const SECTIONS = [
+  { key: 'brand', label: 'Brand & look', icon: Palette, groups: ['brand'], preview: 'receipt' },
   { key: 'shop', label: 'Shop details', icon: Store, groups: ['shop'], preview: 'receipt' },
   { key: 'receipt', label: 'Receipt', icon: ReceiptText, groups: ['receipt'], preview: 'receipt' },
   { key: 'tax', label: 'Tax', icon: Percent, groups: ['tax'], preview: 'receipt' },
@@ -112,7 +116,7 @@ export default function Settings() {
           })}
         </nav>
         <Routes>
-          <Route index element={<Navigate to="shop" replace />} />
+          <Route index element={<Navigate to="brand" replace />} />
           <Route path=":section" element={<Section draft={draft} saved={saved} setDraft={setDraft} onSaved={onSaved} />} />
         </Routes>
       </div>
@@ -171,7 +175,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
   };
 
   const props = { d: draft, set, err, canEdit };
-  const Form = { shop: ShopForm, receipt: ReceiptForm, tax: TaxForm, barcode: BarcodeForm, business: BusinessForm, features: FeaturesForm }[section];
+  const Form = { shop: ShopForm, receipt: ReceiptForm, tax: TaxForm, barcode: BarcodeForm, business: BusinessForm, features: FeaturesForm, brand: BrandForm }[section];
 
   return (
     <div className={cx('grid min-w-0 items-start gap-6', meta.preview ? 'xl:grid-cols-[1fr_auto]' : 'max-w-3xl')}>
@@ -215,6 +219,104 @@ function Toggle({ checked, onChange, label, hint }) {
         {hint && <span className="block text-sm text-slate-500">{hint}</span>}
       </span>
     </label>
+  );
+}
+
+// White-label look: logo, brand colour, light/dark default.
+function BrandForm({ d, set }) {
+  const t = useT();
+  const shop = useShop();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const color = d.brand.primary_color;
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('logo', file);
+      await api.upload('/settings/logo', fd);
+      await shop.refetchSettings();
+      toast(t('Logo saved'));
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+  const removeLogo = async () => {
+    setBusy(true);
+    try { await api.del('/settings/logo'); await shop.refetchSettings(); toast(t('Logo removed')); } catch (e) { toast(e.message, 'error'); } finally { setBusy(false); }
+  };
+  const modes = [
+    { code: 'light', label: 'Light', icon: Sun },
+    { code: 'dark', label: 'Dark', icon: Moon },
+    { code: 'system', label: 'Same as computer', icon: Monitor },
+  ];
+  return (
+    <>
+      <CardHeader title={t('Brand & look')} subtitle={t('Your logo and colours — used on the screens and on printed bills.')} />
+      <div className="space-y-7 px-5 py-5">
+        <div>
+          <div className="mb-2 text-sm font-semibold text-slate-700">{t('Shop logo')}</div>
+          <div className="flex flex-wrap items-center gap-4">
+            <ShopLogo className="size-20" rounded="rounded-2xl" />
+            <div className="space-y-2">
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
+              <div className="flex flex-wrap gap-2">
+                <Button icon={ImageUp} loading={busy} onClick={() => fileRef.current?.click()}>{shop.logoUrl ? t('Change logo') : t('Upload logo')}</Button>
+                {shop.logoUrl && <Button variant="ghost" icon={Trash2} disabled={busy} onClick={removeLogo}>{t('Remove')}</Button>}
+              </div>
+              <p className="text-xs text-slate-500">{t('PNG or JPG, square works best, up to 2 MB. Saved straight away.')}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-sm font-semibold text-slate-700">{t('Brand colour')}</div>
+          <div className="flex flex-wrap gap-2.5">
+            {BRAND_PRESETS.map((p) => (
+              <button key={p.hex} type="button" title={p.name} aria-label={p.name} onClick={() => set('brand', 'primary_color')(p.hex)}
+                className={cx('grid size-11 place-items-center rounded-xl ring-offset-2 transition hover:scale-105', color.toLowerCase() === p.hex ? 'ring-2 ring-slate-900' : '')}
+                style={{ background: p.hex }}>
+                {color.toLowerCase() === p.hex && <Check className="size-5 text-white" />}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="color" value={color} onChange={(e) => set('brand', 'primary_color')(e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
+              {t('Any other colour')}
+            </label>
+            <Input className="num w-32 font-mono" value={color} maxLength={7} onChange={(e) => set('brand', 'primary_color')(e.target.value)} />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-4">
+            <span className="text-sm text-slate-500">{t('Preview')}:</span>
+            <Button>{t('Take payment')}</Button>
+            <Button variant="secondary">{t('Cancel')}</Button>
+            <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-700">{t('Badge')}</span>
+            <span className="font-semibold text-brand-600">{t('Link text')}</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-sm font-semibold text-slate-700">{t('Screen theme (default)')}</div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {modes.map((m) => (
+              <button key={m.code} type="button" onClick={() => { set('brand', 'theme')(m.code); shop.setMode(m.code); }}
+                className={cx('flex items-center gap-2 rounded-xl border-2 px-4 py-3 text-start font-medium', d.brand.theme === m.code ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:border-slate-300')}>
+                <m.icon className="size-5" />{t(m.label)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">{t('Each computer can still switch light/dark from the top bar.')}</p>
+        </div>
+
+        <Toggle checked={d.brand.show_logo_on_receipt === '1'} onChange={(v) => set('brand', 'show_logo_on_receipt')(v ? '1' : '0')} label={t('Print logo on bills')} hint={t('Shows your logo at the top of every printed bill.')} />
+      </div>
+    </>
   );
 }
 

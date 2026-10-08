@@ -16,11 +16,13 @@ import { Badge, Card, CardHeader, cx, EmptyState, Input, PageHeader, Select, Sta
 import {
   downloadCsv, FilterBox, monthStart, ReportFrame, ReportTable, Stats, thisMonth, useDates, ymd,
 } from './reportKit';
+import ProfitReport from '../expenses/ProfitReport';
 
 const TABS = [
   { to: 'daily', label: 'Today' },
   { to: 'monthly', label: 'This month' },
   { to: 'products', label: 'Items sold' },
+  { to: 'profit', label: 'Profit' },
   { to: 'inventory', label: 'Stock value' },
   { to: 'low-stock', label: 'Low stock' },
   { to: 'purchases', label: 'Stock bought' },
@@ -56,6 +58,7 @@ export default function Reports() {
         <Route path="daily" element={<DailySales />} />
         <Route path="monthly" element={<MonthlySales />} />
         <Route path="products" element={<ProductSales />} />
+        <Route path="profit" element={<ProfitReport />} />
         <Route path="inventory" element={<InventoryReport />} />
         <Route path="low-stock" element={<LowStock />} />
         <Route path="purchases" element={<PurchasesReport />} />

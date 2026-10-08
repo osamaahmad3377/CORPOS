@@ -31,6 +31,11 @@ class Sale extends Model
         'status',
         'payment_status',
         'notes',
+        'price_level',
+        'points_earned',
+        'points_redeemed',
+        'points_discount',
+        'points_reversed',
     ];
 
     protected function casts(): array
@@ -45,7 +50,37 @@ class Sale extends Model
             'change_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'refunded_amount' => 'decimal:2',
+            'points_earned' => 'integer',
+            'points_redeemed' => 'integer',
+            'points_discount' => 'decimal:2',
+            'points_reversed' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Returns (SaleReturnController) raise refunded_amount: take back the
+        // loyalty points this bill earned in proportion to the money refunded
+        // — never more than earned, never below 0 on the customer.
+        static::updating(function (Sale $sale) {
+            if (! $sale->isDirty('refunded_amount') || ! $sale->customer_id || (int) $sale->points_earned <= 0 || (float) $sale->grand_total <= 0) {
+                return;
+            }
+            $share = min(1, max(0, (float) $sale->refunded_amount / (float) $sale->grand_total));
+            $target = $share >= 0.9999 ? (int) $sale->points_earned : (int) min($sale->points_earned, round($sale->points_earned * $share));
+            $reverse = $target - (int) $sale->points_reversed;
+            if ($reverse <= 0) {
+                return;
+            }
+            $customer = Customer::whereKey($sale->customer_id)->lockForUpdate()->first();
+            if ($customer) {
+                $take = min($reverse, (int) $customer->loyalty_points);
+                if ($take > 0) {
+                    $customer->decrement('loyalty_points', $take);
+                }
+            }
+            $sale->points_reversed = $target;
+        });
     }
 
     /**
@@ -99,5 +134,10 @@ class Sale extends Model
     public function returns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);
+    }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SalePayment::class)->with('user')->orderBy('id');
     }
 }

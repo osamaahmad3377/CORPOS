@@ -24,6 +24,10 @@ const Users = lazy(() => import('./pages/users/Users'));
 const Settings = lazy(() => import('./pages/settings/Settings'));
 const ActivityLog = lazy(() => import('./pages/activity/ActivityLog'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
+const CashDrawer = lazy(() => import('./pages/cash/CashDrawer'));
+const Expenses = lazy(() => import('./pages/expenses/Expenses'));
+const Quotations = lazy(() => import('./pages/quotations/Quotations'));
+const Offers = lazy(() => import('./pages/offers/Offers'));
 
 // Permission-gated route (the backend enforces the same permissions).
 function Guard({ perm, children }) {
@@ -52,6 +56,10 @@ const ROUTES = [
   { path: '/activity', element: <ActivityLog />, perm: 'activity_logs.view' },
   { path: '/settings/*', element: <Settings />, perm: 'settings.manage' },
   { path: '/profile', element: <Profile /> },
+  { path: '/cash/*', element: <CashDrawer />, perm: 'cash.manage' },
+  { path: '/expenses/*', element: <Expenses />, perm: 'expenses.manage' },
+  { path: '/quotations/*', element: <Quotations />, perm: 'quotations.manage' },
+  { path: '/offers/*', element: <Offers />, perm: 'promotions.manage' },
 ];
 
 export default function App() {

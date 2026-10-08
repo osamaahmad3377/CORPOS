@@ -68,7 +68,11 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     // Every authenticated role needs to read shop/tax/receipt config to run
     // POS and print receipts correctly — only editing is Admin-only.
     Route::get('settings', [SettingController::class, 'index']);
-    Route::middleware('permission:settings.manage')->put('settings', [SettingController::class, 'update']);
+    Route::middleware('permission:settings.manage')->group(function () {
+        Route::put('settings', [SettingController::class, 'update']);
+        Route::post('settings/logo', [SettingController::class, 'uploadLogo']);
+        Route::delete('settings/logo', [SettingController::class, 'removeLogo']);
+    });
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('roles', [RoleController::class, 'index']);
@@ -153,4 +157,10 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     });
 
     Route::middleware('permission:activity_logs.view')->get('activity-logs', [ActivityLogController::class, 'index']);
+
+    // Feature modules keep their routes in routes/api_<feature>.php
+    // (cash drawer, expenses, quotations, offers…), all behind sign-in.
+    foreach (glob(__DIR__.'/api_*.php') as $featureRoutes) {
+        require $featureRoutes;
+    }
 });

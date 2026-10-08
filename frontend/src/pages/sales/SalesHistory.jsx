@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Banknote, ChevronRight, PauseCircle, Printer, ReceiptText, RotateCcw, Search, ShoppingCart, User, X,
+  ArrowLeft, Banknote, ChevronRight, MessageCircle, PauseCircle, Printer, ReceiptText, RotateCcw, Search, ShoppingCart, User, X,
 } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { date, dateTime, money, qty, round3, today, variantLabel } from '../../lib/format';
+import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
 import {
@@ -216,6 +217,15 @@ function SaleDetail() {
   const q = useQuery({ queryKey: ['sales', 'detail', invoice], queryFn: () => api.get(`/sales/${invoice}`), select: (r) => r.data });
   const sale = q.data;
   const returned = useMemo(() => (sale ? returnedBySaleItem(sale) : {}), [sale]);
+  // customer's phone for WhatsApp (the bill itself only carries the name)
+  const cust = useQuery({
+    queryKey: ['customers', 'detail', String(sale?.customer_id)],
+    queryFn: () => api.get(`/customers/${sale.customer_id}`),
+    select: (r) => r.data,
+    enabled: !!sale?.customer_id && can('customers.view'),
+    staleTime: 60_000,
+  });
+  const sendWhatsApp = () => openWhatsApp(cust.data?.phone || '', buildReceiptText(sale, shop, t));
 
   const back = (
     <Button variant="ghost" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/sales'))}>
@@ -249,6 +259,7 @@ function SaleDetail() {
           )}
           {canReturn && <Button size="lg" variant="secondary" icon={RotateCcw} className="border-2 border-red-200 text-red-700 hover:bg-red-50" onClick={() => setReturning(true)}>{t('Return items')}</Button>}
           <Button size="lg" variant="secondary" icon={Printer} onClick={() => setPrinting(true)}>{t('Print receipt')}</Button>
+          <Button size="lg" variant="secondary" icon={MessageCircle} className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={sendWhatsApp}>{t('Send bill on WhatsApp')}</Button>
         </div>
       )}
 

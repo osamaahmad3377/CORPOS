@@ -24,6 +24,10 @@ class SaleItemResource extends JsonResource
             'unit_price' => $this->unit_price,
             'discount_per_item' => $this->discount_per_item,
             'total_price' => $this->total_price,
+            // automatic offer on this line (already inside discount_per_item)
+            'promotion_id' => $this->promotion_id,
+            'promotion_name' => $this->promotion_id ? $this->promotion?->name : null,
+            'promo_discount' => $this->promo_discount ?? '0.00',
         ];
     }
 }

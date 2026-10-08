@@ -11,7 +11,7 @@ import { useT } from '../lib/i18n';
 import { useBrands, useCategories } from '../lib/catalog';
 import { Button, ErrorBox, Field, Input, Modal, Select, Textarea, cx, useToast } from './ui';
 
-const emptyRow = (barcode = '') => ({ color: '', size: '', barcode, purchase_price: '', selling_price: '', stock_qty: '', low_stock_threshold: '', serials: '', batch_no: '', expiry_date: '' });
+const emptyRow = (barcode = '') => ({ color: '', size: '', barcode, purchase_price: '', selling_price: '', wholesale_price: '', stock_qty: '', low_stock_threshold: '', serials: '', batch_no: '', expiry_date: '' });
 const serialList = (text) => text.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
 const noEnter = (e) => { if (e.key === 'Enter') e.preventDefault(); }; // barcode scanners press Enter
 
@@ -73,7 +73,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
     if (!a.length && !b.length) return;
     const base = rows[0] || emptyRow();
     const combos = [];
-    for (const x of a.length ? a : ['']) for (const y of b.length ? b : ['']) combos.push({ ...emptyRow(), color: x, size: y, purchase_price: base.purchase_price, selling_price: base.selling_price, stock_qty: base.stock_qty });
+    for (const x of a.length ? a : ['']) for (const y of b.length ? b : ['']) combos.push({ ...emptyRow(), color: x, size: y, purchase_price: base.purchase_price, selling_price: base.selling_price, wholesale_price: base.wholesale_price, stock_qty: base.stock_qty });
     setRows(combos);
   };
 
@@ -92,6 +92,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
           barcode: r.barcode.trim() || null,
           purchase_price: Number(r.purchase_price || 0),
           selling_price: Number(r.selling_price || 0),
+          wholesale_price: r.wholesale_price === '' || r.wholesale_price == null ? null : Number(r.wholesale_price),
           // serial-tracked: one unit per serial; with options, stock comes later via Purchases
           stock_qty: form.track_serial ? serials.length : Number(r.stock_qty || 0),
           low_stock_threshold: r.low_stock_threshold === '' ? undefined : Number(r.low_stock_threshold),
@@ -205,7 +206,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
           <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={showMore} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start">
             <span>
               <span className="block font-medium text-slate-800">{t('More options (if you need them)')}</span>
-              <span className="block text-xs text-slate-500">{t('Brand, photo, low stock warning, different types, serial numbers')}</span>
+              <span className="block text-xs text-slate-500">{t('Brand, photo, wholesale price, low stock warning, different types, serial numbers')}</span>
             </span>
             <ChevronDown className={cx('size-5 shrink-0 text-slate-400 transition', showMore && 'rotate-180')} />
           </button>
@@ -226,6 +227,11 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                     <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => setImage(e.target.files?.[0] || null)} />
                   </span>
                 </Field>
+                {!hasOptions && (
+                  <Field label={t('Wholesale price (optional)')} hint={t('Price for wholesale customers (Rs). Leave empty to use the selling price.')}>
+                    <Input type="number" min="0" step="0.01" value={rows[0].wholesale_price} onChange={(e) => setRow(0, 'wholesale_price', e.target.value)} />
+                  </Field>
+                )}
                 {!hasOptions && (
                   <Field label={t('Warn me when stock is below')} hint={t('Leave empty to use 5')}>
                     <Input type="number" min="0" step={step} placeholder="5" value={rows[0].low_stock_threshold} onChange={(e) => setRow(0, 'low_stock_threshold', e.target.value)} />
@@ -275,9 +281,9 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                     <Button variant="secondary" icon={Wand2} onClick={generate}>{t('Make rows')}</Button>
                   </div>
                   <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className="w-full min-w-[720px] text-sm">
+                    <table className="w-full min-w-[820px] text-sm">
                       <thead className="bg-slate-50 text-xs text-slate-500">
-                        <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, t('Stock'), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
+                        <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, t('Wholesale price'), t('Stock'), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {rows.map((r, i) => (
@@ -287,6 +293,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                             <td className="p-1.5"><Input className="font-mono" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
+                            <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" placeholder="—" value={r.wholesale_price} onChange={(e) => setRow(i, 'wholesale_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>
                             <td className="p-1.5 text-end">
                               <button type="button" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="rounded-lg p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label={t('Remove this type')} title={t('Remove this type')}><Trash2 className="size-5" /></button>
@@ -296,7 +303,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                       </tbody>
                     </table>
                   </div>
-                  <Button variant="secondary" icon={Plus} onClick={() => setRows((r) => [...r, { ...emptyRow(), purchase_price: r[r.length - 1]?.purchase_price || '', selling_price: r[r.length - 1]?.selling_price || '' }])}>{t('Add another type')}</Button>
+                  <Button variant="secondary" icon={Plus} onClick={() => setRows((r) => [...r, { ...emptyRow(), purchase_price: r[r.length - 1]?.purchase_price || '', selling_price: r[r.length - 1]?.selling_price || '', wholesale_price: r[r.length - 1]?.wholesale_price || '' }])}>{t('Add another type')}</Button>
                   {form.track_serial
                     ? <p className="text-xs text-slate-500">{t('After saving, add the stock and serial numbers from "Buy stock (purchases)".')}</p>
                     : form.track_expiry && <p className="text-xs text-slate-500">{t('After saving, add stock with batch & expiry from "Buy stock (purchases)".')}</p>}

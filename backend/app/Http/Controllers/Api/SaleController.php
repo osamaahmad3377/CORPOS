@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PreviewSaleRequest;
 use App\Http\Requests\RecordSalePaymentRequest;
 use App\Http\Requests\ResumeSaleRequest;
 use App\Http\Requests\StoreSaleRequest;
@@ -11,8 +12,10 @@ use App\Models\Customer;
 use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Setting;
 use App\Services\ActivityLogger;
 use App\Services\BatchService;
+use App\Services\SalePricing;
 use App\Services\SerialService;
 use App\Services\StockService;
 use Illuminate\Database\QueryException;
@@ -88,7 +91,8 @@ class SaleController extends Controller
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
         try {
             $sale = DB::transaction(function () use ($validated, $status, $user, $idempotencyKey) {
-            if (! empty($validated['customer_id']) && ! Customer::find($validated['customer_id'])) {
+            $customer = ! empty($validated['customer_id']) ? Customer::find($validated['customer_id']) : null;
+            if (! empty($validated['customer_id']) && ! $customer) {
                 throw ValidationException::withMessages([
                     'customer_id' => ['Selected customer is no longer available.'],
                 ]);
@@ -120,47 +124,13 @@ class SaleController extends Controller
 
             // Price always comes from the catalog, never from the client —
             // otherwise a forged request (or a compromised cashier session)
-            // could check out any item at an arbitrary price.
-            $rawSubtotal = 0;
-            $subtotal = 0;
-            foreach ($validated['items'] as $item) {
-                $unitPrice = (float) $variants[$item['variant_id']]->selling_price;
-                $itemDiscount = $item['discount_per_item'] ?? 0;
-                $lineTotal = ($unitPrice * $item['quantity']) - $itemDiscount;
-
-                if ($lineTotal < 0) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Discount for variant #{$item['variant_id']} cannot exceed its line total."],
-                    ]);
-                }
-
-                $rawSubtotal += $unitPrice * $item['quantity'];
-                $subtotal += $lineTotal;
-            }
-
-            $discountAmount = $validated['discount_amount'] ?? 0;
-            $taxAmount = $validated['tax_amount'] ?? 0;
-            $grandTotal = $subtotal - $discountAmount + $taxAmount;
-
-            if ($grandTotal < 0) {
-                throw ValidationException::withMessages([
-                    'discount_amount' => ['Discount cannot exceed the sale subtotal plus tax.'],
-                ]);
-            }
-
-            // A plain cashier can discount on their own authority only up to
-            // a capped percentage of the pre-discount value — larger
-            // discounts need someone with sales.view_all (manager/admin).
-            if (! $user->hasPermission('sales.view_all') && $rawSubtotal > 0) {
-                $maxPercent = config('pos.max_discount_percent_for_cashier');
-                $totalDiscount = ($rawSubtotal - $subtotal) + $discountAmount;
-
-                if ($totalDiscount > $rawSubtotal * $maxPercent / 100) {
-                    throw ValidationException::withMessages([
-                        'discount_amount' => ["Total discount exceeds the {$maxPercent}% limit you're authorized for. Ask a manager to apply a larger discount."],
-                    ]);
-                }
-            }
+            // could check out any item at an arbitrary price. SalePricing also
+            // applies the price level, running offers and loyalty points.
+            $pricing = SalePricing::compute($validated, $variants, $customer, $user);
+            $subtotal = $pricing['subtotal'];
+            $discountAmount = $pricing['discount_amount'];
+            $taxAmount = $pricing['tax_amount'];
+            $grandTotal = $pricing['grand_total'];
 
             $paymentReceived = $validated['payment_received'] ?? ($status === 'completed' ? $grandTotal : 0);
             $changeAmount = max(0, $paymentReceived - $grandTotal);
@@ -184,24 +154,28 @@ class SaleController extends Controller
                 'order_type' => $validated['order_type'] ?? null,
                 'table_no' => $validated['table_no'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'price_level' => $pricing['price_level'],
+                'points_redeemed' => $pricing['points_redeemed'],
+                'points_discount' => $pricing['points_discount'],
             ]);
             $sale->syncPaymentStatus();
             $sale->save();
 
             foreach ($validated['items'] as $i => $item) {
                 $variant = $variants[$item['variant_id']];
-                $unitPrice = (float) $variant->selling_price;
-                $lineTotal = ($unitPrice * $item['quantity']) - ($item['discount_per_item'] ?? 0);
+                $line = $pricing['lines'][$i];
                 $serials = SerialService::clean($item['serials'] ?? [], "items.{$i}.serials");
 
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
                     'variant_id' => $item['variant_id'],
                     'quantity' => $item['quantity'],
-                    'unit_price' => $unitPrice,
+                    'unit_price' => $line['unit_price'],
                     'cost_price' => $variant->purchase_price,
-                    'discount_per_item' => $item['discount_per_item'] ?? 0,
-                    'total_price' => $lineTotal,
+                    'discount_per_item' => $line['discount_per_item'],
+                    'total_price' => $line['total_price'],
+                    'promotion_id' => $line['promotion_id'],
+                    'promo_discount' => $line['promo_discount'],
                     'pending_serials' => $status === 'held' && $serials ? $serials : null,
                 ]);
 
@@ -214,6 +188,7 @@ class SaleController extends Controller
 
             if ($status === 'completed' && $sale->customer_id) {
                 Customer::where('id', $sale->customer_id)->increment('total_purchases', $grandTotal);
+                $this->settleLoyalty($sale);
             }
 
             ActivityLogger::log($user, 'create', 'sales', "Created sale {$sale->invoice_number} ({$status}).");
@@ -247,7 +222,7 @@ class SaleController extends Controller
             abort(403);
         }
 
-        return new SaleResource($sale->load(['customer', 'cashier', 'items.variant.product', 'returns.items', 'returns.processor']));
+        return new SaleResource($sale->load(['customer', 'cashier', 'items.variant.product', 'returns.items', 'returns.processor', 'payments']));
     }
 
     public function resume(ResumeSaleRequest $request, Sale $sale)
@@ -309,6 +284,7 @@ class SaleController extends Controller
 
             if ($sale->customer_id) {
                 Customer::where('id', $sale->customer_id)->increment('total_purchases', $sale->grand_total);
+                $this->settleLoyalty($sale);
             }
 
             ActivityLogger::log($user, 'resume', 'sales', "Resumed held sale {$sale->invoice_number}.");
@@ -362,11 +338,135 @@ class SaleController extends Controller
             $locked->syncPaymentStatus();
             $locked->save();
 
+            \App\Models\SalePayment::create([
+                'sale_id' => $locked->id,
+                'amount' => $validated['amount'],
+                'payment_method' => $validated['payment_method'] ?? 'cash',
+                'user_id' => $user->id,
+            ]);
+
             $via = ! empty($validated['payment_method']) ? " via {$validated['payment_method']}" : '';
             ActivityLogger::log($user, 'payment', 'sales', "Recorded payment of {$validated['amount']}{$via} against sale {$locked->invoice_number}.");
         });
 
         return new SaleResource($sale->fresh(['customer', 'cashier', 'items.variant.product']));
+    }
+
+    /**
+     * POST /sales/preview — same body as POST /sales. Returns the exact lines
+     * and totals the server would charge (price level, offers, points) without
+     * saving anything or touching stock, so the POS can show them before payment.
+     */
+    public function preview(PreviewSaleRequest $request)
+    {
+        $data = $request->validated();
+        $user = $request->user();
+
+        $customer = ! empty($data['customer_id']) ? Customer::find($data['customer_id']) : null;
+        $variants = ProductVariant::with('product')->whereIn('id', collect($data['items'])->pluck('variant_id')->unique())->get()->keyBy('id');
+
+        // Without a tax_amount from the POS, work tax out from the shop's tax
+        // setting the same way the POS does: % of (subtotal - discounts).
+        $taxFromSettings = ! array_key_exists('tax_amount', $data) || $data['tax_amount'] === null;
+        $taxSettings = Setting::group('tax');
+        $taxPercent = ($taxSettings['tax.enabled'] ?? '0') === '1' ? (float) ($taxSettings['tax.percentage'] ?? 0) : 0.0;
+
+        $pricing = SalePricing::compute($data, $variants, $customer, $user, $taxFromSettings ? 0.0 : null);
+        if ($taxFromSettings && $taxPercent > 0) {
+            $tax = round(max(0, $pricing['subtotal'] - $pricing['discount_amount']) * $taxPercent / 100, 2);
+            $pricing = SalePricing::compute($data, $variants, $customer, $user, $tax);
+        }
+
+        $r2 = fn ($v) => round((float) $v, 2);
+        $loyalty = $pricing['loyalty'];
+        $maxRedeemable = 0;
+        if ($loyalty['enabled'] && $customer && $loyalty['point_value'] > 0) {
+            $billBeforePoints = $pricing['subtotal'] - $pricing['sale_discount'] + $pricing['tax_amount'];
+            $maxRedeemable = (int) min((int) $customer->loyalty_points, floor(round(max(0, $billBeforePoints) / $loyalty['point_value'], 6)));
+            if ($maxRedeemable < $loyalty['min_redeem']) {
+                $maxRedeemable = 0;
+            }
+        }
+
+        return response()->json(['data' => [
+            'price_level' => $pricing['price_level'],
+            'customer' => $customer ? [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'price_level' => $customer->price_level ?: 'retail',
+                'loyalty_points' => (int) $customer->loyalty_points,
+            ] : null,
+            'items' => collect($pricing['lines'])->map(function ($l) use ($variants, $r2) {
+                $v = $variants[$l['variant_id']];
+
+                return [
+                    'variant_id' => $l['variant_id'],
+                    'product_name' => $v->product?->name,
+                    'quantity' => $l['quantity'],
+                    'retail_price' => $r2($l['retail_price']),
+                    'unit_price' => $r2($l['unit_price']),
+                    'line_subtotal' => $r2($l['line_subtotal']),
+                    'manual_discount' => $r2($l['manual_discount']),
+                    'promo_discount' => $r2($l['promo_discount']),
+                    'promotion_id' => $l['promotion_id'],
+                    'promotion_name' => $l['promotion_name'],
+                    'discount_per_item' => $r2($l['discount_per_item']),
+                    'total_price' => $r2($l['total_price']),
+                    'stock_qty' => (float) $v->stock_qty,
+                ];
+            })->values(),
+            'items_total' => $r2($pricing['raw_subtotal']),
+            'line_discount' => $r2($pricing['line_discount']),
+            'promo_discount' => $r2($pricing['promo_discount']),
+            'subtotal' => $r2($pricing['subtotal']),
+            'discount_amount' => $r2($pricing['sale_discount']),
+            'points_redeemed' => $pricing['points_redeemed'],
+            'points_discount' => $r2($pricing['points_discount']),
+            'total_discount' => $r2($pricing['discount_amount']),
+            'tax_amount' => $r2($pricing['tax_amount']),
+            'tax_from_settings' => $taxFromSettings,
+            'grand_total' => $r2($pricing['grand_total']),
+            'points_earned' => $pricing['points_earned'],
+            'loyalty' => [
+                'enabled' => $loyalty['enabled'],
+                'points_per_100' => $loyalty['points_per_100'],
+                'point_value' => $loyalty['point_value'],
+                'min_redeem' => $loyalty['min_redeem'],
+                'customer_points' => $customer ? (int) $customer->loyalty_points : null,
+                'max_redeemable' => $maxRedeemable,
+            ],
+        ]]);
+    }
+
+    /**
+     * A sale just became completed (new or resumed held bill): take the
+     * loyalty points the customer used and give the points they earned.
+     */
+    private function settleLoyalty(Sale $sale): void
+    {
+        if (! $sale->customer_id) {
+            return;
+        }
+
+        if ($sale->points_redeemed > 0) {
+            $taken = Customer::whereKey($sale->customer_id)
+                ->where('loyalty_points', '>=', $sale->points_redeemed)
+                ->decrement('loyalty_points', $sale->points_redeemed);
+            if (! $taken) {
+                throw ValidationException::withMessages([
+                    'points_redeemed' => ['This customer no longer has enough points.'],
+                ]);
+            }
+        }
+
+        $earned = SalePricing::pointsFor((float) $sale->grand_total);
+        if ($earned > 0) {
+            Customer::whereKey($sale->customer_id)->increment('loyalty_points', $earned);
+        }
+        if ($earned !== (int) $sale->points_earned) {
+            $sale->points_earned = $earned;
+            $sale->save();
+        }
     }
 
     private function nextInvoiceNumber(): string

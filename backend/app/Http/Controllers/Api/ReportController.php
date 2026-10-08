@@ -106,6 +106,93 @@ class ReportController extends Controller
         return response()->json($data);
     }
 
+    /**
+     * GET /reports/profit?start=&end= — Sales → cost of goods → gross profit
+     * → expenses → net profit for a date range. Returns are taken off the
+     * sale they belong to (same as product-sales); tax collected is shown
+     * separately because it is the government's money, not the shop's.
+     * Cost and profit figures are only sent to users with purchases.view.
+     */
+    public function profit(Request $request)
+    {
+        $request->validate([
+            'start' => ['nullable', 'date_format:Y-m-d'],
+            'end' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $start = $request->input('start') ?: now()->startOfMonth()->toDateString();
+        $end = $request->input('end') ?: now()->toDateString();
+        if ($end < $start) {
+            [$start, $end] = [$end, $start];
+        }
+
+        $sales = fn () => DB::table('sales')
+            ->whereNull('sales.deleted_at')
+            ->whereIn('sales.status', ['completed', 'returned'])
+            ->whereDate('sales.sale_date', '>=', $start)
+            ->whereDate('sales.sale_date', '<=', $end);
+
+        $s = $sales()->selectRaw('COUNT(*) as bills,
+            COALESCE(SUM(grand_total), 0) as gross_sales,
+            COALESCE(SUM(refunded_amount), 0) as returns,
+            COALESCE(SUM(discount_amount), 0) as discounts,
+            COALESCE(SUM(CASE WHEN grand_total > 0 THEN tax_amount * (grand_total - refunded_amount) / grand_total ELSE 0 END), 0) as tax')
+            ->first();
+
+        $grossSales = round((float) $s->gross_sales, 2);
+        $returns = round((float) $s->returns, 2);
+        $tax = round((float) $s->tax, 2);
+        $revenue = round($grossSales - $returns - $tax, 2);
+
+        $returnsAgg = DB::raw('(SELECT sale_item_id, SUM(quantity_returned) as qty_returned
+            FROM sale_return_items GROUP BY sale_item_id) as returns_agg');
+
+        $c = $sales()
+            ->join('sale_items', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin($returnsAgg, 'returns_agg.sale_item_id', '=', 'sale_items.id')
+            ->selectRaw('COALESCE(SUM((sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) * COALESCE(sale_items.cost_price, 0)), 0) as cogs,
+                COALESCE(SUM(CASE WHEN (sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) > 0
+                    AND COALESCE(sale_items.cost_price, 0) <= 0 THEN 1 ELSE 0 END), 0) as lines_without_cost')
+            ->first();
+
+        $byCategory = DB::table('expenses')
+            ->whereDate('expense_date', '>=', $start)
+            ->whereDate('expense_date', '<=', $end)
+            ->selectRaw('category, COUNT(*) as count, SUM(amount) as total')
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($r) => ['category' => $r->category, 'count' => (int) $r->count, 'total' => round((float) $r->total, 2)])
+            ->values();
+        $expenses = round($byCategory->sum('total'), 2);
+
+        $canSeeCost = $request->user()->hasPermission('purchases.view');
+        $cogs = round((float) $c->cogs, 2);
+        $grossProfit = round($revenue - $cogs, 2);
+        $netProfit = round($grossProfit - $expenses, 2);
+        $pct = fn (float $part) => $revenue > 0 ? round($part / $revenue * 100, 1) : null;
+
+        return response()->json([
+            'start' => $start,
+            'end' => $end,
+            'can_see_cost' => $canSeeCost,
+            'bills' => (int) $s->bills,
+            'gross_sales' => $grossSales,
+            'returns' => $returns,
+            'discounts' => round((float) $s->discounts, 2),
+            'tax' => $tax,
+            'revenue' => $revenue,
+            'cost_of_goods' => $canSeeCost ? $cogs : null,
+            'gross_profit' => $canSeeCost ? $grossProfit : null,
+            'gross_margin_percent' => $canSeeCost ? $pct($grossProfit) : null,
+            'expenses_total' => $expenses,
+            'expenses_by_category' => $byCategory,
+            'net_profit' => $canSeeCost ? $netProfit : null,
+            'net_margin_percent' => $canSeeCost ? $pct($netProfit) : null,
+            'lines_without_cost' => $canSeeCost ? (int) $c->lines_without_cost : null,
+        ]);
+    }
+
     public function inventory(Request $request)
     {
         $variants = ProductVariant::with('product')->orderBy('id')->get();

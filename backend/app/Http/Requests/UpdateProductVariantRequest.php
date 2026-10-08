@@ -18,6 +18,7 @@ class UpdateProductVariantRequest extends FormRequest
             'size' => ['sometimes', 'nullable', 'string', 'max:50'],
             'purchase_price' => ['sometimes', 'required', 'numeric', 'min:0'],
             'selling_price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'wholesale_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'low_stock_threshold' => ['sometimes', 'required', 'numeric', 'min:0', 'max:9999999'],
             'is_active' => ['sometimes', 'boolean'],
         ];

@@ -11,6 +11,14 @@ class StoreCustomerRequest extends FormRequest
         return true;
     }
 
+    /** "Price type" left empty means normal (retail) prices. */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('price_level') && ! $this->input('price_level')) {
+            $this->merge(['price_level' => 'retail']);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -20,6 +28,7 @@ class StoreCustomerRequest extends FormRequest
             'address' => ['nullable', 'string'],
             'city' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            'price_level' => ['nullable', 'string', 'in:retail,wholesale'],
         ];
     }
 }

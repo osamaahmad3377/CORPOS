@@ -69,7 +69,7 @@ export function Field({ label, hint, error, required, className, children }) {
 }
 
 export function Card({ className, children, ...props }) {
-  return <div className={cx('rounded-xl border border-slate-200 bg-white shadow-sm', className)} {...props}>{children}</div>;
+  return <div className={cx('rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgb(15_23_42/0.04),0_4px_12px_-4px_rgb(15_23_42/0.06)]', className)} {...props}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, action }) {
@@ -131,7 +131,7 @@ export function PageHeader({ title, subtitle, actions }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-[26px] font-bold tracking-tight text-slate-900">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

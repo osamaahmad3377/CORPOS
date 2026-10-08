@@ -28,6 +28,7 @@ class ProductVariantResource extends JsonResource
                 $this->purchase_price
             ),
             'selling_price' => $this->selling_price,
+            'wholesale_price' => $this->wholesale_price,
             'stock_qty' => $this->stock_qty,
             'low_stock_threshold' => $this->low_stock_threshold,
             'is_low_stock' => $this->is_low_stock,
