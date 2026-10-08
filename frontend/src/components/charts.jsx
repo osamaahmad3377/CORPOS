@@ -20,6 +20,13 @@ export function slotColor(i, dark) {
 export const otherColor = (dark) => OTHER[dark ? 'dark' : 'light'];
 
 // Pakistani short money for axes: 950, 12k, 1.5L (lakh), 2.3Cr (crore).
+// Change in percent, kept short: 12.5%, 140%, >999%.
+export function shortPercent(v) {
+  const a = Math.abs(Number(v) || 0);
+  if (a > 999) return '>999%';
+  return `${a >= 100 ? Math.round(a) : Math.round(a * 10) / 10}%`;
+}
+
 export function shortMoney(v) {
   const n = Math.abs(Number(v) || 0);
   const f = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10);
@@ -62,76 +69,145 @@ function Tooltip({ x, y, width, children }) {
   );
 }
 
+// ------------------------------------------------------------ smooth lines
+
+// Monotone cubic curve through the points (no overshoot below zero).
+export function smoothPath(pts) {
+  const n = pts.length;
+  if (!n) return '';
+  if (n < 3) return pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+  const dx = [], dy = [], m = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; dy[i] = pts[i + 1][1] - pts[i][1]; m[i] = dy[i] / dx[i]; }
+  const t = [m[0]];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / m[i - 1] + (dx[i] + 2 * dx[i - 1]) / m[i]);
+  t[n - 1] = m[n - 2];
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const c1 = [pts[i][0] + dx[i] / 3, pts[i][1] + (t[i] * dx[i]) / 3];
+    const c2 = [pts[i + 1][0] - dx[i] / 3, pts[i + 1][1] - (t[i + 1] * dx[i]) / 3];
+    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${pts[i + 1][0].toFixed(1)},${pts[i + 1][1].toFixed(1)}`;
+  }
+  return d;
+}
+
+// Tiny trend line for a figure card (decorative — the number is printed beside it).
+export function Sparkline({ values, height = 44, color = 'var(--color-brand-600)' }) {
+  const [ref, w] = useWidth();
+  const gid = useId().replace(/:/g, '');
+  const max = Math.max(0, ...values);
+  const n = values.length;
+  const pts = values.map((v, i) => [n <= 1 ? w / 2 : (i * w) / (n - 1), height - 3 - (max ? (v / max) * (height - 8) : 0)]);
+  const line = smoothPath(pts);
+  return (
+    <div ref={ref} aria-hidden dir="ltr">
+      {w > 0 && n > 1 && (
+        <svg width={w} height={height} className="block overflow-visible">
+          <defs>
+            <linearGradient id={`s${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={`${line}L${w},${height}L0,${height}Z`} fill={`url(#s${gid})`} />
+          <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+          <circle cx={pts[n - 1][0]} cy={pts[n - 1][1]} r="3.5" fill={color} stroke="var(--chart-surface, #fff)" strokeWidth="2" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------ area trend
 
-export function TrendChart({ data, height = 240, format, formatTick, formatDate, emptyText, ariaLabel }) {
+// data: [{ key, label, long, value, compare?, sub? }] — this period as a smooth
+// brand area, the period before as a dashed grey line.
+export function TrendChart({ data, height = 240, format, formatTick, formatDate, emptyText, ariaLabel, labels = {} }) {
   const [ref, w] = useWidth();
   const [hover, setHover] = useState(null);
   const gid = useId().replace(/:/g, '');
-  const pad = { l: 48, r: 14, t: 14, b: 30 };
+  const pad = { l: 48, r: 14, t: 16, b: 30 };
   const iw = Math.max(0, w - pad.l - pad.r);
   const ih = height - pad.t - pad.b;
   const n = data.length;
-  const max = niceMax(Math.max(0, ...data.map((d) => d.value)));
+  const hasCompare = data.some((d) => d.compare > 0);
+  const max = niceMax(Math.max(0, ...data.map((d) => d.value), ...(hasCompare ? data.map((d) => d.compare || 0) : [])));
   const x = (i) => pad.l + (n <= 1 ? iw / 2 : (i * iw) / (n - 1));
   const y = (v) => pad.t + ih - (v / max) * ih;
-  const line = data.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d.value).toFixed(1)}`).join('');
+  const line = smoothPath(data.map((d, i) => [x(i), y(d.value)]));
+  const prevLine = hasCompare ? smoothPath(data.map((d, i) => [x(i), y(d.compare || 0)])) : '';
   const area = n ? `${line}L${x(n - 1).toFixed(1)},${pad.t + ih}L${x(0).toFixed(1)},${pad.t + ih}Z` : '';
-  const empty = !data.some((d) => d.value > 0);
+  const empty = !data.some((d) => d.value > 0) && !hasCompare;
   const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 64))));
 
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - r.left;
-    const i = n <= 1 ? 0 : Math.round(((px - pad.l) / iw) * (n - 1));
+    const i = n <= 1 ? 0 : Math.round(((e.clientX - r.left - pad.l) / iw) * (n - 1));
     setHover(Math.max(0, Math.min(n - 1, i)));
   };
+  const h = hover != null ? data[hover] : null;
+  const delta = h && h.compare > 0 ? Math.round(((h.value - h.compare) / h.compare) * 100) : null;
 
   return (
-    <div ref={ref} className="relative" dir="ltr">
-      {w > 0 && (
-        <svg width={w} height={height} role="img" aria-label={ariaLabel} onMouseMove={onMove} onMouseLeave={() => setHover(null)} className="block touch-none select-none">
-          <defs>
-            <linearGradient id={`g${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-brand-600)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="var(--color-brand-600)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <g key={f}>
-              <line x1={pad.l} x2={w - pad.r} y1={y(f * max)} y2={y(f * max)} stroke="var(--color-slate-200)" strokeDasharray={f ? '3 4' : undefined} />
-              <text x={pad.l - 8} y={y(f * max)} dy="0.32em" textAnchor="end" className="fill-slate-400 text-[11px] tabular-nums">{formatTick(f * max)}</text>
-            </g>
-          ))}
-          {data.map((d, i) => (i === n - 1 || (i % every === 0 && n - 1 - i >= every * 0.7)) && (
-            <text key={d.key} x={x(i)} y={height - 8} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} className="fill-slate-400 text-[11px]">{d.label}</text>
-          ))}
-          {!empty && (
-            <>
-              <path d={area} fill={`url(#g${gid})`} />
-              <path d={line} fill="none" stroke="var(--color-brand-700)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-            </>
-          )}
-          {hover != null && !empty && (
-            <g>
-              <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={pad.t + ih} stroke="var(--color-slate-300)" />
-              <circle cx={x(hover)} cy={y(data[hover].value)} r="5" fill="var(--color-brand-700)" stroke="var(--chart-surface, #fff)" strokeWidth="2" />
-            </g>
-          )}
-        </svg>
+    <div>
+      {hasCompare && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs font-medium text-slate-500">
+          <span className="flex items-center gap-2"><span className="h-[3px] w-4 rounded-full bg-brand-700" />{labels.current}</span>
+          <span className="flex items-center gap-2"><span className="w-4 border-t-2 border-dashed border-slate-400" />{labels.previous}</span>
+        </div>
       )}
-      {empty && w > 0 && <div className="absolute inset-0 grid place-items-center pb-6 text-sm text-slate-400">{emptyText}</div>}
-      {hover != null && !empty && (
-        <Tooltip x={x(hover)} y={y(data[hover].value)} width={w}>
-          <div className="text-xs font-medium text-slate-500">{formatDate(data[hover])}</div>
-          <div className="num mt-0.5 text-base font-bold text-slate-900">{format(data[hover].value)}</div>
-          {data[hover].sub && <div className="text-xs text-slate-500">{data[hover].sub}</div>}
-        </Tooltip>
-      )}
-      {/* the same numbers as a table, for screen readers */}
-      <table className="sr-only">
-        <tbody>{data.map((d) => <tr key={d.key}><td>{formatDate(d)}</td><td>{format(d.value)}</td></tr>)}</tbody>
-      </table>
+      <div ref={ref} className="relative" dir="ltr">
+        {w > 0 && (
+          <svg width={w} height={height} role="img" aria-label={ariaLabel} onMouseMove={onMove} onMouseLeave={() => setHover(null)} className="block touch-none select-none">
+            <defs>
+              <linearGradient id={`g${gid}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-brand-600)" stopOpacity="0.32" />
+                <stop offset="70%" stopColor="var(--color-brand-600)" stopOpacity="0.06" />
+                <stop offset="100%" stopColor="var(--color-brand-600)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+              <g key={f}>
+                <line x1={pad.l} x2={w - pad.r} y1={y(f * max)} y2={y(f * max)} stroke="var(--color-slate-200)" strokeOpacity={f ? 0.7 : 1} strokeDasharray={f ? '2 5' : undefined} />
+                <text x={pad.l - 10} y={y(f * max)} dy="0.32em" textAnchor="end" className="fill-slate-400 text-[11px] tabular-nums">{formatTick(f * max)}</text>
+              </g>
+            ))}
+            {data.map((d, i) => (i === n - 1 || (i % every === 0 && n - 1 - i >= every * 0.7)) && (
+              <text key={d.key} x={x(i)} y={height - 8} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} className="fill-slate-400 text-[11px]">{d.label}</text>
+            ))}
+            {!empty && (
+              <>
+                {prevLine && <path d={prevLine} fill="none" stroke="var(--color-slate-400)" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round" opacity="0.8" />}
+                <path d={area} fill={`url(#g${gid})`} />
+                <path d={line} fill="none" stroke="var(--color-brand-700)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              </>
+            )}
+            {h && !empty && (
+              <g>
+                <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={pad.t + ih} stroke="var(--color-slate-300)" strokeDasharray="3 3" />
+                {hasCompare && <circle cx={x(hover)} cy={y(h.compare || 0)} r="4" fill="var(--color-slate-400)" stroke="var(--chart-surface, #fff)" strokeWidth="2" />}
+                <circle cx={x(hover)} cy={y(h.value)} r="5.5" fill="var(--color-brand-700)" stroke="var(--chart-surface, #fff)" strokeWidth="2.5" />
+              </g>
+            )}
+          </svg>
+        )}
+        {empty && w > 0 && <div className="absolute inset-0 grid place-items-center pb-6 text-sm text-slate-400">{emptyText}</div>}
+        {h && !empty && (
+          <Tooltip x={x(hover)} y={Math.min(y(h.value), hasCompare ? y(h.compare || 0) : Infinity)} width={w}>
+            <div className="text-xs font-medium text-slate-500">{formatDate(h)}</div>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="h-[3px] w-3 rounded-full bg-brand-700" />
+              <span className="num text-base font-bold text-slate-900">{format(h.value)}</span>
+              {delta != null && <span className={cx('num rounded-full px-1.5 py-0.5 text-[11px] font-semibold', delta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600')}>{delta >= 0 ? '+' : '−'}{shortPercent(delta)}</span>}
+            </div>
+            {hasCompare && <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span className="w-3 border-t-2 border-dashed border-slate-400" /><span className="num">{format(h.compare || 0)}</span> {labels.previousShort}</div>}
+            {h.sub && <div className="mt-0.5 text-xs text-slate-500">{h.sub}</div>}
+          </Tooltip>
+        )}
+        {/* the same numbers as a table, for screen readers */}
+        <table className="sr-only">
+          <tbody>{data.map((d) => <tr key={d.key}><td>{formatDate(d)}</td><td>{format(d.value)}</td><td>{format(d.compare || 0)}</td></tr>)}</tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -239,6 +315,7 @@ export function BarList({ items, format, emptyText }) {
 export function HourBars({ hours, height = 168, format, billsLabel, emptyText, peakText }) {
   const [ref, w] = useWidth();
   const [hover, setHover] = useState(null);
+  const gid = useId().replace(/:/g, '');
   // show the shop's working day: from the first to the last busy hour (at least 9am–9pm)
   const busy = hours.filter((h) => h.bills > 0).map((h) => h.hour);
   if (!busy.length) return <div className="grid place-items-center text-sm text-slate-400" style={{ height }}>{emptyText}</div>;
@@ -258,6 +335,12 @@ export function HourBars({ hours, height = 168, format, billsLabel, emptyText, p
     <div ref={ref} className="relative" dir="ltr">
       {w > 0 && (
         <svg width={w} height={height} className="block select-none" onMouseLeave={() => setHover(null)} role="img" aria-label={billsLabel}>
+          <defs>
+            <linearGradient id={`hb${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-brand-600)" />
+              <stop offset="100%" stopColor="var(--color-brand-600)" stopOpacity="0.45" />
+            </linearGradient>
+          </defs>
           <line x1="0" x2={w} y1={pad.t + ih} y2={pad.t + ih} stroke="var(--color-slate-200)" />
           {list.map((h, i) => {
             const bh = h.bills ? Math.max(4, (h.bills / max) * ih) : 0;
@@ -268,8 +351,8 @@ export function HourBars({ hours, height = 168, format, billsLabel, emptyText, p
                 {bh > 0 && (
                   <path
                     d={`M${cx0 - bw / 2},${pad.t + ih}V${pad.t + ih - bh + rr}q0,-${rr} ${rr},-${rr}h${bw - 2 * rr}q${rr},0 ${rr},${rr}V${pad.t + ih}Z`}
-                    fill="var(--color-brand-600)"
-                    opacity={hover != null && hover !== i ? 0.45 : 1}
+                    fill={h.hour === peak.hour ? 'var(--color-brand-700)' : `url(#hb${gid})`}
+                    opacity={hover != null && hover !== i ? 0.4 : 1}
                     className="transition-opacity"
                   />
                 )}

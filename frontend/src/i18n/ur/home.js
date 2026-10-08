@@ -20,4 +20,8 @@ export default {
   'Sales by menu category': 'مینو قسم کے حساب سے سیل',
   'Sales by category': 'قسم کے حساب سے سیل',
   'Where your money comes from': 'آپ کی آمدنی کہاں سے آتی ہے',
+  Start: 'شروع کریں',
+  'Money per bill': 'فی بل رقم',
+  'The {n} days before': 'اس سے پہلے کے {n} دن',
+  before: 'پہلے',
 };

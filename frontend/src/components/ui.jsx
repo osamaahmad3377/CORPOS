@@ -72,7 +72,7 @@ export function Field({ label, hint, error, required, className, children }) {
 }
 
 export function Card({ className, children, ...props }) {
-  return <div className={cx('glass rounded-2xl', className)} {...props}>{children}</div>;
+  return <div className={cx('glass rounded-[20px]', className)} {...props}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, action }) {

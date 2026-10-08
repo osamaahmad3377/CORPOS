@@ -154,7 +154,18 @@ class DashboardController extends Controller
         }
         $total = array_sum(array_column($trend, 'total'));
         $bills = array_sum(array_column($trend, 'bills'));
-        $prevTotal = (float) $sales()->whereBetween('sale_date', [$prevFrom, (clone $from)->subSecond()])->sum(DB::raw($net));
+        // the period before, day by day, lined up with this one for comparison
+        $prevRows = $sales()->whereBetween('sale_date', [$prevFrom, (clone $from)->subSecond()])
+            ->selectRaw("DATE(sale_date) as d, SUM({$net}) as total, COUNT(*) as bills")
+            ->groupBy('d')->get()->keyBy('d');
+        foreach ($trend as $i => &$row) {
+            $pd = (clone $prevFrom)->addDays($i)->toDateString();
+            $row['previous'] = round((float) ($prevRows[$pd]->total ?? 0), 2);
+            $row['previous_bills'] = (int) ($prevRows[$pd]->bills ?? 0);
+        }
+        unset($row);
+        $prevTotal = (float) $prevRows->sum('total');
+        $prevBills = (int) $prevRows->sum('bills');
 
         // ------------------------------------------- payment split (amount)
         $payments = $sales()->where('sale_date', '>=', $from)
@@ -213,9 +224,20 @@ class DashboardController extends Controller
             'top_products' => $top,
             'hours' => $hours,
         ];
+        $out['previous_bills'] = $prevBills;
+        $out['bills_change_percent'] = $prevBills > 0 ? round(($bills - $prevBills) / $prevBills * 100, 1) : null;
         if ($full) {
-            $cost = (float) $items()->sum(DB::raw('COALESCE(sale_items.cost_price, 0) * (sale_items.quantity - COALESCE(r.qty_r, 0))'));
+            $costExpr = 'COALESCE(sale_items.cost_price, 0) * (sale_items.quantity - COALESCE(r.qty_r, 0))';
+            $cost = (float) $items()->sum(DB::raw($costExpr));
             $out['profit'] = round($total - $cost, 2);
+            // daily profit (item sales minus their cost) for the small trend line
+            $dailyCost = $items()->selectRaw("DATE(sales.sale_date) as d, SUM({$lineNet}) as amt, SUM({$costExpr}) as cost")
+                ->groupBy('d')->get()->keyBy('d');
+            foreach ($out['trend'] as &$row) {
+                $c = $dailyCost[$row['date']] ?? null;
+                $row['profit'] = $c ? round((float) $c->amt - (float) $c->cost, 2) : 0;
+            }
+            unset($row);
         }
 
         return response()->json($out);

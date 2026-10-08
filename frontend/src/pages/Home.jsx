@@ -13,7 +13,7 @@ import { useLang } from '../lib/i18n';
 import { money } from '../lib/format';
 import { Page } from '../components/Layout';
 import { Card, cx } from '../components/ui';
-import { BarList, DonutChart, HourBars, TrendChart, otherColor, shortMoney, slotColor } from '../components/charts';
+import { BarList, DonutChart, HourBars, Sparkline, TrendChart, otherColor, shortMoney, shortPercent, slotColor } from '../components/charts';
 
 // Icon chips: a soft tint with a hairline ring, one colour per kind of job.
 const ICON_BG = {
@@ -87,32 +87,31 @@ export default function Home() {
 
       <div className={cx('mb-6 grid gap-4', can('sales.create') && 'lg:grid-cols-[1fr_17rem]')}>
         {can('sales.create') && (
-          <Link to="/pos" className="group relative isolate flex items-center gap-5 overflow-hidden rounded-3xl bg-brand-600 px-6 py-7 text-brand-ink shadow-[0_18px_40px_-18px_var(--color-brand-700)] transition duration-200 hover:brightness-[0.97] sm:px-8 sm:py-9">
-            {/* soft light and depth on the brand colour */}
-            <span aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(120%_120%_at_0%_0%,rgb(255_255_255/0.28),transparent_55%),radial-gradient(90%_120%_at_100%_100%,rgb(0_0_0/0.18),transparent_60%)]" />
-            <span aria-hidden className="absolute -end-10 -top-16 -z-10 size-56 rounded-full border-[28px] border-white/15" />
-            <span aria-hidden className="absolute -bottom-20 end-24 -z-10 size-40 rounded-full bg-[rgb(255_255_255/0.10)]" />
-            <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-[rgb(255_255_255/0.20)] ring-1 ring-inset ring-white/30 backdrop-blur sm:size-20">
-              <ShoppingCart className="size-9 rtl:-scale-x-100 sm:size-10" strokeWidth={1.8} />
+          <Link to="/pos" className="glass glass-lift group relative isolate flex items-center gap-5 overflow-hidden rounded-[28px] px-6 py-7 sm:px-8 sm:py-8">
+            {/* soft brand tint inside the glass */}
+            <span aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,color-mix(in_srgb,var(--color-brand-600)_18%,transparent),transparent_58%)]" />
+            <span aria-hidden className="absolute -end-20 -top-28 -z-10 size-80 rounded-full bg-brand-600 opacity-[0.14] blur-3xl" />
+            <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.3),0_14px_28px_-12px_var(--color-brand-700)] sm:size-[72px]">
+              <ShoppingCart className="size-8 rtl:-scale-x-100 sm:size-9" strokeWidth={1.8} />
             </span>
             <span className="min-w-0 flex-1 text-start">
-              <span className="block text-[28px] font-bold leading-tight tracking-tight sm:text-4xl">{restaurant ? t('Take order / Tables') : t('Sell / Make a bill')}</span>
-              <span className="mt-1.5 block text-base opacity-80 rtl:mt-4">{restaurant ? t('Pick a table, add dishes, send to kitchen, take payment') : t('Scan items or tap them, then take payment')}</span>
+              <span className="block text-[26px] font-bold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">{restaurant ? t('Take order / Tables') : t('Sell / Make a bill')}</span>
+              <span className="mt-1.5 block text-base text-slate-500 rtl:mt-4">{restaurant ? t('Pick a table, add dishes, send to kitchen, take payment') : t('Scan items or tap them, then take payment')}</span>
             </span>
-            <span className="hidden size-12 shrink-0 place-items-center rounded-full bg-[rgb(255_255_255/0.20)] ring-1 ring-inset ring-white/30 transition duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 sm:grid">
-              <ArrowRight className="size-6 rtl:rotate-180" />
+            <span className="hidden h-12 shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-5 font-semibold text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_10px_22px_-10px_var(--color-brand-700)] transition group-hover:brightness-[0.96] md:flex">
+              {t('Start')}<ArrowRight className="size-5 transition group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
             </span>
           </Link>
         )}
         <div className={cx('grid gap-4', can('sales.create') ? 'grid-cols-2 lg:grid-cols-1' : 'grid-cols-2 sm:max-w-xl')}>
-          <div className="glass rounded-3xl p-5">
+          <div className="glass rounded-[24px] p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-slate-500">{t('Today\'s sale')}</span>
               <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/10"><TrendingUp className="size-5" /></span>
             </div>
             <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{money(s.today_revenue)}</div>
           </div>
-          <div className="glass rounded-3xl p-5">
+          <div className="glass rounded-[24px] p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-slate-500">{t('Bills today')}</span>
               <span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10"><ReceiptText className="size-5" /></span>
@@ -144,15 +143,29 @@ export default function Home() {
 // Fixed colour per payment method (colour follows the method, not its rank).
 const PAY_SLOT = { cash: 0, card: 1, jazzcash: 2, easypaisa: 3, bank_transfer: 4 };
 
-function Kpi({ label, value, icon: Icon, tone, foot }) {
+function ChangePill({ value, suffix }) {
+  if (value == null) return <span className="text-xs text-slate-400">{suffix}</span>;
+  const up = value >= 0;
   return (
-    <div className="glass rounded-2xl p-4 sm:p-5">
+    <span className="flex flex-wrap items-center gap-1.5 text-xs">
+      <span className={cx('inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset', up ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' : 'bg-red-50 text-red-600 ring-red-600/15')}>
+        {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}<span className="num">{shortPercent(value)}</span>
+      </span>
+      <span className="text-slate-500">{suffix}</span>
+    </span>
+  );
+}
+
+function Kpi({ label, value, icon: Icon, tone, foot, spark, sparkColor }) {
+  return (
+    <div className="glass flex flex-col overflow-hidden rounded-[22px] p-4 pb-0 sm:p-5 sm:pb-0">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-slate-500">{label}</span>
         <span className={cx('grid size-9 place-items-center rounded-xl ring-1 ring-inset', tone)}><Icon className="size-[18px]" /></span>
       </div>
-      <div className="num mt-2 text-2xl font-bold tracking-tight text-slate-900">{value}</div>
-      {foot && <div className="mt-1.5 text-xs">{foot}</div>}
+      <div className="num mt-1.5 text-[26px] font-bold tracking-tight text-slate-900">{value}</div>
+      <div className="mt-1 min-h-5">{foot}</div>
+      <div className="-mx-4 mt-3 sm:-mx-5">{spark && <Sparkline values={spark} color={sparkColor} height={46} />}</div>
     </div>
   );
 }
@@ -185,6 +198,7 @@ function Overview() {
     return {
       key: x.date,
       value: x.total,
+      compare: x.previous,
       label: dt.toLocaleDateString(locale, days === 7 ? { weekday: 'short' } : { day: 'numeric', month: 'short' }),
       long: dt.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
       sub: t('{n} bills', { n: x.bills }),
@@ -203,16 +217,17 @@ function Overview() {
   const cats = d?.categories || [];
   const categories = cats.slice(0, 4).map((c, i) => ({ key: c.name, label: c.name, value: c.amount, color: slotColor(i, dark) }));
   const restCats = cats.slice(4).reduce((a, c) => a + c.amount, 0);
+  const catTotal = cats.reduce((a, c) => a + c.amount, 0);
   if (restCats > 0) categories.push({ key: '__other', label: t('Other'), value: restCats, color: otherColor(dark) });
 
-  const change = d?.change_percent;
-  const changeFoot = change == null ? <span className="text-slate-400">{t('vs the {n} days before', { n: days })}</span> : (
-    <span className={cx('inline-flex items-center gap-1 font-semibold', change >= 0 ? 'text-emerald-700' : 'text-red-600')}>
-      {change >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-      <span className="num">{Math.abs(change)}%</span>
-      <span className="font-normal text-slate-500">{t('vs the {n} days before', { n: days })}</span>
-    </span>
-  );
+  const vs = t('vs the {n} days before', { n: days });
+  const tr = d?.trend || [];
+  const series = {
+    total: tr.map((x) => x.total),
+    bills: tr.map((x) => x.bills),
+    avg: tr.map((x) => (x.bills ? x.total / x.bills : 0)),
+    profit: tr.map((x) => x.profit || 0),
+  };
 
   return (
     <section className="mb-2">
@@ -231,15 +246,15 @@ function Overview() {
       </div>
 
       <div className={cx('mb-4 grid grid-cols-2 gap-4', d?.profit != null ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
-        <Kpi label={t('Sales')} value={money(d?.total ?? 0)} icon={TrendingUp} tone="bg-emerald-50 text-emerald-600 ring-emerald-600/10" foot={changeFoot} />
-        <Kpi label={t('Bills')} value={<span className="num">{d?.bills ?? 0}</span>} icon={ReceiptText} tone="bg-blue-50 text-blue-600 ring-blue-600/10" />
-        <Kpi label={t('Average bill')} value={money(d?.average_bill ?? 0)} icon={Coins} tone="bg-amber-50 text-amber-600 ring-amber-600/10" />
-        {d?.profit != null && <Kpi label={t('Profit')} value={money(d.profit)} icon={Trophy} tone="bg-violet-50 text-violet-600 ring-violet-600/10" foot={<span className="text-slate-400">{t('Sales minus the cost of the items')}</span>} />}
+        <Kpi label={t('Sales')} value={money(d?.total ?? 0)} icon={TrendingUp} tone="bg-emerald-50 text-emerald-600 ring-emerald-600/10" foot={<ChangePill value={d?.change_percent} suffix={vs} />} spark={series.total} sparkColor="var(--color-brand-600)" />
+        <Kpi label={t('Bills')} value={<span className="num">{d?.bills ?? 0}</span>} icon={ReceiptText} tone="bg-blue-50 text-blue-600 ring-blue-600/10" foot={<ChangePill value={d?.bills_change_percent} suffix={vs} />} spark={series.bills} sparkColor={slotColor(0, dark)} />
+        <Kpi label={t('Average bill')} value={money(d?.average_bill ?? 0)} icon={Coins} tone="bg-amber-50 text-amber-600 ring-amber-600/10" foot={<span className="text-xs text-slate-400">{t('Money per bill')}</span>} spark={series.avg} sparkColor={slotColor(3, dark)} />
+        {d?.profit != null && <Kpi label={t('Profit')} value={money(d.profit)} icon={Trophy} tone="bg-violet-50 text-violet-600 ring-violet-600/10" foot={<span className="text-xs text-slate-400">{t('Sales minus the cost of the items')}</span>} spark={series.profit} sparkColor={dark ? '#9085e9' : '#4a3aa7'} />}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard title={t('Sales trend')} subtitle={t('Money taken each day')} className="lg:col-span-2">
-          <TrendChart data={trend} height={330} format={money} formatTick={shortMoney} formatDate={(x) => x.long} emptyText={empty} ariaLabel={t('Sales trend')} />
+          <TrendChart data={trend} height={300} format={money} formatTick={shortMoney} formatDate={(x) => x.long} emptyText={empty} ariaLabel={t('Sales trend')} labels={{ current: t('Last {n} days', { n: days }), previous: t('The {n} days before', { n: days }), previousShort: t('before') }} />
         </ChartCard>
         <ChartCard title={t('How customers paid')} subtitle={t('Share of sales by payment method')}>
           <DonutChart items={payments} format={money} totalLabel={t('Total')} emptyText={empty} size={168} stacked />
@@ -251,7 +266,7 @@ function Overview() {
           <HourBars hours={d?.hours || []} format={money} billsLabel={t('bills')} emptyText={empty} peakText={(time, n) => t('Busiest time: {time} ({n} bills)', { time, n })} />
         </ChartCard>
         <ChartCard title={shop.isRestaurant ? t('Sales by menu category') : t('Sales by category')} subtitle={t('Where your money comes from')}>
-          <DonutChart items={categories} format={money} totalLabel={t('Total')} emptyText={empty} size={168} stacked />
+          <BarList items={categories.map((c) => ({ key: c.key, label: c.label, value: c.value, sub: catTotal ? `${Math.round((c.value / catTotal) * 100)}%` : '' }))} format={money} emptyText={empty} />
         </ChartCard>
       </div>
     </section>
