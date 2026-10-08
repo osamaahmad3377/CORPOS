@@ -4,6 +4,7 @@ export default {
   'You do not have an account in that business. Ask the owner to add you there.': 'اس کاروبار میں آپ کا اکاؤنٹ نہیں ہے۔ مالک سے کہیں کہ آپ کو وہاں شامل کرے۔',
   'Opening {name}…': '{name} کھل رہا ہے…',
   'Switch business': 'کاروبار بدلیں',
+  'Your business': 'آپ کا کاروبار',
   'Manage businesses': 'کاروبار سنبھالیں',
   'Which business?': 'کون سا کاروبار؟',
   Business: 'کاروبار',

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Check, ChevronDown, Loader2, Lock, Settings2 } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Lock, Plus, Settings2 } from 'lucide-react';
 import { api, switchBusiness } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useT } from '../lib/i18n';
@@ -22,7 +22,9 @@ export function useBusinesses() {
 }
 
 // Top-bar switch between the businesses on this computer (e.g. Mart ⇄
-// Restaurant). Two businesses: a toggle. More: a drop-down list.
+// Restaurant). Two businesses: a toggle. One or more than two: a drop-down
+// list — with only one, admins still see it so "Add another business" is
+// easy to find.
 export default function BusinessSwitcher() {
   const t = useT();
   const toast = useToast();
@@ -40,7 +42,7 @@ export default function BusinessSwitcher() {
     return () => document.removeEventListener('mousedown', close);
   }, [menu]);
 
-  if (list.length < 2) return null;
+  if (list.length === 0 || (list.length === 1 && !can('settings.manage'))) return null;
   const current = list.find((b) => b.current) || list[0];
 
   const open = async (b) => {
@@ -102,7 +104,7 @@ export default function BusinessSwitcher() {
       </button>
       {menu && (
         <div className="absolute start-0 top-12 z-50 w-72 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-          <p className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{t('Switch business')}</p>
+          <p className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(list.length > 1 ? 'Switch business' : 'Your business')}</p>
           {list.map((b) => (
             <button key={b.id} type="button" onClick={() => open(b)} className={cx('flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start hover:bg-slate-50', b.current && 'bg-brand-50')}>
               <BusinessBadge b={b} className="size-9" />
@@ -114,9 +116,16 @@ export default function BusinessSwitcher() {
             </button>
           ))}
           {can('settings.manage') && (
-            <Link to="/settings/businesses" onClick={() => setMenu(false)} className="mt-1 flex items-center gap-2 rounded-lg border-t border-slate-100 px-2.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
-              <Settings2 className="size-4" />{t('Manage businesses')}
-            </Link>
+            <div className="mt-1 border-t border-slate-100 pt-1">
+              <Link to="/settings/businesses" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">
+                <Plus className="size-4" />{t('Add another business')}
+              </Link>
+              {list.length > 1 && (
+                <Link to="/settings/businesses" onClick={() => setMenu(false)} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                  <Settings2 className="size-4" />{t('Manage businesses')}
+                </Link>
+              )}
+            </div>
           )}
         </div>
       )}
