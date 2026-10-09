@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgePercent, Gift, Pencil, Plus, Power, Search, Star, Tag, Trash2, X } from 'lucide-react';
+import { BadgePercent, Check, Gift, Pencil, Plus, Power, Search, Star, Tag, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -346,41 +346,63 @@ function OfferForm({ offer, onClose }) {
   );
 }
 
-// Search /products and pick one.
+// Pick one item: the list shows straight away (tap to choose); typing a name
+// or scanning a barcode narrows it down.
 function ProductPicker({ value, onChange }) {
   const t = useT();
   const [q, setQ] = useState('');
   const [term, setTerm] = useState('');
   useEffect(() => { const h = setTimeout(() => setTerm(q.trim()), 250); return () => clearTimeout(h); }, [q]);
-  const res = useQuery({ queryKey: ['products', 'offer-pick', term], queryFn: () => api.get('/products', { search: term, per_page: 8 }), enabled: term.length > 0, select: (r) => r.data || [] });
+  const res = useQuery({
+    queryKey: ['products', 'offer-pick', term],
+    queryFn: () => api.get('/products', { search: term, per_page: 30 }),
+    select: (r) => r.data || [],
+    enabled: !value,
+    placeholderData: (prev) => prev,
+  });
 
   if (value) {
     return (
-      <div className="flex min-h-12 items-center justify-between gap-2 rounded-lg border border-brand-300 bg-brand-50 px-3">
-        <span className="font-medium text-slate-900">{value.name}</span>
+      <div className="flex min-h-12 items-center justify-between gap-2 rounded-xl border border-brand-300 bg-brand-50 px-3">
+        <span className="flex items-center gap-2 font-semibold text-slate-900"><Check className="size-5 text-brand-700" />{value.name}</span>
         <Button variant="ghost" size="sm" icon={X} onClick={() => onChange(null)}>{t('Change')}</Button>
       </div>
     );
   }
+  const items = res.data || [];
   return (
     <div>
       <div className="relative">
         <Search className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-        <Input className="h-12 ps-10" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setTerm(q.trim()); } }} placeholder={t('Type the item name or scan its barcode')} />
+        <Input className="h-12 ps-10" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            // Enter (or a scanner) with exactly one match picks it
+            if (items.length === 1 && term === q.trim()) onChange({ id: items[0].id, name: items[0].name });
+            else setTerm(q.trim());
+          }
+        }} placeholder={t('Type the item name or scan its barcode')} />
       </div>
-      {term && (
-        <div className="mt-2 max-h-60 overflow-y-auto rounded-lg border border-slate-200">
-          {res.isLoading ? <Loading /> : !res.data?.length ? <p className="px-3 py-3 text-sm text-slate-500">{t('No matching items')}</p> : res.data.map((p) => (
-            <button key={p.id} type="button" onClick={() => onChange({ id: p.id, name: p.name })} className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-start last:border-0 hover:bg-slate-50">
-              <span className="font-medium text-slate-900">{p.name}</span>
-              <span className="text-sm text-slate-500">{p.category}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <p className="mt-1.5 text-xs text-slate-500">{t('Tap an item below to choose it.')}</p>
+      <div className="mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-slate-900/10">
+        {res.isLoading ? <Loading /> : !items.length ? <p className="px-3 py-3 text-sm text-slate-500">{t('No matching items')}</p> : items.map((p) => (
+          <button key={p.id} type="button" onClick={() => onChange({ id: p.id, name: p.name })} className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-slate-900/5 px-3 py-2 text-start last:border-0 hover:bg-brand-50 active:bg-brand-100">
+            <span className="min-w-0">
+              <span className="block truncate font-medium text-slate-900">{p.name}</span>
+              <span className="block truncate text-xs text-slate-500">{p.category}</span>
+            </span>
+            <span className="num shrink-0 text-sm font-semibold text-slate-700">{money(lowestPrice(p))}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
+
+const lowestPrice = (p) => {
+  const prices = (p.variants || []).map((v) => Number(v.selling_price)).filter((n) => Number.isFinite(n));
+  return prices.length ? Math.min(...prices) : 0;
+};
 
 // ---------------------------------------------------------------- loyalty
 

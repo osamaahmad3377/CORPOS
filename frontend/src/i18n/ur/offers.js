@@ -135,4 +135,5 @@ export default {
   'The customer does not have that many points.': 'گاہک کے پاس اتنے پوائنٹس نہیں ہیں۔',
   'These points are worth more than the bill. Use fewer points.': 'یہ پوائنٹس بل سے زیادہ کے ہیں۔ کم پوائنٹس استعمال کریں۔',
   'This customer no longer has enough points.': 'اب گاہک کے پاس اتنے پوائنٹس نہیں رہے۔',
+  'Tap an item below to choose it.': 'نیچے کسی چیز پر ٹیپ کر کے اسے چنیں۔',
 };
