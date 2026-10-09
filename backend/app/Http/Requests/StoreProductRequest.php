@@ -49,7 +49,7 @@ class StoreProductRequest extends FormRequest
             'variants.*.purchase_price' => ['required_with:variants', 'numeric', 'min:0'],
             'variants.*.selling_price' => ['required_with:variants', 'numeric', 'min:0'],
             'variants.*.wholesale_price' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.stock_qty' => ['required_with:variants', 'numeric', 'min:0', 'max:9999999'],
+            'variants.*.stock_qty' => ['nullable', 'numeric', 'min:0', 'max:9999999'], // empty = none (e.g. a dish)
             'variants.*.low_stock_threshold' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
 
             // Bulk cartesian mode (colors x sizes, shared pricing/stock).

@@ -275,3 +275,26 @@ export function ConfirmProvider({ children }) {
 
 // if (await confirm({ title, message, danger: true })) …
 export const useConfirm = () => useContext(ConfirmContext);
+
+// On/off switch. `label` is for screen readers when there is no visible text.
+export function Switch({ checked, onChange, disabled, label, size = 'md' }) {
+  const big = size === 'md';
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+      className={cx(
+        'relative inline-flex shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        big ? 'h-7 w-12' : 'h-6 w-10',
+        checked ? 'bg-emerald-600' : 'bg-slate-300',
+      )}
+    >
+      {/* inset-inline-start so the knob also moves the right way in Urdu (RTL) */}
+      <span className={cx('absolute top-0.5 rounded-full bg-white shadow transition-all', big ? 'size-6' : 'size-5')} style={{ insetInlineStart: checked ? `calc(100% - ${big ? '1.5rem' : '1.25rem'} - 2px)` : 2 }} />
+    </button>
+  );
+}

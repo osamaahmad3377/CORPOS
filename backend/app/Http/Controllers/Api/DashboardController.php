@@ -40,7 +40,8 @@ class DashboardController extends Controller
                 ->sum(DB::raw('grand_total - refunded_amount'));
             $stats['total_products'] = Product::count();
             $stats['total_customers'] = Customer::count();
-            $stats['low_stock_count'] = ProductVariant::whereColumn('stock_qty', '<=', 'low_stock_threshold')->count();
+            // dishes and other items without stock counting never run "low"
+            $stats['low_stock_count'] = ProductVariant::whereColumn('stock_qty', '<=', 'low_stock_threshold')->whereHas('product', fn ($q) => $q->where('track_stock', true))->count();
             $stats['payment_split'] = Sale::where('status', 'completed')
                 ->whereMonth('sale_date', now()->month)
                 ->whereYear('sale_date', now()->year)
@@ -103,6 +104,7 @@ class DashboardController extends Controller
     {
         $variants = ProductVariant::with('product')
             ->whereColumn('stock_qty', '<=', 'low_stock_threshold')
+            ->whereHas('product', fn ($q) => $q->where('track_stock', true))
             ->orderBy('stock_qty')
             ->get();
 

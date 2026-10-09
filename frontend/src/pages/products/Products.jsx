@@ -14,6 +14,7 @@ import ProductForm from '../../components/ProductForm';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, Table, Td, Textarea, Th,
   useConfirm, useToast,
+  Switch, cx,
 } from '../../components/ui';
 
 function priceRange(variants) {
@@ -34,6 +35,8 @@ export default function Products() {
   const t = useT();
   const { can } = useAuth();
   const shop = useShop();
+  const qc = useQueryClient();
+  const toast = useToast();
   const categories = useCategories();
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
@@ -58,6 +61,13 @@ export default function Products() {
   const params = { search: term, category_id: categoryId, is_active: active, page, per_page: 25 };
   const list = useQuery({ queryKey: ['products', params], queryFn: () => api.get('/products', params), placeholderData: (p) => p });
   const { rows, meta } = paged(list.data);
+  const restaurant = shop.isRestaurant;
+  // Restaurant menu: no stock — each dish is just available (on) or not (off).
+  const toggleActive = useMutation({
+    mutationFn: ({ id, is_active }) => api.put(`/products/${id}`, { is_active }),
+    onSuccess: (_r, v) => { qc.invalidateQueries({ queryKey: ['products'] }); toast(v.is_active ? t('{name} is on the menu') : t('{name} is off the menu'), 'success'); },
+    onError: (e) => toast(e.message, 'error'),
+  });
   const looksLikeBarcode = /^[0-9A-Za-z-]{6,}$/.test(term) && !/\s/.test(term);
   const label = shop.businessType === 'restaurant' ? t('Menu items') : t('My items');
 
@@ -65,7 +75,7 @@ export default function Products() {
     <Page>
       <PageHeader
         title={label}
-        subtitle={t('Everything you sell, with price and stock. Scan a barcode in the search box to find an item, or add a new one.')}
+        subtitle={shop.isRestaurant ? t('Your dishes and prices. Switch a dish off when it is not available — it can be ordered any number of times while it is on.') : t('Everything you sell, with price and stock. Scan a barcode in the search box to find an item, or add a new one.')}
         actions={can('products.create') && <Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: '', name: '' })}>{t('Add new item')}</Button>}
       />
 
@@ -88,8 +98,8 @@ export default function Products() {
           </Select></div>
           <div className="w-full sm:w-52"><Select className="h-12" value={active} onChange={(e) => { setActive(e.target.value); setPage(1); }}>
             <option value="">{t('All items')}</option>
-            <option value="1">{t('Shown items only')}</option>
-            <option value="0">{t('Hidden items only')}</option>
+            <option value="1">{restaurant ? t('Available only') : t('Shown items only')}</option>
+            <option value="0">{restaurant ? t('Unavailable only') : t('Hidden items only')}</option>
           </Select></div>
         </div>
 
@@ -106,7 +116,7 @@ export default function Products() {
         ) : (
           <Table>
             <thead>
-              <tr><Th className="w-14" /><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('Category')}</Th><Th className="text-start">{t('Price')}</Th><Th className="text-end">{t('In stock')}</Th><Th /></tr>
+              <tr><Th className="w-14" /><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('Category')}</Th><Th className="text-start">{t('Price')}</Th><Th className="text-end">{restaurant ? t('Available') : t('In stock')}</Th><Th /></tr>
             </thead>
             <tbody>
               {rows.map((p) => {
@@ -125,12 +135,23 @@ export default function Products() {
                       <div className="text-xs text-slate-500">
                         {p.variants?.length > 1 ? t('{n} types', { n: p.variants.length }) : <span className="num font-mono">{p.variants?.[0]?.barcode}</span>}
                         {p.brand && ` · ${p.brand}`}
-                        {!p.is_active && <Badge className="ms-2">{t('Hidden')}</Badge>}
+                        {!p.is_active && <Badge className="ms-2">{restaurant ? t('Unavailable') : t('Hidden')}</Badge>}
                       </div>
                     </Td>
                     <Td className="text-slate-600">{p.category}</Td>
                     <Td className="whitespace-nowrap"><span className="num font-medium">{priceRange(p.variants)}</span> <span className="text-xs text-slate-400">/ {t(shop.unitLabel(p.unit)).toLowerCase()}</span></Td>
-                    <Td className="text-end"><Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className="text-sm">{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge></Td>
+                    <Td className="text-end">
+                      {restaurant ? (
+                        <span className="inline-flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <span className={cx('text-sm font-medium', p.is_active ? 'text-emerald-700' : 'text-slate-400')}>{p.is_active ? t('On') : t('Off')}</span>
+                          <Switch checked={!!p.is_active} disabled={!can('products.edit') || toggleActive.isPending} label={t('Available on the menu')} onChange={(v) => toggleActive.mutate({ id: p.id, is_active: v })} />
+                        </span>
+                      ) : p.track_stock === false ? (
+                        <span className="text-sm text-slate-400">{t('Not counted')}</span>
+                      ) : (
+                        <Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className="text-sm">{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge>
+                      )}
+                    </Td>
                     <Td className="text-end"><span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-700"><Pencil className="size-4" />{t('Open')}</span></Td>
                   </tr>
                 );
@@ -165,6 +186,8 @@ function ProductDetail({ id, onClose }) {
   const [tracking, setTracking] = useState(null);
   const p = product.data;
   const canEdit = can('products.edit');
+  // stock is shown only for items that count it (never on a restaurant menu)
+  const counted = !shop.isRestaurant && p?.track_stock !== false;
 
   useEffect(() => {
     if (p) setInfo({ name: p.name, category_id: p.category_id, brand_id: p.brand_id || '', unit: p.unit, description: p.description || '', is_active: p.is_active, track_serial: !!p.track_serial, track_expiry: !!p.track_expiry, warranty_months: p.warranty_months ?? '', track_stock: p.track_stock !== false });
@@ -242,13 +265,25 @@ function ProductDetail({ id, onClose }) {
                   {(shop.meta.units || []).map((u) => <option key={u.code} value={u.code}>{t(u.label)}</option>)}
                 </Select>
               </Field>
-              <Field label={t('Show on the Sell screen?')}>
-                <Select disabled={!canEdit} value={info.is_active ? '1' : '0'} onChange={(e) => setInfo((f) => ({ ...f, is_active: e.target.value === '1' }))}>
-                  <option value="1">{t('Yes — shown, can be sold')}</option>
-                  <option value="0">{t('No — hidden')}</option>
-                </Select>
-              </Field>
-                <label className="flex items-center gap-3 py-1 text-sm sm:col-span-2"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_stock} onChange={(e) => setInfo((f) => ({ ...f, track_stock: e.target.checked }))} />{t('Count stock for this item')}</label>
+              {shop.isRestaurant ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-900/10 px-4 py-3 sm:col-span-2">
+                  <span>
+                    <span className="block font-semibold text-slate-900">{t('Available on the menu')}</span>
+                    <span className="block text-sm text-slate-500">{info.is_active ? t('Shown on the order screen — can be ordered any number of times.') : t('Hidden from the order screen (e.g. finished for today).')}</span>
+                  </span>
+                  <Switch checked={!!info.is_active} disabled={!canEdit} label={t('Available on the menu')} onChange={(v) => setInfo((f) => ({ ...f, is_active: v }))} />
+                </div>
+              ) : (
+                <>
+                  <Field label={t('Show on the Sell screen?')}>
+                    <Select disabled={!canEdit} value={info.is_active ? '1' : '0'} onChange={(e) => setInfo((f) => ({ ...f, is_active: e.target.value === '1' }))}>
+                      <option value="1">{t('Yes — shown, can be sold')}</option>
+                      <option value="0">{t('No — hidden')}</option>
+                    </Select>
+                  </Field>
+                  <label className="flex items-center gap-3 py-1 text-sm sm:col-span-2"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_stock} onChange={(e) => setInfo((f) => ({ ...f, track_stock: e.target.checked }))} />{t('Count stock for this item')}</label>
+                </>
+              )}
               {(shop.features.serials || p.track_serial) && (
                 <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_serial} onChange={(e) => setInfo((f) => ({ ...f, track_serial: e.target.checked }))} />{t('Track serial / IMEI numbers')}</label>
               )}
@@ -275,26 +310,26 @@ function ProductDetail({ id, onClose }) {
               {canEdit && <Button variant="secondary" icon={Plus} onClick={() => setAddingVariant(true)}>{t('Add a type')}</Button>}
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[920px] text-sm">
+              <table className={cx('w-full text-sm', counted ? 'min-w-[920px]' : 'min-w-[640px]')}>
                 <thead className="bg-slate-50 text-xs text-slate-500">
-                  <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), t('Wholesale price'), t('Warn when below'), t('Stock'), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
+                  <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), ...(shop.isRestaurant ? [] : [t('Wholesale price')]), ...(counted ? [t('Warn when below'), t('Stock')] : []), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} />)}
+                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} counted={counted} wholesale={!shop.isRestaurant} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} />)}
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-xs text-slate-500">{t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.')}</p>
+            {counted && <p className="mt-2 text-xs text-slate-500">{t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.')}</p>}
           </div>
         </div>
       )}
-      {addingVariant && p && <AddVariantModal product={p} onClose={() => setAddingVariant(false)} onSaved={refresh} />}
+      {addingVariant && p && <AddVariantModal counted={counted} product={p} onClose={() => setAddingVariant(false)} onSaved={refresh} />}
       {tracking && p && <TrackingModal product={p} variant={tracking} onClose={() => setTracking(null)} />}
     </Modal>
   );
 }
 
-function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTracking, trackingLabel }) {
+function VariantRow({ v, unit, counted = true, wholesale = true, canEdit, canDelete, canBarcode, onChanged, onTracking, trackingLabel }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
@@ -339,9 +374,9 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
       </td>
       <td className="p-1.5">{v.purchase_price !== undefined ? <Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.purchase_price} onChange={(e) => setRow({ ...row, purchase_price: e.target.value })} /> : <span className="text-slate-400">—</span>}</td>
       <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.selling_price} onChange={(e) => setRow({ ...row, selling_price: e.target.value })} /></td>
-      <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} placeholder="—" title={t('Wholesale price (optional)')} value={row.wholesale_price} onChange={(e) => setRow({ ...row, wholesale_price: e.target.value })} /></td>
-      <td className="p-1.5"><Input className={`${cell} w-20`} type="number" min="0" step="any" disabled={!canEdit} value={row.low_stock_threshold} onChange={(e) => setRow({ ...row, low_stock_threshold: e.target.value })} /></td>
-      <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge></td>
+      {wholesale && <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} placeholder="—" title={t('Wholesale price (optional)')} value={row.wholesale_price} onChange={(e) => setRow({ ...row, wholesale_price: e.target.value })} /></td>}
+      {counted && <td className="p-1.5"><Input className={`${cell} w-20`} type="number" min="0" step="any" disabled={!canEdit} value={row.low_stock_threshold} onChange={(e) => setRow({ ...row, low_stock_threshold: e.target.value })} /></td>}
+      {counted && <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge></td>}
       <td className="whitespace-nowrap p-1.5 text-end">
         {onTracking && !dirty && <Button size="sm" variant="ghost" onClick={onTracking}>{trackingLabel}</Button>}
         {canEdit && dirty && <Button loading={busy} onClick={save}>{t('Save')}</Button>}
@@ -351,7 +386,7 @@ function VariantRow({ v, unit, canEdit, canDelete, canBarcode, onChanged, onTrac
   );
 }
 
-function AddVariantModal({ product, onClose, onSaved }) {
+function AddVariantModal({ product, counted = true, onClose, onSaved }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
@@ -390,8 +425,8 @@ function AddVariantModal({ product, onClose, onSaved }) {
         <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className="sm:col-span-2"><Input className="font-mono" dir="ltr" value={row.barcode} onChange={set('barcode')} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} /></Field>
         <Field label={t('Buying price (cost)')}><Input type="number" min="0" step="0.01" value={row.purchase_price} onChange={set('purchase_price')} /></Field>
         <Field label={t('Selling price')} required><Input type="number" min="0" step="0.01" required value={row.selling_price} onChange={set('selling_price')} /></Field>
-        <Field label={t('Wholesale price (optional)')} hint={t('Leave empty to use the selling price.')}><Input type="number" min="0" step="0.01" value={row.wholesale_price} onChange={set('wholesale_price')} /></Field>
-        <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: t(shop.unitLabel(product.unit)) })}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>
+        {!shop.isRestaurant && <Field label={t('Wholesale price (optional)')} hint={t('Leave empty to use the selling price.')}><Input type="number" min="0" step="0.01" value={row.wholesale_price} onChange={set('wholesale_price')} /></Field>}
+        {counted && <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: t(shop.unitLabel(product.unit)) })}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>}
       </form>
     </Modal>
   );

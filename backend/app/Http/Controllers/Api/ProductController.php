@@ -64,7 +64,10 @@ class ProductController extends Controller
                 'description' => $validated['description'] ?? null,
                 'unit' => $validated['unit'] ?? 'pcs',
                 'track_serial' => $validated['track_serial'] ?? false,
-                'track_stock' => $validated['track_stock'] ?? true,
+                // a restaurant's menu is never stock-counted: dishes can always be sold
+                'track_stock' => \App\Models\Setting::where('key', 'business.type')->value('value') === 'restaurant'
+                    ? false
+                    : ($validated['track_stock'] ?? true),
                 'track_expiry' => $validated['track_expiry'] ?? false,
                 'warranty_months' => $validated['warranty_months'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
@@ -207,7 +210,7 @@ class ProductController extends Controller
                     'purchase_price' => $variant['purchase_price'],
                     'selling_price' => $variant['selling_price'],
                     'wholesale_price' => $variant['wholesale_price'] ?? null,
-                    'stock_qty' => $variant['stock_qty'],
+                    'stock_qty' => $variant['stock_qty'] ?? 0,
                     'low_stock_threshold' => $variant['low_stock_threshold'] ?? 5,
                 ];
             }

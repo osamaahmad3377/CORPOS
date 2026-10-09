@@ -33,17 +33,17 @@ class InventoryController extends Controller
         // stock=low (at/below threshold, incl. empty) | stock=out (nothing left); low_stock=1 kept for older callers.
         $stock = $request->string('stock')->toString();
         if ($stock === 'low' || $request->boolean('low_stock')) {
-            $query->whereColumn('stock_qty', '<=', 'low_stock_threshold');
+            $query->whereColumn('stock_qty', '<=', 'low_stock_threshold')->whereHas('product', fn ($q) => $q->where('track_stock', true));
         } elseif ($stock === 'out') {
-            $query->where('stock_qty', '<=', 0);
+            $query->where('stock_qty', '<=', 0)->whereHas('product', fn ($q) => $q->where('track_stock', true));
         }
 
         $variants = $query->orderBy('id')->paginate($request->integer('per_page', 20));
 
         $summary = [
             'items' => ProductVariant::count(),
-            'low_stock' => ProductVariant::whereColumn('stock_qty', '<=', 'low_stock_threshold')->where('stock_qty', '>', 0)->count(),
-            'out_of_stock' => ProductVariant::where('stock_qty', '<=', 0)->count(),
+            'low_stock' => ProductVariant::whereColumn('stock_qty', '<=', 'low_stock_threshold')->where('stock_qty', '>', 0)->whereHas('product', fn ($q) => $q->where('track_stock', true))->count(),
+            'out_of_stock' => ProductVariant::where('stock_qty', '<=', 0)->whereHas('product', fn ($q) => $q->where('track_stock', true))->count(),
         ];
         // Stock value is at cost — only for staff allowed to see cost prices.
         if ($request->user()?->hasPermission('purchases.view')) {

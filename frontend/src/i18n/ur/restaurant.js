@@ -83,4 +83,18 @@ export default {
   '+10 tables': '+10 میزیں',
   'Two tables have the same name. Give each table its own name before saving.': 'دو میزوں کا نام ایک جیسا ہے۔ محفوظ کرنے سے پہلے ہر میز کو الگ نام دیں۔',
   'A table that has an open order keeps its order even if you rename or remove it — the order shows under “Other open orders”.': 'جس میز پر کھلا آرڈر ہے، اس کا نام بدلنے یا ہٹانے پر بھی آرڈر محفوظ رہتا ہے — وہ “دوسرے کھلے آرڈر” میں نظر آئے گا۔',
+  // menu availability (no stock counting)
+  '{name} is on the menu': '{name} مینو میں شامل ہے',
+  '{name} is off the menu': '{name} مینو سے ہٹا دیا گیا',
+  'Available only': 'صرف دستیاب',
+  'Unavailable only': 'صرف غیر دستیاب',
+  Available: 'دستیاب',
+  Unavailable: 'غیر دستیاب',
+  On: 'آن',
+  Off: 'آف',
+  'Available on the menu': 'مینو میں دستیاب',
+  'Not counted': 'گنتی نہیں',
+  'Shown on the order screen — can be ordered any number of times.': 'آرڈر اسکرین پر نظر آتی ہے — جتنی بار چاہیں آرڈر کی جا سکتی ہے۔',
+  'Hidden from the order screen (e.g. finished for today).': 'آرڈر اسکرین سے چھپی ہوئی ہے (مثلاً آج کے لیے ختم)۔',
+  'Your dishes and prices. Switch a dish off when it is not available — it can be ordered any number of times while it is on.': 'آپ کی ڈشز اور قیمتیں۔ جب کوئی ڈش دستیاب نہ ہو تو اسے آف کر دیں — آن ہونے پر اسے جتنی بار چاہیں آرڈر کیا جا سکتا ہے۔',
 };
