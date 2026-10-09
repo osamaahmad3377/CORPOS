@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { app, BrowserWindow, Menu, dialog, ipcMain, powerMonitor, shell } = require('electron');
 
@@ -15,6 +16,28 @@ if (!app.requestSingleInstanceLock()) {
 const dataDir = app.getPath('userData');
 const resourcesDir = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', 'resources');
 const logFile = path.join(dataDir, 'corepos.log');
+
+// ---------------------------------------------------------------- hardware
+// Some shop PCs have old or buggy graphics drivers. If the GPU process
+// crashes, CorePOS restarts once without graphics acceleration and remembers
+// that (Help menu can switch it back on). Must run before the app is ready.
+const gpuOffFlag = path.join(dataDir, 'gpu-off');
+const gpuOff = fs.existsSync(gpuOffFlag) || process.argv.includes('--disable-gpu');
+if (gpuOff) app.disableHardwareAcceleration();
+// Linux AppImage: newer distributions (Ubuntu 23.10+) block Chromium's
+// sandbox helper inside AppImages, so it would not open at all. The .deb
+// package sets the helper up properly and keeps the sandbox.
+if (process.platform === 'linux' && process.env.APPIMAGE) app.commandLine.appendSwitch('no-sandbox');
+
+function systemInfo() {
+  return {
+    platform: process.platform,
+    arch: process.arch,
+    cores: os.cpus()?.length || 1,
+    memoryGB: Math.round((os.totalmem() / 1024 ** 3) * 10) / 10,
+    gpuOff,
+  };
+}
 
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args.join(' ')}\n`;
@@ -46,8 +69,8 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1366,
     height: 820,
-    minWidth: 1024,
-    minHeight: 640,
+    minWidth: 800,  // small 1024x600 POS screens and old laptops still fit
+    minHeight: 560,
     show: false,
     title: 'CorePOS',
     backgroundColor: '#f8fafc',
@@ -414,11 +437,36 @@ function buildMenu() {
           click: () => shell.openExternal(supportMailto()),
         },
         { label: 'Open logs folder', click: () => shell.openPath(path.join(backend.storageDir, 'logs')) },
+        { type: 'separator' },
+        {
+          label: gpuOff ? 'Turn graphics acceleration back on (restart)' : 'Turn off graphics acceleration (restart)',
+          click: () => setGpuOff(!gpuOff),
+        },
       ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
+
+function setGpuOff(off, reason = 'menu') {
+  try {
+    if (off) fs.writeFileSync(gpuOffFlag, `${new Date().toISOString()} ${reason}\n`);
+    else fs.rmSync(gpuOffFlag, { force: true });
+  } catch (e) { log('gpu flag:', e.message); }
+  log(`graphics acceleration ${off ? 'off' : 'on'} (${reason}); restarting`);
+  try { backend.stop(); } catch { /* already stopped */ }
+  app.relaunch();
+  app.exit(0);
+}
+
+app.on('child-process-gone', (_e, details) => {
+  if (details.type === 'GPU' && !gpuOff && ['crashed', 'abnormal-exit', 'launch-failed', 'oom'].includes(details.reason)) {
+    setGpuOff(true, `GPU process ${details.reason}`);
+  }
+});
+
+// The POS pages ask for this to pick light or full visual effects.
+ipcMain.handle('system-info', () => systemInfo());
 
 // ---------------------------------------------------------------- lifecycle
 
@@ -432,6 +480,8 @@ app.on('second-instance', () => {
 app.whenReady().then(() => {
   fs.mkdirSync(dataDir, { recursive: true });
   log(`CorePOS ${app.getVersion()} starting; data in ${dataDir}`);
+  const si = systemInfo();
+  log(`system: ${si.platform}/${si.arch}, ${si.cores} cores, ${si.memoryGB} GB RAM, Electron ${process.versions.electron}${si.gpuOff ? ', graphics acceleration off' : ''}`);
   buildMenu();
   createWindow();
   powerMonitor.on('resume', () => { if (backend.proc) revalidate(); });

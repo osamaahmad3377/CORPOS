@@ -188,10 +188,10 @@ export default function Layout() {
 
   return (
     <div className="app-canvas flex h-full">
-      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-2xl lg:block"><Sidebar /></aside>
+      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-2xl xl:block"><Sidebar /></aside>
 
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 xl:hidden">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 start-0 w-72 bg-[var(--sb-bg)] shadow-xl">
             <button type="button" className="absolute end-2 top-4 z-10 rounded-lg p-2 text-[var(--sb-muted)] hover:text-[var(--sb-text)]" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
@@ -204,7 +204,7 @@ export default function Layout() {
         <header className="relative z-20 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] px-3 shadow-[0_1px_0_var(--glass-ring),0_8px_24px_-18px_rgb(16_24_40/0.25)] backdrop-blur-2xl backdrop-saturate-150 sm:px-5">
           {/* start: menu + home */}
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-7" /></button>
+            <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 xl:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-7" /></button>
             {pathname !== '/' && (
               <button type="button" onClick={() => navigate('/')} className="flex h-10 items-center gap-2 rounded-xl bg-slate-100 px-3 text-[15px] font-semibold text-slate-700 hover:bg-slate-200">
                 <Home className="size-5" /><span className="hidden sm:inline">{t('Home')}</span>

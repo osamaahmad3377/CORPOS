@@ -90,9 +90,12 @@ export function applyBrand(hex) {
   const scale = brandScale(hex);
   if (root.classList.contains('dark')) {
     // pale brand tints become translucent; dark brand text becomes lighter
-    scale[50] = `color-mix(in srgb, ${hex} 16%, transparent)`;
-    scale[100] = `color-mix(in srgb, ${hex} 24%, transparent)`;
-    scale[200] = `color-mix(in srgb, ${hex} 34%, transparent)`;
+    // translucent tints as plain rgba (color-mix needs Chrome 111+; the
+    // Windows 7/8 build runs Chrome 108)
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.replace('#', '').slice(i - 1, i + 1), 16));
+    scale[50] = `rgb(${r} ${g} ${b} / 0.16)`;
+    scale[100] = `rgb(${r} ${g} ${b} / 0.24)`;
+    scale[200] = `rgb(${r} ${g} ${b} / 0.34)`;
     const light = brandScale(hex);
     scale[700] = light[300];
     scale[800] = light[200];

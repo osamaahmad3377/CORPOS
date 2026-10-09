@@ -254,6 +254,7 @@ class Queue implements QueueContract, ClearableQueue
         try {
             $response = $this->agentRequest()
                 ->timeout(65)
+                ->retry([0, 500], throw: false)
                 ->get('/next');
         } catch (ConnectionException $e) {
             throw new AgentUnreachableException(
@@ -321,11 +322,13 @@ class Queue implements QueueContract, ClearableQueue
      */
     protected function agentRequest()
     {
-        return Http::baseUrl('http://localhost')->withOptions([
-            'curl' => [
-                CURLOPT_UNIX_SOCKET_PATH => $this->config['agent']['socket'] ?? '/tmp/cloud-agent.sock',
-            ],
-        ]);
+        return Http::withoutGlobalConfiguration(
+            fn () => Http::baseUrl('http://localhost')->withOptions([
+                'curl' => [
+                    CURLOPT_UNIX_SOCKET_PATH => $this->config['agent']['socket'] ?? '/tmp/cloud-agent.sock',
+                ],
+            ])
+        );
     }
 
     /**

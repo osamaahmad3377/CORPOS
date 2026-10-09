@@ -3,7 +3,10 @@
   "productName": "CorePOS",
   "version": "1.0.0",
   "description": "CorePOS - offline point of sale for retail shops",
-  "author": "CorePOS",
+  "author": {
+    "name": "NextCore",
+    "email": "info@nextcore.com.pk"
+  },
   "license": "UNLICENSED",
   "private": true,
   "main": "src/main.js",
@@ -12,11 +15,15 @@
     "prepare:php:mac": "node scripts/prepare-php-mac.mjs",
     "prepare:app": "node scripts/prepare-app.mjs",
     "start": "electron .",
-    "dist:win": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64",
-    "dist:win:mac": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
+    "dist:win": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 && electron-builder --win nsis --ia32",
+    "dist:win:mac": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --win nsis --ia32 -c.win.signAndEditExecutable=false",
     "dist:mac": "npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal",
-    "dist:all": "npm run prepare:php:win && npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false",
-    "test:license": "node scripts/test-license.mjs"
+    "dist:all": "npm run prepare:php:win && npm run prepare:php:win7 && npm run prepare:php:mac && npm run prepare:php:linux && npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --win nsis --ia32 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false && electron-builder --linux AppImage deb --x64 --arm64",
+    "test:license": "node scripts/test-license.mjs",
+    "prepare:php:win7": "node scripts/prepare-php.mjs legacy",
+    "prepare:php:linux": "node scripts/prepare-php-linux.mjs",
+    "dist:win7": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false",
+    "dist:linux": "npm run prepare:php:linux && npm run prepare:app && electron-builder --linux AppImage deb --x64 --arm64"
   },
   "devDependencies": {
     "electron": "^38.0.0",
@@ -47,19 +54,20 @@
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "ia32"
           ]
         }
       ],
       "icon": "build/icon.ico",
       "extraResources": [
         {
-          "from": "resources/php",
+          "from": "resources/php-win-${arch}",
           "to": "php"
         },
         {
-          "from": "resources/vc_redist.x64.exe",
-          "to": "vc_redist.x64.exe"
+          "from": "resources/vc_redist-${arch}.exe",
+          "to": "vc_redist.exe"
         }
       ]
     },
@@ -72,7 +80,7 @@
       "shortcutName": "CorePOS",
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
-      "artifactName": "CorePOS-Setup-${version}.exe"
+      "artifactName": "CorePOS-Setup-${version}-Windows10-11-${arch}.${ext}"
     },
     "mac": {
       "target": [
@@ -100,6 +108,39 @@
       "title": "CorePOS ${version}",
       "artifactName": "CorePOS-${version}-mac-${arch}.${ext}"
     },
-    "afterPack": "build/after-pack.cjs"
-  }
+    "afterPack": "build/after-pack.cjs",
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Office",
+      "maintainer": "NextCore <info@nextcore.com.pk>",
+      "vendor": "NextCore",
+      "synopsis": "Offline point of sale for shops",
+      "description": "CorePOS - offline point of sale for shops and restaurants. Your data stays on this computer.",
+      "executableName": "corepos",
+      "extraResources": [
+        {
+          "from": "resources/php-linux-${arch}",
+          "to": "php"
+        }
+      ],
+      "artifactName": "CorePOS-${version}-linux-${arch}.${ext}"
+    }
+  },
+  "homepage": "https://nextcore.com.pk"
 }

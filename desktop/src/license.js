@@ -8,6 +8,7 @@
 // Every few hours (and at each launch) we re-validate online; if the server
 // says the key was revoked/expired, the license is wiped and the POS locks.
 
+const { fetchCompat } = require('./http');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -91,7 +92,7 @@ function verifyToken(token, publicKeyRawB64) {
 }
 
 class LicenseManager {
-  constructor({ dataDir, serverUrl, publicKey, appVersion, fetchImpl = fetch, now = () => Date.now() }) {
+  constructor({ dataDir, serverUrl, publicKey, appVersion, fetchImpl = fetchCompat, now = () => Date.now() }) {
     this.file = path.join(dataDir, 'license.json');
     this.serverUrl = String(serverUrl || '').replace(/\/+$/, '');
     this.publicKey = publicKey;

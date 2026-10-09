@@ -4,7 +4,9 @@
 // folder — so updates/reinstalls keep the data and Program Files stays
 // read-only.
 
+const { fetchCompat } = require('./http');
 const crypto = require('node:crypto');
+const os = require('node:os');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
@@ -33,12 +35,12 @@ class Backend {
 
   findPhp() {
     if (process.env.COREPOS_PHP) return process.env.COREPOS_PHP;
-    const candidates = process.platform === 'win32'
-      ? [path.join(this.resourcesDir, 'php', 'php.exe')]
-      : [
-        path.join(this.resourcesDir, 'php', 'php'), // packaged app
-        path.join(this.resourcesDir, `php-mac-${process.arch}`, 'php'), // development
-      ];
+    const exe = process.platform === 'win32' ? 'php.exe' : 'php';
+    const devDir = { win32: 'php-win', darwin: 'php-mac', linux: 'php-linux' }[process.platform] || 'php-linux';
+    const candidates = [
+      path.join(this.resourcesDir, 'php', exe), // packaged app
+      path.join(this.resourcesDir, `${devDir}-${process.arch}`, exe), // development
+    ];
     return candidates.find((p) => fs.existsSync(p)) || 'php';
   }
 
@@ -97,8 +99,9 @@ class Backend {
       FILESYSTEM_DISK: 'public',
       MAIL_MAILER: 'log',
       SANCTUM_TOKEN_IDLE_MINUTES: '720',
-      // The built-in server can fork workers everywhere except Windows.
-      ...(process.platform === 'win32' ? {} : { PHP_CLI_SERVER_WORKERS: '4' }),
+      // The built-in server can fork workers everywhere except Windows; fewer
+      // on low-memory PCs.
+      ...(process.platform === 'win32' ? {} : { PHP_CLI_SERVER_WORKERS: os.totalmem() < 4 * 1024 ** 3 ? '2' : '4' }),
     };
   }
 
@@ -219,7 +222,7 @@ class Backend {
     while (Date.now() < deadline) {
       if (!this.proc) throw new Error('PHP server stopped while starting. See logs/php-server.log.');
       try {
-        const res = await fetch(`${this.url()}/up`);
+        const res = await fetchCompat(`${this.url()}/up`);
         if (res.ok) return;
       } catch {
         // not up yet

@@ -1,9 +1,14 @@
-// Downloads the official Windows PHP 8.4 (NTS x64) build, verifies its
-// SHA-256 against php.net's releases.json, unpacks it into resources/php
-// with a php.ini tuned for CorePOS, and fetches the VC++ runtime installer.
+// Downloads the official Windows PHP builds, verifies each SHA-256 against
+// php.net's releases.json, unpacks them with a php.ini tuned for CorePOS, and
+// fetches the matching VC++ runtime installers.
 //
-//   node scripts/prepare-php.mjs            # latest 8.4.x
-//   PHP_VERSION=8.4.26 node scripts/...     # pin a version
+//   node scripts/prepare-php.mjs            # Windows 10/11: PHP 8.4, 64-bit + 32-bit
+//   node scripts/prepare-php.mjs legacy     # Windows 7/8/8.1: PHP 8.2, 64-bit + 32-bit
+//
+// Output (electron-builder picks the folder by arch):
+//   resources/php-win-x64, resources/php-win-ia32          (PHP 8.4, VS17)
+//   resources/php-win7-x64, resources/php-win7-ia32        (PHP 8.2, VS16 — runs on Windows 7)
+//   resources/vc_redist-x64.exe, resources/vc_redist-ia32.exe
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -13,9 +18,14 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cacheDir = path.join(root, '.cache');
-const phpDir = path.join(root, 'resources', 'php');
 const RELEASES = 'https://downloads.php.net/~windows/releases/';
-const VC_REDIST = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+// The 2015-2022 runtime installs on Windows 7 SP1 and newer.
+const VC_REDIST = { x64: 'https://aka.ms/vs/17/release/vc_redist.x64.exe', ia32: 'https://aka.ms/vs/17/release/vc_redist.x86.exe' };
+const LEGACY = process.argv.includes('legacy');
+const BRANCH = LEGACY ? '8.2' : '8.4';
+const TOOLSET = LEGACY ? 'vs16' : 'vs17';
+const PREFIX = LEGACY ? 'php-win7' : 'php-win';
+const ARCHES = { x64: 'x64', ia32: 'x86' }; // electron-builder arch -> php.net arch
 const EXTENSIONS = ['curl', 'fileinfo', 'gd', 'intl', 'mbstring', 'openssl', 'pdo_sqlite', 'sodium', 'sqlite3', 'zip', 'opcache'];
 
 async function download(url, dest) {
@@ -37,12 +47,20 @@ async function main() {
   fs.mkdirSync(cacheDir, { recursive: true });
 
   const releases = await (await fetch(`${RELEASES}releases.json`)).json();
-  const branch = releases['8.4'];
-  const build = branch['nts-vs17-x64'];
-  if (!build) throw new Error('No nts-vs17-x64 build for PHP 8.4 in releases.json');
+  const branch = releases[BRANCH];
   if (process.env.PHP_VERSION && process.env.PHP_VERSION !== branch.version) {
     throw new Error(`PHP ${process.env.PHP_VERSION} requested but php.net now lists ${branch.version} as current. Remove PHP_VERSION or update it.`);
   }
+  for (const [arch, phpArch] of Object.entries(ARCHES)) {
+    await preparePhp(branch, arch, phpArch);
+    await download(VC_REDIST[arch], path.join(root, 'resources', `vc_redist-${arch}.exe`));
+  }
+}
+
+async function preparePhp(branch, arch, phpArch) {
+  const build = branch[`nts-${TOOLSET}-${phpArch}`];
+  if (!build) throw new Error(`No nts-${TOOLSET}-${phpArch} build for PHP ${BRANCH} in releases.json`);
+  const phpDir = path.join(root, 'resources', `${PREFIX}-${arch}`);
 
   const zip = await download(`${RELEASES}${build.zip.path}`, path.join(cacheDir, build.zip.path));
   const actual = sha256(zip);
@@ -50,7 +68,7 @@ async function main() {
     fs.rmSync(zip);
     throw new Error(`Checksum mismatch for ${build.zip.path}: expected ${build.zip.sha256}, got ${actual}`);
   }
-  console.log(`PHP ${branch.version} verified (${actual.slice(0, 12)}…)`);
+  console.log(`PHP ${branch.version} ${phpArch} verified (${actual.slice(0, 12)}…)`);
 
   fs.rmSync(phpDir, { recursive: true, force: true });
   fs.mkdirSync(phpDir, { recursive: true });
@@ -104,12 +122,10 @@ opcache.jit = off
 session.save_handler = files
 `);
 
-  await download(VC_REDIST, path.join(root, 'resources', 'vc_redist.x64.exe'));
-
   for (const ext of EXTENSIONS) {
     if (!fs.existsSync(path.join(phpDir, 'ext', `php_${ext}.dll`))) throw new Error(`Missing ext/php_${ext}.dll`);
   }
-  console.log(`Windows PHP ready in ${phpDir}`);
+  console.log(`Windows PHP ${branch.version} (${arch}) ready in ${phpDir}`);
 }
 
 main().catch((err) => {

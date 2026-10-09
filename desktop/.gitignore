@@ -1,7 +1,8 @@
 node_modules/
 dist/
-resources/php/
-resources/backend/
-resources/vc_redist.x64.exe
 .cache/
-resources/php-mac-*/
+# downloaded / generated at build time
+resources/backend/
+resources/php/
+resources/php-*/
+resources/vc_redist*.exe

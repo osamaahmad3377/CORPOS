@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Building2, Check, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
+import { Briefcase, Building2, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
 import { BRAND_PRESETS, DEFAULT_SIDEBAR, SIDEBAR_PRESETS, sidebarTheme } from '../../lib/theme';
+import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
 import { api, switchBusiness } from '../../lib/api';
@@ -42,6 +43,7 @@ const SECTIONS = [
   { key: 'restaurant', label: 'Restaurant', icon: UtensilsCrossed, groups: ['restaurant'], onlyRestaurant: true },
   { key: 'businesses', label: 'My businesses', icon: Building2, groups: [], adminOnly: true },
   { key: 'printers', label: 'Printers', icon: Printer, groups: [] },
+  { key: 'display', label: 'Screen & speed', icon: Gauge, groups: [] },
   { key: 'language', label: 'Language', icon: Languages, groups: [] },
 ];
 
@@ -151,6 +153,7 @@ function Section({ draft, saved, setDraft, onSaved }) {
   if (section === 'language') return <LanguageCard />;
   if (section === 'printers') return <PrintersCard />;
   if (section === 'businesses') return <BusinessesCard />;
+  if (section === 'display') return <DisplayCard />;
 
   const canEdit = can('settings.manage');
   const dirty = !sameGroups(draft, saved, meta.groups);
@@ -1003,6 +1006,50 @@ function SidebarPreview({ hex, size = 96 }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Per computer: glass and animations, or a light mode for slow / old PCs.
+function DisplayCard() {
+  const t = useT();
+  const [mode, setMode] = useState(effectsSetting.get());
+  const [sys, setSys] = useState(null);
+  useEffect(() => { loadSystemInfo().then(setSys); }, []);
+  const pick = (m) => { setMode(m); effectsSetting.set(m); applyEffects(m); };
+  const options = [
+    { code: 'auto', icon: Gauge, label: 'Automatic (recommended)', hint: 'CorePOS checks this computer and picks the best look.' },
+    { code: 'full', icon: Sparkles, label: 'Full effects', hint: 'Glass look and smooth animations. Best on newer computers.' },
+    { code: 'lite', icon: Zap, label: 'Lite — fastest', hint: 'Plain surfaces, no animations. Best for old or slow computers.' },
+  ];
+  const now = resolvedEffects(mode);
+  return (
+    <div className="max-w-3xl">
+      <Card>
+        <CardHeader title={t('Screen & speed')} subtitle={t('Only for this computer. Lite mode makes CorePOS faster on old or slow computers.')} />
+        <div className="space-y-3 p-5">
+          {options.map((o) => (
+            <button key={o.code} type="button" onClick={() => pick(o.code)}
+              className={cx('flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-start transition', mode === o.code ? 'border-brand-500 bg-brand-50' : 'border-slate-900/10 hover:border-slate-900/20')}>
+              <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', mode === o.code ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-600')}><o.icon className="size-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-slate-900">{t(o.label)}</span>
+                <span className="block text-sm text-slate-500">{t(o.hint)}</span>
+              </span>
+              {mode === o.code && <Check className="mt-1 size-5 text-brand-700" />}
+            </button>
+          ))}
+          <div className="rounded-xl bg-slate-500/[0.06] px-4 py-3 text-sm text-slate-600">
+            {sys && (
+              <div className="num mb-1">
+                {t('This computer')}: {t('{n} processor cores', { n: sys.cores })}{sys.memoryGB ? ` · ${t('{n} GB memory', { n: sys.memoryGB })}` : ''}
+              </div>
+            )}
+            <div className="font-semibold text-slate-800">{now === 'lite' ? t('Now using: Lite') : t('Now using: Full effects')}{mode === 'auto' && sys && isLowEnd(sys) ? ` — ${t('chosen because this computer is on the slower side')}` : ''}</div>
+            {sys?.gpuOff && <div className="mt-1 text-amber-700">{t('Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.')}</div>}
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

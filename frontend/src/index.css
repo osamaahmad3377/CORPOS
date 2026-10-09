@@ -126,6 +126,16 @@ html.dark .app-canvas {
 /* dialogs sit over a dimmed page: a brighter glass so they don't look grey */
 .glass-dialog { background: rgb(255 255 255 / 0.9); }
 html.dark .glass-dialog { background: rgb(20 29 48 / 0.9); }
+/* Lite mode (slow / old PCs, set per computer): solid surfaces, no blur,
+   no animation — the same layout, just cheaper to draw. */
+html.lite .glass, html.lite .glass-strong { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }
+html.lite .glass-dialog { background: rgb(255 255 255 / 0.98); }
+html.dark.lite .glass-dialog { background: rgb(20 29 48 / 0.98); }
+html.lite [class*="backdrop-blur"], html.lite [class*="backdrop-saturate"] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite *, html.lite *::before, html.lite *::after { transition-duration: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+html.lite .glass-lift:hover { transform: none; }
+html.lite .app-canvas { background-attachment: scroll; }
+
 /* people who ask their computer for less transparency get solid surfaces */
 @media (prefers-reduced-transparency: reduce) {
   .glass, .glass-strong { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }

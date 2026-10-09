@@ -20,5 +20,6 @@ if (location.protocol === 'file:') {
     isDesktop: true,
     printers: () => ipcRenderer.invoke('printers'),
     print: (options) => ipcRenderer.invoke('print', options),
+    systemInfo: () => ipcRenderer.invoke('system-info'),
   });
 }

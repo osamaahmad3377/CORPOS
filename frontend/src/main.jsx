@@ -7,6 +7,9 @@ import { LanguageProvider } from './lib/i18n';
 import { ConfirmProvider, ToastProvider } from './components/ui';
 import App from './App';
 import './index.css';
+import { initEffects } from './lib/perf';
+
+initEffects();
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -483,7 +483,7 @@ export default function Pos() {
       </section>
 
       {/* ------------------------------------------------ bill */}
-      <aside className="flex min-h-0 w-full flex-col border-s border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] shadow-[-1px_0_0_var(--glass-ring),-16px_0_40px_-24px_rgb(16_24_40/0.3)] backdrop-blur-2xl backdrop-saturate-150 lg:w-[440px]">
+      <aside className="flex min-h-0 w-full flex-col border-s border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] shadow-[-1px_0_0_var(--glass-ring),-16px_0_40px_-24px_rgb(16_24_40/0.3)] backdrop-blur-2xl backdrop-saturate-150 lg:w-[380px] xl:w-[440px]">
         <div className="space-y-2 border-b border-slate-200 p-3">
           {drawerClosed && (
             <Link to="/cash" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
