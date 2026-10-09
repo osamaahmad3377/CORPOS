@@ -8,7 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -28,3 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+// The desktop app keeps Laravel's cache files in the user's data folder and
+// passes their full paths (APP_*_CACHE). Laravel only treats paths starting
+// with "/" or "\" as absolute, so on Windows "C:\Users\..." was glued onto
+// the app folder ("C:\CorePOS\...\C:\Users\...") and PHP could not start.
+// Drive letters count as absolute too.
+foreach (range('A', 'Z') as $drive) {
+    $app->addAbsoluteCachePathPrefix($drive.':');
+    $app->addAbsoluteCachePathPrefix(strtolower($drive).':');
+}
+
+return $app;
