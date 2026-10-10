@@ -75,6 +75,8 @@ function createWindow() {
     title: 'CorePOS',
     backgroundColor: '#f8fafc',
     autoHideMenuBar: true,
+    // Windows and macOS take the icon from the app itself; Linux needs it here
+    icon: path.join(__dirname, '..', 'ui', 'app-icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
