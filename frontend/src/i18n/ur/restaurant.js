@@ -97,4 +97,9 @@ export default {
   'Shown on the order screen — can be ordered any number of times.': 'آرڈر اسکرین پر نظر آتی ہے — جتنی بار چاہیں آرڈر کی جا سکتی ہے۔',
   'Hidden from the order screen (e.g. finished for today).': 'آرڈر اسکرین سے چھپی ہوئی ہے (مثلاً آج کے لیے ختم)۔',
   'Your dishes and prices. Switch a dish off when it is not available — it can be ordered any number of times while it is on.': 'آپ کی ڈشز اور قیمتیں۔ جب کوئی ڈش دستیاب نہ ہو تو اسے آف کر دیں — آن ہونے پر اسے جتنی بار چاہیں آرڈر کیا جا سکتا ہے۔',
+  'This item comes in different types — set the price of each type below.': 'یہ چیز مختلف اقسام میں آتی ہے — نیچے ہر قسم کی قیمت لکھیں۔',
+  'Each type gets its own price and barcode (e.g. Half / Full, Small / Large).': 'ہر قسم کی اپنی قیمت اور بارکوڈ ہوگا (مثلاً ہاف / فل، چھوٹا / بڑا)۔',
+  'Photo, description, sizes / types (e.g. Half / Full)': 'تصویر، تفصیل، سائز / اقسام (مثلاً ہاف / فل)',
+  'e.g. Half, Full': 'مثلاً ہاف، فل',
+  'e.g. Spicy, Mild': 'مثلاً تیز، ہلکا',
 };

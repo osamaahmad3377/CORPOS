@@ -96,7 +96,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
           selling_price: Number(r.selling_price || 0),
           wholesale_price: r.wholesale_price === '' || r.wholesale_price == null ? null : Number(r.wholesale_price),
           // serial-tracked: one unit per serial; with options, stock comes later via Purchases
-          stock_qty: form.track_serial ? serials.length : Number(r.stock_qty || 0),
+          stock_qty: form.track_serial ? serials.length : (form.track_stock === false || shop.isRestaurant) ? 0 : Number(r.stock_qty || 0),
           low_stock_threshold: r.low_stock_threshold === '' ? undefined : Number(r.low_stock_threshold),
           ...(serials.length ? { serials } : {}),
           ...(form.track_expiry && !hasOptions && (r.batch_no || r.expiry_date) ? { batch_no: r.batch_no || null, expiry_date: r.expiry_date || null } : {}),
@@ -133,6 +133,11 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
 
   const noCategories = !categories.isLoading && !categories.data?.length;
   const showMore = more || hasOptions || form.track_serial || form.track_expiry;
+
+  // No stock questions for items that don't count stock (every restaurant
+  // dish); restaurants also have no wholesale price.
+  const counted = form.track_stock !== false && !shop.isRestaurant;
+  const wholesale = !shop.isRestaurant;
 
   return (
     <Modal
@@ -192,7 +197,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
               )}
             </>
           ) : (
-            <p className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-800 sm:col-span-2">{t('This item comes in different types — set the price and stock of each type below.')}</p>
+            <p className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-800 sm:col-span-2">{counted ? t('This item comes in different types — set the price and stock of each type below.') : t('This item comes in different types — set the price of each type below.')}</p>
           )}
 
           <Field label={t('Category')} required>
@@ -213,7 +218,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
           <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={showMore} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start">
             <span>
               <span className="block font-medium text-slate-800">{t('More options (if you need them)')}</span>
-              <span className="block text-xs text-slate-500">{t('Brand, photo, wholesale price, low stock warning, different types, serial numbers')}</span>
+              <span className="block text-xs text-slate-500">{shop.isRestaurant ? t('Photo, description, sizes / types (e.g. Half / Full)') : t('Brand, photo, wholesale price, low stock warning, different types, serial numbers')}</span>
             </span>
             <ChevronDown className={cx('size-5 shrink-0 text-slate-400 transition', showMore && 'rotate-180')} />
           </button>
@@ -234,12 +239,12 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                     <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => setImage(e.target.files?.[0] || null)} />
                   </span>
                 </Field>
-                {!hasOptions && (
+                {!hasOptions && wholesale && (
                   <Field label={t('Wholesale price (optional)')} hint={t('Price for wholesale customers (Rs). Leave empty to use the selling price.')}>
                     <Input type="number" min="0" step="0.01" value={rows[0].wholesale_price} onChange={(e) => setRow(0, 'wholesale_price', e.target.value)} />
                   </Field>
                 )}
-                {!hasOptions && (
+                {!hasOptions && counted && (
                   <Field label={t('Warn me when stock is below')} hint={t('Leave empty to use 5')}>
                     <Input type="number" min="0" step={step} placeholder="5" value={rows[0].low_stock_threshold} onChange={(e) => setRow(0, 'low_stock_threshold', e.target.value)} />
                   </Field>
@@ -252,7 +257,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                   checked={hasOptions}
                   onChange={(e) => setHasOptions(e.target.checked)}
                   title={t('This item comes in different types ({a} / {b})', { a: opt1, b: opt2 })}
-                  hint={t('Each type gets its own price, stock and barcode.')}
+                  hint={counted ? t('Each type gets its own price, stock and barcode.') : t('Each type gets its own price and barcode (e.g. Half / Full, Small / Large).')}
                 />
                 {shop.features.serials && (
                   <CheckRow
@@ -283,14 +288,14 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                 <div className="space-y-3 border-t border-slate-100 pt-4">
                   <h4 className="font-semibold text-slate-800">{t('Types of this item')}</h4>
                   <div className="grid gap-3 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                    <Field label={t('{name} — write them with commas', { name: opt1 })}><Input value={quick.a} onChange={(e) => setQuick((q) => ({ ...q, a: e.target.value }))} placeholder={t('e.g. Red, Blue')} /></Field>
-                    <Field label={t('{name} — write them with commas', { name: opt2 })}><Input value={quick.b} onChange={(e) => setQuick((q) => ({ ...q, b: e.target.value }))} placeholder={t('e.g. Small, Large')} /></Field>
+                    <Field label={t('{name} — write them with commas', { name: opt1 })}><Input value={quick.a} onChange={(e) => setQuick((q) => ({ ...q, a: e.target.value }))} placeholder={shop.isRestaurant ? t('e.g. Half, Full') : t('e.g. Red, Blue')} /></Field>
+                    <Field label={t('{name} — write them with commas', { name: opt2 })}><Input value={quick.b} onChange={(e) => setQuick((q) => ({ ...q, b: e.target.value }))} placeholder={shop.isRestaurant ? t('e.g. Spicy, Mild') : t('e.g. Small, Large')} /></Field>
                     <Button variant="secondary" icon={Wand2} onClick={generate}>{t('Make rows')}</Button>
                   </div>
                   <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className="w-full min-w-[820px] text-sm">
+                    <table className={cx('w-full text-sm', counted ? 'min-w-[820px]' : 'min-w-[600px]')}>
                       <thead className="bg-slate-50 text-xs text-slate-500">
-                        <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, t('Wholesale price'), t('Stock'), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
+                        <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, ...(wholesale ? [t('Wholesale price')] : []), ...(counted ? [t('Stock')] : []), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {rows.map((r, i) => (
@@ -300,8 +305,8 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                             <td className="p-1.5"><Input className="font-mono" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
-                            <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" placeholder="—" value={r.wholesale_price} onChange={(e) => setRow(i, 'wholesale_price', e.target.value)} /></td>
-                            <td className="p-1.5"><Input className="w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>
+                            {wholesale && <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" placeholder="—" value={r.wholesale_price} onChange={(e) => setRow(i, 'wholesale_price', e.target.value)} /></td>}
+                            {counted && <td className="p-1.5"><Input className="w-20" type="number" min="0" step={step} disabled={form.track_serial} value={form.track_serial ? 0 : r.stock_qty} onChange={(e) => setRow(i, 'stock_qty', e.target.value)} /></td>}
                             <td className="p-1.5 text-end">
                               <button type="button" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="rounded-lg p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label={t('Remove this type')} title={t('Remove this type')}><Trash2 className="size-5" /></button>
                             </td>
