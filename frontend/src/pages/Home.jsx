@@ -1,214 +1,128 @@
-// Home: big picture buttons for the jobs a shopkeeper does every day.
-// No charts, no jargon — one tap to start each task.
+// Home dashboard: today's numbers at a glance, sales analytics for the last
+// 7 or 30 days, recent bills, quick actions — and for restaurants live tables,
+// kitchen queue, top waiters and kitchen stock; for shops low stock.
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, Beef, CheckCircle2, Coins, BarChart3, Boxes, ChefHat, FileText, UtensilsCrossed, HandCoins, LayoutDashboard, Package, PackagePlus, ReceiptText, Settings, ShoppingCart, TrendingUp, Trophy, Vault, Wallet, Warehouse,
+  AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, BarChart3, Beef, Boxes, CheckCircle2, ChefHat, Clock, Coins, FileText, HandCoins,
+  LayoutGrid, Package, PackagePlus, Plus, ReceiptText, Settings, ShoppingCart, Sparkles, TrendingUp, Trophy, UserRound, UtensilsCrossed, Vault, Wallet, Warehouse,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
-import { money } from '../lib/format';
+import { money, qty } from '../lib/format';
 import { Page } from '../components/Layout';
-import { Card, cx } from '../components/ui';
+import { Badge, Card, cx } from '../components/ui';
 import { BarList, DonutChart, HourBars, Sparkline, TrendChart, otherColor, shortMoney, shortPercent, slotColor } from '../components/charts';
+import { initials } from '../components/WaiterPicker';
 
-// Icon chips: a soft tint with a hairline ring, one colour per kind of job.
-const ICON_BG = {
-  blue: 'bg-blue-50 text-blue-600 ring-blue-600/10',
-  amber: 'bg-amber-50 text-amber-600 ring-amber-600/10',
-  violet: 'bg-violet-50 text-violet-600 ring-violet-600/10',
-  rose: 'bg-rose-50 text-rose-600 ring-rose-600/10',
-  teal: 'bg-teal-50 text-teal-600 ring-teal-600/10',
-  slate: 'bg-slate-100 text-slate-600 ring-slate-600/10',
-  indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-600/10',
-  orange: 'bg-orange-50 text-orange-600 ring-orange-600/10',
-};
+const PAY_SLOT = { cash: 0, card: 1, jazzcash: 2, easypaisa: 3, bank_transfer: 4 };
 
-function Tile({ to, icon: Icon, title, hint, color }) {
+function greetingKey() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning, {name}';
+  if (h < 17) return 'Good afternoon, {name}';
+  return 'Good evening, {name}';
+}
+
+function Delta({ value, suffix }) {
+  if (value == null) return suffix ? <span className="text-xs text-slate-400">{suffix}</span> : null;
+  const up = value >= 0;
   return (
-    <Link
-      to={to}
-      className="glass glass-lift group flex flex-col items-center justify-center gap-3 rounded-2xl p-5 text-center sm:p-6"
-    >
-      <span className={cx('grid size-16 place-items-center rounded-2xl ring-1 ring-inset transition duration-200 group-hover:scale-105', ICON_BG[color])}><Icon className="size-8" strokeWidth={1.75} /></span>
-      <span className="text-[17px] font-semibold leading-tight tracking-tight text-slate-900">{title}</span>
-      {hint && <span className="text-sm leading-snug text-slate-500">{hint}</span>}
-    </Link>
+    <span className="inline-flex flex-wrap items-center gap-1.5 text-xs">
+      <span className={cx('inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset', up ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' : 'bg-red-50 text-red-600 ring-red-600/15')}>
+        {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}<span className="num">{shortPercent(value)}</span>
+      </span>
+      {suffix && <span className="text-slate-500">{suffix}</span>}
+    </span>
   );
 }
+
+// Today strip: the first tile is the hero (brand gradient), the rest are glass.
+function TodayTile({ hero, icon: Icon, label, value, foot, tone, to }) {
+  const Comp = to ? Link : 'div';
+  return (
+    <Comp to={to} className={cx(
+      'relative isolate overflow-hidden rounded-[22px] p-5 transition',
+      hero ? 'btn-jewel text-brand-ink' : 'glass',
+      to && !hero && 'glass-lift',
+    )}>
+      {hero && <span aria-hidden className="absolute -end-10 -top-12 -z-10 size-40 rounded-full border-[18px] border-[rgb(255_255_255/0.16)]" />}
+      <div className="flex items-start justify-between gap-2">
+        <span className={cx('text-sm font-medium', hero ? 'opacity-85' : 'text-slate-500')}>{label}</span>
+        <span className={cx('grid size-10 place-items-center rounded-xl', hero ? 'bg-[rgb(255_255_255/0.2)] ring-1 ring-inset ring-[rgb(255_255_255/0.3)]' : cx('ring-1 ring-inset', tone))}><Icon className="size-5" /></span>
+      </div>
+      <div className={cx('num mt-3 text-[30px] font-extrabold leading-none tracking-tight', !hero && 'text-slate-900')}>{value}</div>
+      {foot && <div className={cx('mt-2 text-xs', hero ? 'opacity-85' : 'text-slate-500')}>{foot}</div>}
+    </Comp>
+  );
+}
+
+function Panel({ title, subtitle, action, className, children, bodyClass = 'p-5 pt-4' }) {
+  return (
+    <Card className={cx('flex flex-col', className)}>
+      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-bold tracking-tight text-slate-900">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      <div className={cx('min-h-0 flex-1', bodyClass)}>{children}</div>
+    </Card>
+  );
+}
+
+const ViewAll = ({ to, label }) => (
+  <Link to={to} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50">{label}<ArrowRight className="size-3.5 rtl:rotate-180" /></Link>
+);
 
 export default function Home() {
   const { user, can } = useAuth();
   const { t, lang } = useLang();
   const shop = useShop();
-  const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats') });
-  const s = stats.data || {};
+  const navigate = useNavigate();
   const restaurant = shop.isRestaurant;
-
-  const tiles = restaurant ? [
-    { to: '/kitchen', icon: ChefHat, title: t('Kitchen screen'), hint: t('Orders the kitchen has to cook'), color: 'orange' },
-    can('inventory.view') && { to: '/kitchen-stock', icon: Beef, title: t('Kitchen stock'), hint: t('Chicken, flour, buns… and alerts'), color: 'rose' },
-    can('products.create') && { to: '/products?new=1', icon: PackagePlus, title: t('Add a dish'), hint: t('New item on the menu'), color: 'blue' },
-    can('products.view') && { to: '/products', icon: UtensilsCrossed, title: t('Menu items'), hint: t('Prices and dishes'), color: 'indigo' },
-    can('sales.create') && { to: '/sales', icon: ReceiptText, title: t('Old bills'), hint: t('Reprint, return, take payment'), color: 'violet' },
-    can('cash.manage') && { to: '/cash', icon: Vault, title: t('Cash drawer'), hint: t('Open the day, close and count cash'), color: 'teal' },
-    can('expenses.manage') && { to: '/expenses', icon: Wallet, title: t('Expenses'), hint: t('Rent, bills, salaries'), color: 'rose' },
-    can('promotions.manage') && { to: '/offers', icon: BadgePercent, title: t('Deals & loyalty'), hint: t('Discounts and customer points'), color: 'amber' },
-    { to: '/dashboard', icon: LayoutDashboard, title: t('Today\'s summary'), hint: t('Sales, best items'), color: 'rose' },
-    can('reports.view') && { to: '/reports', icon: BarChart3, title: t('Reports'), hint: t('Daily, monthly, profit'), color: 'slate' },
-    can('settings.manage') && { to: '/settings', icon: Settings, title: t('Settings'), hint: t('Tables, receipt, printers'), color: 'slate' },
-  ].filter(Boolean) : [
-    can('products.create') && { to: '/products?new=1', icon: PackagePlus, title: t('Add new item'), hint: t('Type it in or scan its barcode'), color: 'blue' },
-    can('products.view') && { to: '/products', icon: Package, title: restaurant ? t('Menu items') : t('My items'), hint: t('See prices and stock'), color: 'indigo' },
-    can('customers.view') && { to: '/customers', icon: HandCoins, title: t('Udhaar / Customers'), hint: t('Who owes you money'), color: 'amber' },
-    can('purchases.manage') && { to: '/purchases/new', icon: Boxes, title: t('Stock arrived'), hint: t('Add stock you bought'), color: 'teal' },
-    can('sales.create') && { to: '/sales', icon: ReceiptText, title: t('Old bills'), hint: t('Reprint, return, take payment'), color: 'violet' },
-    can('inventory.view') && { to: '/inventory', icon: Warehouse, title: t('Stock count'), hint: t('How much is left'), color: 'orange' },
-    can('cash.manage') && { to: '/cash', icon: Vault, title: t('Cash drawer'), hint: t('Open the day, close and count cash'), color: 'teal' },
-    can('expenses.manage') && { to: '/expenses', icon: Wallet, title: t('Expenses'), hint: t('Rent, bills, salaries'), color: 'rose' },
-    can('quotations.manage') && { to: '/quotations', icon: FileText, title: t('Quotations'), hint: t('Price quote for a customer'), color: 'blue' },
-    can('promotions.manage') && { to: '/offers', icon: BadgePercent, title: t('Offers & loyalty'), hint: t('Discounts and customer points'), color: 'violet' },
-    { to: '/dashboard', icon: LayoutDashboard, title: t('Today\'s summary'), hint: t('Sales, best items, low stock'), color: 'rose' },
-    can('reports.view') && { to: '/reports', icon: BarChart3, title: t('Reports'), hint: t('Daily, monthly, profit'), color: 'slate' },
-    can('settings.manage') && { to: '/settings', icon: Settings, title: t('Settings'), hint: t('Shop name, receipt, tax'), color: 'slate' },
-  ].filter(Boolean);
-
-  const today = new Date().toLocaleDateString(lang === 'ur' ? 'ur-PK' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  return (
-    <Page className="max-w-6xl">
-      <div className="mb-6">
-        <p className="text-sm font-semibold text-brand-700">{today}</p>
-        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">{t('Assalam o Alaikum, {name}', { name: user?.name?.split(' ')[0] || '' })}</h1>
-        <p className="mt-1 text-base text-slate-500">{t('What do you want to do?')}</p>
-      </div>
-
-      <div className={cx('mb-6 grid gap-4', can('sales.create') && 'lg:grid-cols-[1fr_17rem]')}>
-        {can('sales.create') && (
-          <Link to="/pos" className="glass glass-lift group relative isolate flex items-center gap-5 overflow-hidden rounded-[28px] px-6 py-7 sm:px-8 sm:py-8">
-            {/* soft brand tint inside the glass */}
-            <span aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,color-mix(in_srgb,var(--color-brand-600)_18%,transparent),transparent_58%)]" />
-            <span aria-hidden className="absolute -end-20 -top-28 -z-10 size-80 rounded-full bg-brand-600 opacity-[0.14] blur-3xl" />
-            <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.3),0_14px_28px_-12px_var(--color-brand-700)] sm:size-[72px]">
-              <ShoppingCart className="size-8 rtl:-scale-x-100 sm:size-9" strokeWidth={1.8} />
-            </span>
-            <span className="min-w-0 flex-1 text-start">
-              <span className="block text-[26px] font-bold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">{restaurant ? t('Take order / Tables') : t('Sell / Make a bill')}</span>
-              <span className="mt-1.5 block text-base text-slate-500 rtl:mt-4">{restaurant ? t('Pick a table, add dishes, send to kitchen, take payment') : t('Scan items or tap them, then take payment')}</span>
-            </span>
-            <span className="hidden h-12 shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-5 font-semibold text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_10px_22px_-10px_var(--color-brand-700)] transition group-hover:brightness-[0.96] md:flex">
-              {t('Start')}<ArrowRight className="size-5 transition group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
-            </span>
-          </Link>
-        )}
-        <div className={cx('grid gap-4', can('sales.create') ? 'grid-cols-2 lg:grid-cols-1' : 'grid-cols-2 sm:max-w-xl')}>
-          <div className="glass rounded-[24px] p-5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-500">{t('Today\'s sale')}</span>
-              <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/10"><TrendingUp className="size-5" /></span>
-            </div>
-            <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{money(s.today_revenue)}</div>
-          </div>
-          <div className="glass rounded-[24px] p-5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-500">{t('Bills today')}</span>
-              <span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10"><ReceiptText className="size-5" /></span>
-            </div>
-            <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{s.today_sales_count ?? 0}</div>
-          </div>
-        </div>
-      </div>
-
-      {restaurant && can('inventory.view') && <KitchenStockCard />}
-
-      <Overview />
-
-      <h2 className="mb-3 mt-8 text-[17px] font-semibold tracking-tight text-slate-900">{t('Shortcuts')}</h2>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {tiles.map((tile) => <Tile key={tile.to} {...tile} />)}
-      </div>
-
-      {Number(s.low_stock_count) > 0 && can('inventory.view') && (
-        <Link to="/inventory" className="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-card transition hover:bg-amber-100">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700"><Warehouse className="size-6" /></span>
-          <span className="text-base font-semibold">{t('{n} items are running low — tap to see them', { n: s.low_stock_count })}</span>
-        </Link>
-      )}
-    </Page>
-  );
-}
-
-// ---------------------------------------------------------------- overview
-
-// Fixed colour per payment method (colour follows the method, not its rank).
-const PAY_SLOT = { cash: 0, card: 1, jazzcash: 2, easypaisa: 3, bank_transfer: 4 };
-
-function ChangePill({ value, suffix }) {
-  if (value == null) return <span className="text-xs text-slate-400">{suffix}</span>;
-  const up = value >= 0;
-  return (
-    <span className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className={cx('inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset', up ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' : 'bg-red-50 text-red-600 ring-red-600/15')}>
-        {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}<span className="num">{shortPercent(value)}</span>
-      </span>
-      <span className="text-slate-500">{suffix}</span>
-    </span>
-  );
-}
-
-function Kpi({ label, value, icon: Icon, tone, foot, spark, sparkColor }) {
-  return (
-    <div className="glass flex flex-col overflow-hidden rounded-[22px] p-4 pb-0 sm:p-5 sm:pb-0">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
-        <span className={cx('grid size-9 place-items-center rounded-xl ring-1 ring-inset', tone)}><Icon className="size-[18px]" /></span>
-      </div>
-      <div className="num mt-1.5 text-[26px] font-bold tracking-tight text-slate-900">{value}</div>
-      <div className="mt-1 min-h-5">{foot}</div>
-      <div className="-mx-4 mt-3 sm:-mx-5">{spark && <Sparkline values={spark} color={sparkColor} height={46} />}</div>
-    </div>
-  );
-}
-
-function ChartCard({ title, subtitle, className, children }) {
-  return (
-    <Card className={cx('p-5', className)}>
-      <div className="mb-4">
-        <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
-      </div>
-      {children}
-    </Card>
-  );
-}
-
-function Overview() {
-  const { t, lang } = useLang();
-  const shop = useShop();
-  const [days, setDays] = useState(() => { try { return Number(localStorage.getItem('corepos_home_days')) === 30 ? 30 : 7; } catch { return 7; } });
-  const pick = (d) => { setDays(d); try { localStorage.setItem('corepos_home_days', String(d)); } catch { /* ignore */ } };
-  const q = useQuery({ queryKey: ['dashboard', 'insights', days], queryFn: () => api.get('/dashboard/insights', { days }), staleTime: 60_000 });
-  const d = q.data;
   const dark = shop.isDark;
   const locale = lang === 'ur' ? 'ur-PK' : 'en-GB';
-  const empty = t('No sales in these days yet');
+  const [days, setDays] = useState(() => { try { return Number(localStorage.getItem('corepos_home_days')) === 30 ? 30 : 7; } catch { return 7; } });
+  const pickDays = (d) => { setDays(d); try { localStorage.setItem('corepos_home_days', String(d)); } catch { /* ignore */ } };
 
+  const stats = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: () => api.get('/dashboard/stats'), refetchInterval: 60_000 });
+  const ins = useQuery({ queryKey: ['dashboard', 'insights', days], queryFn: () => api.get('/dashboard/insights', { days }), staleTime: 60_000 });
+  const recent = useQuery({ queryKey: ['dashboard', 'recent', 6], queryFn: () => api.get('/dashboard/recent-sales', { limit: 6 }), refetchInterval: 60_000 });
+  const held = useQuery({ queryKey: ['sales', 'held', 'home'], queryFn: () => api.get('/sales', { status: 'held', per_page: 100 }), select: (r) => (Array.isArray(r) ? r : r?.data || []), enabled: restaurant && can('sales.create'), refetchInterval: 30_000 });
+  const kitchen = useQuery({ queryKey: ['kitchen', 'orders', 'home'], queryFn: () => api.get('/kitchen/orders'), select: (r) => (Array.isArray(r) ? r : r?.data || []), enabled: restaurant && can('sales.create'), refetchInterval: 30_000 });
+  const waiters = useQuery({ queryKey: ['waiters', 'page', 'today'], queryFn: () => api.get('/waiters'), enabled: restaurant && can('sales.create') });
+  const low = useQuery({ queryKey: ['dashboard', 'low'], queryFn: () => api.get('/dashboard/low-stock'), enabled: !restaurant && can('inventory.view') });
+
+  const s = stats.data || {};
+  const d = ins.data;
+  const empty = t('No sales in these days yet');
+  const today = new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const firstName = user?.name?.split(' ')[0] || '';
+
+  // ----- restaurant live numbers
+  const openOrders = held.data || [];
+  const totalTables = shop.tableAreas.reduce((n, a) => n + a.tables.length, 0);
+  const busyTables = new Set(openOrders.filter((o) => o.order_type === 'dine_in' && o.table_no).map((o) => o.table_no.toLowerCase())).size;
+  const kOrders = kitchen.data || [];
+  const cooking = kOrders.filter((o) => (o.kitchen_status || 'new') !== 'ready' && o.kitchen_status !== 'served').length;
+
+  // ----- chart data
   const trend = (d?.trend || []).map((x) => {
     const dt = new Date(`${x.date}T00:00:00`);
     return {
-      key: x.date,
-      value: x.total,
-      compare: x.previous,
+      key: x.date, value: x.total, compare: x.previous,
       label: dt.toLocaleDateString(locale, days === 7 ? { weekday: 'short' } : { day: 'numeric', month: 'short' }),
       long: dt.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
       sub: t('{n} bills', { n: x.bills }),
     };
   });
-
-  // payments: fixed colours; anything beyond the five slots folds into "Other"
+  const tr = d?.trend || [];
+  const series = { total: tr.map((x) => x.total), bills: tr.map((x) => x.bills), avg: tr.map((x) => (x.bills ? x.total / x.bills : 0)), profit: tr.map((x) => x.profit || 0) };
   const payments = [];
   let otherPay = 0;
   for (const p of d?.payments || []) {
@@ -216,63 +130,202 @@ function Overview() {
     else otherPay += p.amount;
   }
   if (otherPay > 0) payments.push({ key: 'other', label: t('Other'), value: otherPay, color: otherColor(dark) });
-
   const cats = d?.categories || [];
-  const categories = cats.slice(0, 4).map((c, i) => ({ key: c.name, label: c.name, value: c.amount, color: slotColor(i, dark) }));
-  const restCats = cats.slice(4).reduce((a, c) => a + c.amount, 0);
   const catTotal = cats.reduce((a, c) => a + c.amount, 0);
-  if (restCats > 0) categories.push({ key: '__other', label: t('Other'), value: restCats, color: otherColor(dark) });
-
   const vs = t('vs the {n} days before', { n: days });
-  const tr = d?.trend || [];
-  const series = {
-    total: tr.map((x) => x.total),
-    bills: tr.map((x) => x.bills),
-    avg: tr.map((x) => (x.bills ? x.total / x.bills : 0)),
-    profit: tr.map((x) => x.profit || 0),
-  };
+
+  const actions = (restaurant ? [
+    can('sales.create') && { to: '/pos', icon: LayoutGrid, label: t('Tables'), tone: 'bg-brand-50 text-brand-700' },
+    can('sales.create') && { to: '/kitchen', icon: ChefHat, label: t('Kitchen screen'), tone: 'bg-orange-50 text-orange-600' },
+    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add a dish'), tone: 'bg-blue-50 text-blue-600' },
+    can('inventory.view') && { to: '/kitchen-stock', icon: Beef, label: t('Kitchen stock'), tone: 'bg-rose-50 text-rose-600' },
+    can('users.manage') && { to: '/waiters', icon: UserRound, label: t('Waiters'), tone: 'bg-violet-50 text-violet-600' },
+    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-indigo-50 text-indigo-600' },
+    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-teal-50 text-teal-600' },
+    can('expenses.manage') && { to: '/expenses', icon: Wallet, label: t('Expenses'), tone: 'bg-amber-50 text-amber-600' },
+    can('reports.view') && { to: '/reports', icon: BarChart3, label: t('Reports'), tone: 'bg-slate-500/10 text-slate-600' },
+  ] : [
+    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add new item'), tone: 'bg-blue-50 text-blue-600' },
+    can('purchases.manage') && { to: '/purchases/new', icon: Boxes, label: t('Stock arrived'), tone: 'bg-teal-50 text-teal-600' },
+    can('customers.view') && { to: '/customers', icon: HandCoins, label: t('Udhaar / Customers'), tone: 'bg-amber-50 text-amber-600' },
+    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-indigo-50 text-indigo-600' },
+    can('inventory.view') && { to: '/inventory', icon: Warehouse, label: t('Stock count'), tone: 'bg-orange-50 text-orange-600' },
+    can('quotations.manage') && { to: '/quotations', icon: FileText, label: t('Quotations'), tone: 'bg-sky-50 text-sky-600' },
+    can('promotions.manage') && { to: '/offers', icon: BadgePercent, label: t('Offers & loyalty'), tone: 'bg-violet-50 text-violet-600' },
+    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-emerald-50 text-emerald-600' },
+    can('reports.view') && { to: '/reports', icon: BarChart3, label: t('Reports'), tone: 'bg-slate-500/10 text-slate-600' },
+  ]).filter(Boolean);
+  if (can('settings.manage')) actions.push({ to: '/settings', icon: Settings, label: t('Settings'), tone: 'bg-slate-500/10 text-slate-600' });
+
+  const time = (v) => new Date(v).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 
   return (
-    <section className="mb-2">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <Page className="max-w-[1440px]">
+      {/* ------------------------------------------------ header */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-[17px] font-semibold tracking-tight text-slate-900">{t('Business overview')}</h2>
-          <p className="text-sm text-slate-500">{t('How your sales are going')}</p>
+          <p className="flex items-center gap-2 text-sm font-semibold text-brand-700"><Sparkles className="size-4" />{today}</p>
+          <h1 className="mt-1 text-[30px] font-extrabold leading-tight tracking-[-0.025em] text-slate-900 sm:text-[34px]">{t(greetingKey(), { name: firstName })}</h1>
+          <p className="mt-1 text-[15px] text-slate-500">{restaurant ? t('Here is how your restaurant is doing today.') : t('Here is how your shop is doing today.')}</p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {can('products.create') && <Link to="/products?new=1" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-900/10 bg-white/70 px-4 font-semibold text-slate-700 shadow-xs transition hover:bg-white"><Plus className="size-5" />{restaurant ? t('Add a dish') : t('Add new item')}</Link>}
+          {can('sales.create') && (
+            <button type="button" onClick={() => navigate('/pos')} className="btn-jewel inline-flex h-12 items-center gap-2 rounded-xl px-5 font-semibold text-brand-ink">
+              <ShoppingCart className="size-5 rtl:-scale-x-100" />{restaurant ? t('New order') : t('New sale')}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ------------------------------------------------ today */}
+      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <TodayTile hero icon={TrendingUp} label={t('Today\'s sale')} value={money(s.today_revenue)} foot={t('{n} bills today', { n: s.today_sales_count ?? 0 })} to={can('sales.create') ? '/sales' : undefined} />
+        {restaurant ? (
+          <>
+            <TodayTile icon={LayoutGrid} tone="bg-blue-50 text-blue-600 ring-blue-600/10" label={t('Tables busy')} value={<>{busyTables}<span className="text-lg font-bold text-slate-400"> / {totalTables}</span></>} foot={t('{n} open orders', { n: openOrders.length })} to="/pos" />
+            <TodayTile icon={ChefHat} tone="bg-orange-50 text-orange-600 ring-orange-600/10" label={t('In the kitchen')} value={cooking} foot={t('Orders being cooked')} to="/kitchen" />
+          </>
+        ) : (
+          <>
+            <TodayTile icon={ReceiptText} tone="bg-blue-50 text-blue-600 ring-blue-600/10" label={t('Bills today')} value={s.today_sales_count ?? 0} foot={s.today_sales_count ? t('Average {amount}', { amount: money((s.today_revenue || 0) / (s.today_sales_count || 1)) }) : t('No bills yet today')} />
+            <TodayTile icon={Package} tone="bg-violet-50 text-violet-600 ring-violet-600/10" label={t('Items')} value={s.total_products ?? '—'} foot={t('{n} customers', { n: s.total_customers ?? 0 })} to={can('products.view') ? '/products' : undefined} />
+          </>
+        )}
+        <TodayTile icon={Coins} tone="bg-amber-50 text-amber-600 ring-amber-600/10" label={t('This month')} value={s.month_revenue != null ? money(s.month_revenue) : '—'} foot={s.low_stock_count ? t('{n} items running low', { n: s.low_stock_count }) : t('Sales this month')} to={can('reports.view') ? '/reports' : undefined} />
+      </div>
+
+      {/* ------------------------------------------------ analytics */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold tracking-tight text-slate-900">{t('Business overview')}</h2>
         <div className="glass flex rounded-xl p-1 text-sm font-semibold" role="radiogroup" aria-label={t('Period')}>
           {[7, 30].map((n) => (
-            <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => pick(n)} className={cx('rounded-lg px-3.5 py-1.5 transition', days === n ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800')}>
+            <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => pickDays(n)} className={cx('rounded-lg px-3.5 py-1.5 transition', days === n ? 'bg-brand-600 text-brand-ink shadow-xs' : 'text-slate-500 hover:text-slate-800')}>
               {t('Last {n} days', { n })}
             </button>
           ))}
         </div>
       </div>
 
-      <div className={cx('mb-4 grid grid-cols-2 gap-4', d?.profit != null ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
-        <Kpi label={t('Sales')} value={money(d?.total ?? 0)} icon={TrendingUp} tone="bg-emerald-50 text-emerald-600 ring-emerald-600/10" foot={<ChangePill value={d?.change_percent} suffix={vs} />} spark={series.total} sparkColor="var(--color-brand-600)" />
-        <Kpi label={t('Bills')} value={<span className="num">{d?.bills ?? 0}</span>} icon={ReceiptText} tone="bg-blue-50 text-blue-600 ring-blue-600/10" foot={<ChangePill value={d?.bills_change_percent} suffix={vs} />} spark={series.bills} sparkColor={slotColor(0, dark)} />
-        <Kpi label={t('Average bill')} value={money(d?.average_bill ?? 0)} icon={Coins} tone="bg-amber-50 text-amber-600 ring-amber-600/10" foot={<span className="text-xs text-slate-400">{t('Money per bill')}</span>} spark={series.avg} sparkColor={slotColor(3, dark)} />
-        {d?.profit != null && <Kpi label={t('Profit')} value={money(d.profit)} icon={Trophy} tone="bg-violet-50 text-violet-600 ring-violet-600/10" foot={<span className="text-xs text-slate-400">{t('Sales minus the cost of the items')}</span>} spark={series.profit} sparkColor={dark ? '#9085e9' : '#4a3aa7'} />}
-      </div>
+      <div className="grid gap-5 lg:grid-cols-12">
+        <Panel className="lg:col-span-8" title={t('Sales trend')} subtitle={t('Money taken each day')}
+          action={<div className="text-end"><div className="num text-xl font-extrabold tracking-tight text-slate-900">{money(d?.total ?? 0)}</div><Delta value={d?.change_percent} suffix={vs} /></div>}>
+          <TrendChart data={trend} height={290} format={money} formatTick={shortMoney} formatDate={(x) => x.long} emptyText={empty} ariaLabel={t('Sales trend')} labels={{ current: t('Last {n} days', { n: days }), previous: t('The {n} days before', { n: days }), previousShort: t('before') }} />
+        </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title={t('Sales trend')} subtitle={t('Money taken each day')} className="lg:col-span-2">
-          <TrendChart data={trend} height={300} format={money} formatTick={shortMoney} formatDate={(x) => x.long} emptyText={empty} ariaLabel={t('Sales trend')} labels={{ current: t('Last {n} days', { n: days }), previous: t('The {n} days before', { n: days }), previousShort: t('before') }} />
-        </ChartCard>
-        <ChartCard title={t('How customers paid')} subtitle={t('Share of sales by payment method')}>
-          <DonutChart items={payments} format={money} totalLabel={t('Total')} emptyText={empty} size={168} stacked />
-        </ChartCard>
-        <ChartCard title={t('Best sellers')} subtitle={t('Top 5 items by sales')}>
+        <Panel className="lg:col-span-4" title={t('Summary')} subtitle={t('Last {n} days', { n: days })} bodyClass="p-3 pt-2">
+          {[
+            { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-emerald-50 text-emerald-600' },
+            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-blue-50 text-blue-600' },
+            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-amber-50 text-amber-600' },
+            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-violet-50 text-violet-600' }] : []),
+          ].map((k) => (
+            <div key={k.label} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-slate-500/[0.05]">
+              <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', k.tone)}><k.icon className="size-5" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-slate-500">{k.label}</div>
+                <div className="num text-lg font-extrabold leading-tight tracking-tight text-slate-900">{k.value}</div>
+                {k.delta != null && <Delta value={k.delta} />}
+              </div>
+              <div className="w-24 shrink-0"><Sparkline values={k.spark} color={k.color} height={36} /></div>
+            </div>
+          ))}
+        </Panel>
+
+        <Panel className="lg:col-span-4" title={t('How customers paid')} subtitle={t('Share of sales by payment method')}>
+          <DonutChart items={payments} format={money} totalLabel={t('Total')} emptyText={empty} size={150} stacked />
+        </Panel>
+        <Panel className="lg:col-span-4" title={t('Best sellers')} subtitle={t('Top 5 items by sales')}>
           <BarList items={(d?.top_products || []).map((p) => ({ key: p.name, label: p.name, value: p.amount, sub: `×${Number(p.qty)}` }))} format={money} emptyText={empty} />
-        </ChartCard>
-        <ChartCard title={t('Busy hours')} subtitle={t('Bills by time of day')}>
-          <HourBars hours={d?.hours || []} format={money} billsLabel={t('bills')} emptyText={empty} peakText={(time, n) => t('Busiest time: {time} ({n} bills)', { time, n })} />
-        </ChartCard>
-        <ChartCard title={shop.isRestaurant ? t('Sales by menu category') : t('Sales by category')} subtitle={t('Where your money comes from')}>
-          <BarList items={categories.map((c) => ({ key: c.key, label: c.label, value: c.value, sub: catTotal ? `${Math.round((c.value / catTotal) * 100)}%` : '' }))} format={money} emptyText={empty} />
-        </ChartCard>
+        </Panel>
+        <Panel className="lg:col-span-4" title={t('Busy hours')} subtitle={t('Bills by time of day')}>
+          <HourBars hours={d?.hours || []} format={money} billsLabel={t('bills')} emptyText={empty} peakText={(tm, n) => t('Busiest time: {time} ({n} bills)', { time: tm, n })} />
+        </Panel>
+
+        {/* ------------------------------------------------ operations */}
+        <Panel className="lg:col-span-8" title={t('Recent bills')} subtitle={t('The latest sales')} action={can('sales.create') && <ViewAll to="/sales" label={t('See all')} />} bodyClass="px-2 pb-3 pt-2">
+          {!(recent.data?.data || []).length ? <p className="px-3 py-8 text-center text-sm text-slate-400">{t('No bills yet.')}</p> : (
+            <div className="divide-y divide-slate-900/[0.05]">
+              {(recent.data?.data || []).map((sale) => (
+                <Link key={sale.id} to="/sales" className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-slate-500/[0.05]">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-500/10 text-slate-600"><ReceiptText className="size-5" /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-slate-900"><span className="num">{sale.invoice_number}</span> <span className="font-normal text-slate-500">· {sale.customer || t('Walk-in')}</span></div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500"><Clock className="size-3.5" /><span className="num">{time(sale.created_at)}</span> · {t(shop.paymentLabel(sale.payment_method))}</div>
+                  </div>
+                  {sale.status === 'held' ? <Badge color="amber">{t('Not paid yet')}</Badge> : sale.status === 'returned' ? <Badge color="red">{t('Returned')}</Badge> : null}
+                  <span className="num shrink-0 text-base font-bold text-slate-900">{money(sale.grand_total)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <Panel className="lg:col-span-4" title={t('Quick actions')} subtitle={t('Jump straight to a job')} bodyClass="p-4 pt-3">
+          <div className="grid grid-cols-3 gap-2">
+            {actions.slice(0, 9).map((a) => (
+              <Link key={a.to} to={a.to} className="group flex flex-col items-center gap-2 rounded-2xl px-1 py-3 text-center transition hover:bg-slate-500/[0.06]">
+                <span className={cx('grid size-12 place-items-center rounded-2xl transition group-hover:scale-105', a.tone)}><a.icon className="size-6" strokeWidth={1.8} /></span>
+                <span className="line-clamp-2 text-xs font-semibold leading-tight text-slate-700">{a.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+
+        {restaurant ? (
+          <>
+            {can('inventory.view') && <KitchenStockCard className="lg:col-span-8" />}
+            <Panel className={can('inventory.view') ? 'lg:col-span-4' : 'lg:col-span-12'} title={t('Top waiters')} subtitle={t('Today')} action={can('users.manage') && <ViewAll to="/waiters" label={t('See all')} />}>
+              {(() => {
+                const list = [...(waiters.data?.data || [])].filter((w) => w.is_active).sort((a, b) => b.sales - a.sales).slice(0, 5);
+                const max = Math.max(1, ...list.map((w) => w.sales));
+                if (!list.length) return <p className="py-6 text-center text-sm text-slate-400">{t('No waiters yet')}</p>;
+                return (
+                  <div className="space-y-3">
+                    {list.map((w, i) => (
+                      <div key={w.id} className="flex items-center gap-3">
+                        <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-brand-ink">
+                          {initials(w.name)}
+                          {i === 0 && w.sales > 0 && <span className="absolute -end-1 -top-1 grid size-5 place-items-center rounded-full bg-amber-400 text-[10px] text-white ring-2 ring-white"><Trophy className="size-3" /></span>}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2 text-sm"><span className="truncate font-semibold text-slate-900">{w.name}</span><span className="num shrink-0 font-bold text-slate-900">{money(w.sales)}</span></div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-500/15" dir="ltr"><div className="h-full rounded-full bg-brand-600" style={{ width: `${(w.sales / max) * 100}%` }} /></div>
+                          <div className="mt-0.5 text-xs text-slate-500">{t('{n} orders', { n: w.orders })}{w.open_orders ? ` · ${t('{n} open orders', { n: w.open_orders })}` : ''}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </Panel>
+          </>
+        ) : (
+          <>
+            <Panel className="lg:col-span-6" title={t('Sales by category')} subtitle={t('Where your money comes from')}>
+              <BarList items={cats.slice(0, 6).map((c) => ({ key: c.name, label: c.name, value: c.amount, sub: catTotal ? `${Math.round((c.amount / catTotal) * 100)}%` : '' }))} format={money} emptyText={empty} />
+            </Panel>
+            {can('inventory.view') && (
+              <Panel className="lg:col-span-6" title={t('Running low')} subtitle={t('Items to buy soon')} action={<ViewAll to="/inventory" label={t('See all')} />} bodyClass="px-2 pb-3 pt-2">
+                {!(low.data?.data || []).length ? (
+                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-emerald-700"><CheckCircle2 className="size-5" />{t('All items have enough stock.')}</div>
+                ) : (
+                  <div className="divide-y divide-slate-900/[0.05]">
+                    {(low.data?.data || []).slice(0, 6).map((v) => (
+                      <div key={v.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
+                        <span className={cx('grid size-9 shrink-0 place-items-center rounded-xl', Number(v.stock_qty) <= 0 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600')}><AlertTriangle className="size-4" /></span>
+                        <div className="min-w-0 flex-1"><div className="truncate font-medium text-slate-900">{v.product_name}</div><div className="text-xs text-slate-500">{t('Warn when below')}: <span className="num">{qty(v.low_stock_threshold)}</span></div></div>
+                        <span className={cx('num shrink-0 font-bold', Number(v.stock_qty) <= 0 ? 'text-red-600' : 'text-amber-700')}>{Number(v.stock_qty) <= 0 ? t('Finished') : qty(v.stock_qty)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            )}
+          </>
+        )}
       </div>
-    </section>
+    </Page>
   );
 }
 
@@ -280,7 +333,7 @@ function Overview() {
 
 // Restaurants: progress of every kitchen item (most urgent first) with a
 // summary — what's fine, running low and finished — and the stock value.
-function KitchenStockCard() {
+function KitchenStockCard({ className }) {
   const { t } = useLang();
   const q = useQuery({ queryKey: ['ingredients', 'home'], queryFn: () => api.get('/ingredients'), refetchInterval: 60_000 });
   const units = { kg: 'Kg', g: 'Gram', litre: 'Litre', ml: 'ml', piece: 'Piece', dozen: 'Dozen', packet: 'Packet' };
@@ -294,7 +347,7 @@ function KitchenStockCard() {
   const ok = Math.max(0, (sum.items || 0) - alerts);
 
   return (
-    <Card className="mb-6 p-5">
+    <Card className={cx('p-5', className)}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', alerts ? 'bg-amber-50 text-amber-600 ring-amber-600/15' : 'bg-emerald-50 text-emerald-600 ring-emerald-600/15')}>
