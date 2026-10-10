@@ -80,4 +80,5 @@ export default {
   Packet: 'پیکٹ',
   // engine message
   'This is used in {n} dish recipe(s). Remove it from those recipes first, or switch it off instead.': 'یہ {n} ڈش کی ترکیب میں استعمال ہوتا ہے۔ پہلے انہیں ترکیب سے ہٹائیں، یا اسے بند کر دیں۔',
+  'See all {n} kitchen items': 'تمام {n} کچن آئٹمز دیکھیں',
 };

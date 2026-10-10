@@ -278,44 +278,74 @@ function Overview() {
 
 // ---------------------------------------------------------------- kitchen stock
 
-// Restaurants: kitchen items that are low or finished, most urgent first.
+// Restaurants: progress of every kitchen item (most urgent first) with a
+// summary — what's fine, running low and finished — and the stock value.
 function KitchenStockCard() {
   const { t } = useLang();
-  const q = useQuery({ queryKey: ['ingredients', 'alerts'], queryFn: () => api.get('/ingredients/alerts'), refetchInterval: 60_000 });
-  const list = q.data?.data || [];
+  const q = useQuery({ queryKey: ['ingredients', 'home'], queryFn: () => api.get('/ingredients'), refetchInterval: 60_000 });
   const units = { kg: 'Kg', g: 'Gram', litre: 'Litre', ml: 'ml', piece: 'Piece', dozen: 'Dozen', packet: 'Packet' };
   if (q.isLoading) return null;
+  const sum = q.data?.summary || {};
+  const fmt = (v, u) => `${Math.round(Number(v) * 1000) / 1000} ${t(units[u] || u)}`;
+  const urgency = (i) => (i.stock_qty <= 0 ? -1 : i.alert_qty > 0 ? i.stock_qty / i.alert_qty : 99);
+  const all = (q.data?.data || []).filter((i) => i.is_active).sort((x, y) => urgency(x) - urgency(y));
+  const shown = all.slice(0, 8);
+  const alerts = (sum.low || 0) + (sum.out || 0);
+  const ok = Math.max(0, (sum.items || 0) - alerts);
+
   return (
     <Card className="mb-6 p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', list.length ? 'bg-amber-50 text-amber-600 ring-amber-600/15' : 'bg-emerald-50 text-emerald-600 ring-emerald-600/15')}>
-            {list.length ? <AlertTriangle className="size-5" /> : <CheckCircle2 className="size-5" />}
+          <span className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', alerts ? 'bg-amber-50 text-amber-600 ring-amber-600/15' : 'bg-emerald-50 text-emerald-600 ring-emerald-600/15')}>
+            {alerts ? <AlertTriangle className="size-5" /> : <CheckCircle2 className="size-5" />}
           </span>
           <div>
             <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">{t('Kitchen stock')}</h3>
-            <p className="text-xs text-slate-500">{list.length ? t('Low or finished: {n} — buy soon', { n: list.length }) : t('Everything is above its alert level')}</p>
+            <p className="text-xs text-slate-500">{!all.length ? t('No kitchen items yet') : alerts ? t('Low or finished: {n} — buy soon', { n: alerts }) : t('Everything is above its alert level')}</p>
           </div>
         </div>
-        <Link to={list.length ? '/kitchen-stock?level=alert' : '/kitchen-stock'} className="text-sm font-semibold text-brand-700 hover:underline">{t('Open Kitchen stock')}</Link>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700 ring-1 ring-inset ring-emerald-600/15"><span className="num">{ok}</span> {t('OK')}</span>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700 ring-1 ring-inset ring-amber-600/15"><span className="num">{sum.low || 0}</span> {t('Running low')}</span>
+          <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-600 ring-1 ring-inset ring-red-600/15"><span className="num">{sum.out || 0}</span> {t('Finished')}</span>
+          <span className="rounded-full bg-slate-500/10 px-2.5 py-1 text-slate-600">{t('Value')} <span className="num">{money(sum.stock_value || 0)}</span></span>
+        </div>
       </div>
-      {list.length > 0 && (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {list.slice(0, 6).map((i) => {
+
+      {!all.length ? (
+        <Link to="/kitchen-stock" className="block rounded-xl bg-slate-500/[0.05] px-4 py-6 text-center text-sm text-slate-600 hover:bg-slate-500/[0.09]">
+          {t('Add chicken, flour, buns, oil… with how much you have now. Then add a recipe to each dish.')}
+        </Link>
+      ) : (
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          {shown.map((i) => {
             const ref = Math.max(i.alert_qty * 3, i.alert_qty + 1, 1);
             const pct = Math.max(0, Math.min(100, (i.stock_qty / ref) * 100));
+            const tone = i.level === 'out' ? 'bg-red-500' : i.level === 'low' ? 'bg-amber-500' : 'bg-emerald-500';
+            const text = i.level === 'out' ? 'text-red-600' : i.level === 'low' ? 'text-amber-700' : 'text-slate-900';
             return (
-              <Link key={i.id} to="/kitchen-stock?level=alert" className="rounded-xl bg-slate-500/[0.05] px-3 py-2.5 ring-1 ring-inset ring-slate-900/5 transition hover:bg-slate-500/[0.09]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-medium text-slate-900">{i.name}</span>
-                  <span className={cx('num shrink-0 text-sm font-bold', i.level === 'out' ? 'text-red-600' : 'text-amber-700')}>{i.level === 'out' ? t('Finished') : `${Math.round(i.stock_qty * 1000) / 1000} ${t(units[i.unit] || i.unit)}`}</span>
+              <Link key={i.id} to="/kitchen-stock" className="group block">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="truncate font-medium text-slate-800 group-hover:text-brand-700">{i.name}</span>
+                  <span className={cx('num shrink-0 font-bold', text)}>{i.level === 'out' ? t('Finished') : fmt(i.stock_qty, i.unit)}</span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-500/15" dir="ltr"><div className={cx('h-full rounded-full', i.level === 'out' ? 'bg-red-500' : 'bg-amber-500')} style={{ width: `${pct}%` }} /></div>
-                <div className="mt-1 text-xs text-slate-500">{t('Alert at {n}', { n: `${Math.round(i.alert_qty * 1000) / 1000} ${t(units[i.unit] || i.unit)}` })}</div>
+                <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-slate-500/15" dir="ltr">
+                  <div className={cx('h-full rounded-full transition-[width] duration-500', tone)} style={{ width: `${pct}%` }} />
+                  {/* alert level marker */}
+                  <span className="absolute inset-y-0 w-0.5 bg-slate-500/50" style={{ left: `${Math.min(100, (i.alert_qty / ref) * 100)}%` }} />
+                </div>
+                <div className="mt-1 text-xs text-slate-500">{t('Alert at {n}', { n: fmt(i.alert_qty, i.unit) })}</div>
               </Link>
             );
           })}
         </div>
+      )}
+      {all.length > shown.length && (
+        <div className="mt-4 text-end"><Link to="/kitchen-stock" className="text-sm font-semibold text-brand-700 hover:underline">{t('See all {n} kitchen items', { n: all.length })}</Link></div>
+      )}
+      {all.length > 0 && all.length <= shown.length && (
+        <div className="mt-4 text-end"><Link to="/kitchen-stock" className="text-sm font-semibold text-brand-700 hover:underline">{t('Open Kitchen stock')}</Link></div>
       )}
     </Card>
   );
