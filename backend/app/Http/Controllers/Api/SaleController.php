@@ -28,7 +28,10 @@ class SaleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Sale::with(['customer', 'cashier'])->withCount('items');
+        $query = Sale::with(['customer', 'cashier', 'waiter'])->withCount('items');
+        if ($request->filled('waiter_id')) {
+            $query->where('waiter_id', $request->integer('waiter_id'));
+        }
 
         if (! $request->user()->hasPermission('sales.view_all')) {
             $query->where('cashier_id', $request->user()->id);
@@ -80,7 +83,7 @@ class SaleController extends Controller
         if ($idempotencyKey) {
             $existing = Sale::where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
-                return new SaleResource($existing->load(['customer', 'cashier', 'items.variant.product']));
+                return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
             }
         }
 
@@ -153,6 +156,7 @@ class SaleController extends Controller
                 'status' => $status,
                 'order_type' => $validated['order_type'] ?? null,
                 'table_no' => $validated['table_no'] ?? null,
+                'waiter_id' => $validated['waiter_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'price_level' => $pricing['price_level'],
                 'points_redeemed' => $pricing['points_redeemed'],
@@ -208,7 +212,7 @@ class SaleController extends Controller
             if ($idempotencyKey && str_contains($e->getMessage(), 'idempotency_key')) {
                 $existing = Sale::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
-                    return new SaleResource($existing->load(['customer', 'cashier', 'items.variant.product']));
+                    return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
                 }
             }
             if (str_contains($e->getMessage(), 'invoice_number') && $attempt < $maxAttempts) {
@@ -218,7 +222,7 @@ class SaleController extends Controller
         }
         }
 
-        return new SaleResource($sale->load(['customer', 'cashier', 'items.variant.product']));
+        return new SaleResource($sale->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
     }
 
     public function show(Request $request, Sale $sale)
@@ -297,7 +301,7 @@ class SaleController extends Controller
             ActivityLogger::log($user, 'resume', 'sales', "Resumed held sale {$sale->invoice_number}.");
         });
 
-        return new SaleResource($sale->fresh(['customer', 'cashier', 'items.variant.product']));
+        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'items.variant.product']));
     }
 
     /**
@@ -356,7 +360,7 @@ class SaleController extends Controller
             ActivityLogger::log($user, 'payment', 'sales', "Recorded payment of {$validated['amount']}{$via} against sale {$locked->invoice_number}.");
         });
 
-        return new SaleResource($sale->fresh(['customer', 'cashier', 'items.variant.product']));
+        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'items.variant.product']));
     }
 
     /**

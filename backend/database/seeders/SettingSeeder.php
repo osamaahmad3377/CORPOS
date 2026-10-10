@@ -56,6 +56,7 @@ class SettingSeeder extends Seeder
                 'layout' => '',      // empty = tables 1…N in one hall
                 'takeaway' => '1',
                 'delivery' => '1',
+                'require_waiter' => '0',
             ],
             'features' => [
                 'restaurant' => '0',

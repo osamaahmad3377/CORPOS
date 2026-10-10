@@ -17,6 +17,7 @@ import { money, qty, round3, variantLabel } from '../../lib/format';
 import ProductForm from '../../components/ProductForm';
 import Receipt from '../../components/Receipt';
 import Keypad from '../../components/Keypad';
+import WaiterPicker, { initials } from '../../components/WaiterPicker';
 import KitchenSlip, { ORDER_TYPES } from '../../components/KitchenSlip';
 import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, cx, useToast } from '../../components/ui';
 
@@ -65,13 +66,15 @@ export default function Pos() {
   const [busy, setBusy] = useState(false);
   const [serialPick, setSerialPick] = useState(null); // { line, preselect }
   const [qtyEdit, setQtyEdit] = useState(null); // cart line being edited on the keypad
-  const [order, setOrder] = useState({ type: 'dine_in', table: '', note: '' }); // restaurant mode
+  const [order, setOrder] = useState({ type: 'dine_in', table: '', note: '', waiter: null }); // restaurant mode
   const [kot, setKot] = useState(null); // kitchen slip to print
   const [priceLevel, setPriceLevel] = useState(null); // null = follow the customer
   const [pointsToUse, setPointsToUse] = useState('');
   const [quoteId, setQuoteId] = useState(null);
   const [receiptPhone, setReceiptPhone] = useState('');
   const restaurant = shop.isRestaurant;
+  // Settings → Restaurant can require a waiter on every dine-in order
+  const waiterMissing = restaurant && shop.requireWaiter && order.type === 'dine_in' && !order.waiter;
   const [view, setView] = useState('tables'); // restaurant: 'tables' | 'menu'
   const [tableMenu, setTableMenu] = useState(null); // busy table tapped
   const heldOrders = useQuery({
@@ -145,7 +148,7 @@ export default function Pos() {
     setPointsToUse('');
     setQuoteId(null);
     setDiscount({ value: '', mode: 'amount' });
-    setOrder((o) => ({ type: o.type, table: '', note: '' }));
+    setOrder((o) => ({ type: o.type, table: '', note: '', waiter: null }));
     focusScan();
   };
 
@@ -260,7 +263,7 @@ export default function Pos() {
     tax_amount: totals.tax,
     price_level: level,
     ...(Number(pointsToUse) > 0 ? { points_redeemed: Number(pointsToUse) } : {}),
-    ...(restaurant ? { order_type: order.type, table_no: order.table.trim() || null, notes: order.note.trim() || null } : {}),
+    ...(restaurant ? { order_type: order.type, table_no: order.table.trim() || null, notes: order.note.trim() || null, waiter_id: order.waiter || null } : {}),
     ...extra,
   });
 
@@ -299,7 +302,7 @@ export default function Pos() {
       price: Number(it.unit_price), stock: Infinity, qty: Number(it.quantity), discount: Number(it.discount_per_item || 0),
       serialTracked: !!it.serials?.length, serials: it.serials || [],
     })));
-    setOrder({ type: sale.order_type || 'dine_in', table: sale.table_no || '', note: sale.notes || '' });
+    setOrder({ type: sale.order_type || 'dine_in', table: sale.table_no || '', note: sale.notes || '', waiter: sale.waiter_id || null });
     setCustomer(sale.customer_id ? { id: sale.customer_id, name: sale.customer, phone: '' } : null);
     setResuming(false);
     qc.invalidateQueries({ queryKey: ['sales'] });
@@ -504,6 +507,8 @@ export default function Pos() {
               )}
             </div>
           )}
+          {restaurant && <WaiterPicker value={order.waiter} required={waiterMissing} onChange={(id) => setOrder((o) => ({ ...o, waiter: id }))} />}
+          {waiterMissing && <p className="-mt-1 text-sm font-medium text-amber-700">{t('Choose the waiter for this table first.')}</p>}
           <CustomerPicker value={customer} onChange={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} canCreate={can('customers.create')} />
           <div className={cx('flex items-center justify-between gap-2', restaurant && !quoteId && 'hidden')}>
             <div className={cx('flex rounded-xl bg-slate-100 p-1 text-sm font-semibold', restaurant && 'hidden')}>
@@ -617,12 +622,12 @@ export default function Pos() {
           {restaurant && <Input placeholder={t('Kitchen note (e.g. less spicy)')} value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
           <div className="grid grid-cols-3 gap-2 pt-1">
             {restaurant
-              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError} onClick={hold}>{t('Kitchen')}</Button>
+              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError || waiterMissing} onClick={hold}>{t('Kitchen')}</Button>
               : <Button variant="secondary" icon={PauseCircle} disabled={!cart.length || busy} onClick={hold}>{t('Save for later')}</Button>}
             <Button variant="secondary" icon={PlayCircle} onClick={() => setResuming(true)}>{restaurant ? t('Open orders') : t('Saved bills')}</Button>
             <Button variant="ghost" icon={X} disabled={!cart.length} onClick={clearSale}>{t('Clear')}</Button>
           </div>
-          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError || (previewEnabled && preview.isFetching && !pv)} onClick={() => setPaying(true)}>
+          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError || waiterMissing || (previewEnabled && preview.isFetching && !pv)} onClick={() => setPaying(true)}>
             {t('Take payment')} <span className="num">{money(totals.total)}</span>
           </Button>
           {preview.error && <p className="text-sm text-red-600">{t(preview.error.message)}</p>}
@@ -1109,6 +1114,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                       <span className="num mt-1 text-sm font-bold">{money(sum)}</span>
                       <span className="mt-0.5 flex items-center gap-1 text-xs text-brand-ink/80"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
                       <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
+                      {first.waiter && <span className="absolute -bottom-2 start-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-[rgb(255_255_255/0.95)] px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow ring-1 ring-slate-900/10" title={first.waiter}>{first.waiter.split(' ')[0]}</span>}
                     </>
                   ) : (
                     <span className="mt-1 flex items-center gap-1 text-xs text-slate-400">
@@ -1130,7 +1136,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
               <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="glass-tile glass-lift flex items-center justify-between rounded-xl px-4 py-3 text-start hover:border-brand-400">
                 <span>
                   <span className="block font-bold text-slate-900">{o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
-                  <span className="text-sm text-slate-500">{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
+                  <span className="text-sm text-slate-500">{o.waiter ? `${o.waiter} · ` : ''}{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
                 </span>
                 <span className="num text-lg font-bold">{money(o.grand_total)}</span>
               </button>

@@ -28,7 +28,7 @@ const DEFAULTS = {
   business: { type: 'general' },
   product: { option1_label: '', option2_label: '', default_unit: 'pcs' },
   features: { restaurant: '0', serials: '0', expiry: '0' },
-  restaurant: { tables: '12', layout: '', takeaway: '1', delivery: '1' },
+  restaurant: { tables: '12', layout: '', takeaway: '1', delivery: '1', require_waiter: '0' },
 };
 
 // Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
@@ -430,6 +430,7 @@ function RestaurantForm({ d, set, err }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Toggle checked={onOff('takeaway')} onChange={(v) => set('restaurant', 'takeaway')(v ? '1' : '0')} label={t('Takeaway orders')} hint={t('Customer picks up the food.')} />
           <Toggle checked={onOff('delivery')} onChange={(v) => set('restaurant', 'delivery')(v ? '1' : '0')} label={t('Delivery orders')} hint={t('Food is sent to the customer’s home.')} />
+          <Toggle checked={d.restaurant.require_waiter === '1'} onChange={(v) => set('restaurant', 'require_waiter')(v ? '1' : '0')} label={t('Waiter must be chosen')} hint={t('A dine-in order can only go to the kitchen or be paid after a waiter is picked.')} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">

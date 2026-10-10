@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BadgePercent, BarChart3, Beef, Bell, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
-  Moon, ReceiptText, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
+  Moon, ReceiptText, UserRound, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -61,6 +61,7 @@ function restaurantSections() {
     { title: 'Sales', items: [
       { to: '/sales', label: 'Old bills', icon: ReceiptText, perm: 'sales.create' },
       { to: '/customers', label: 'Customers & udhaar', icon: Users, perm: 'customers.view' },
+      { to: '/waiters', label: 'Waiters', icon: UserRound, perm: 'users.manage' },
       { to: '/cash', label: 'Cash drawer', icon: Vault, perm: 'cash.manage' },
     ] },
     { title: 'Menu', items: [
@@ -93,7 +94,7 @@ function Sidebar({ onNavigate }) {
   return (
     // Colours come from the shop's sidebar setting (--sb-* variables), so
     // the menu looks the same in light and dark mode.
-    <nav className="flex h-full flex-col overflow-y-auto text-[var(--sb-text)] [scrollbar-color:var(--sb-line)_transparent]">
+    <nav className="sidebar-depth flex h-full flex-col overflow-y-auto text-[var(--sb-text)] [scrollbar-color:var(--sb-line)_transparent]">
       {/* Shop branding: the uploaded logo right on the sidebar colour, or the shop name */}
       <NavLink to="/" onClick={onNavigate} title={shop.shopName} className="mx-3 mt-3 block rounded-2xl transition hover:bg-[var(--sb-hover)]">
         {hasLogo ? (
@@ -126,12 +127,12 @@ function Sidebar({ onNavigate }) {
                     onClick={onNavigate}
                     className={({ isActive }) => cx(
                       'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
-                      isActive ? 'bg-[var(--sb-active)] text-[var(--sb-text)]' : 'text-[var(--sb-muted)] hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)]',
+                      isActive ? 'nav-active font-semibold text-[var(--sb-text)]' : 'text-[var(--sb-muted)] hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)]',
                     )}
                   >
                     {({ isActive }) => (
                       <>
-                        {isActive && <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-[var(--sb-accent)]" />}
+                        {isActive && <span className="nav-glow absolute inset-y-2 start-0 w-1 rounded-full bg-[var(--sb-accent)]" />}
                         <Icon className={cx('size-5 shrink-0 transition-colors', isActive ? 'text-[var(--sb-accent)]' : 'text-[var(--sb-icon)] group-hover:text-[var(--sb-text)]')} />
                         {t(label)}
                       </>

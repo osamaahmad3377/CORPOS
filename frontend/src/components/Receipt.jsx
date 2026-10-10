@@ -58,6 +58,7 @@ export default function Receipt({ sale, preBill = false }) {
       {sale.cashier && <div className="flex justify-between"><span>{t('Cashier')}</span><span>{sale.cashier}</span></div>}
       {sale.customer && <div className="flex justify-between"><span>{t('Customer')}</span><span>{sale.customer}</span></div>}
       {sale.order_type && <div className="flex justify-between"><span>{t('Order')}</span><span>{t(orderTypeLabel(sale.order_type))}{sale.table_no ? ` · ${t('Table {n}', { n: sale.table_no })}` : ''}</span></div>}
+      {sale.waiter && <div className="flex justify-between"><span>{t('Waiter')}</span><span>{sale.waiter}</span></div>}
 
       <div className="my-2 border-t border-dashed border-black" />
       {(sale.items || []).map((it) => (

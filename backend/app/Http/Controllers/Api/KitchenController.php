@@ -11,7 +11,7 @@ class KitchenController extends Controller
 {
     public function index()
     {
-        $orders = Sale::with(['items.variant.product', 'cashier'])
+        $orders = Sale::with(['items.variant.product', 'cashier', 'waiter'])
             ->where('status', 'held')
             ->orderBy('created_at')
             ->get()
@@ -21,7 +21,7 @@ class KitchenController extends Controller
                 'table_no' => $s->table_no,
                 'kitchen_status' => $s->kitchen_status ?: 'new',
                 'notes' => $s->notes,
-                'waiter' => $s->cashier?->name,
+                'waiter' => $s->waiter?->name ?? $s->cashier?->name,
                 'grand_total' => $s->grand_total,
                 'created_at' => $s->created_at,
                 'items' => $s->items->map(fn ($i) => [

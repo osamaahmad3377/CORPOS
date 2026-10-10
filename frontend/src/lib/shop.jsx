@@ -56,6 +56,7 @@ export function ShopProvider({ children }) {
       isRestaurant: s.business?.type === 'restaurant' || s.features?.restaurant === '1',
       tableAreas: tableAreas(s.restaurant),
       takeaway: s.restaurant?.takeaway !== '0',
+      requireWaiter: s.restaurant?.require_waiter === '1',
       delivery: s.restaurant?.delivery !== '0',
       // white-label
       brandColor,

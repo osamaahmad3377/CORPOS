@@ -31,6 +31,8 @@ class SaleResource extends JsonResource
             'status' => $this->status,
             'order_type' => $this->order_type,
             'table_no' => $this->table_no,
+            'waiter_id' => $this->waiter_id,
+            'waiter' => $this->waiter_id ? $this->waiter?->name : null,
             'kitchen_status' => $this->kitchen_status,
             'payment_status' => $this->payment_status,
             'notes' => $this->notes,

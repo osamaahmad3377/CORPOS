@@ -11,7 +11,7 @@ export function cx(...c) {
 // button's text colour (brand-ink) is picked for contrast with the shop's colour.
 const RAISED = 'shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_1px_2px_rgb(16_24_40/0.12)] hover:brightness-[0.96] active:brightness-[0.92]';
 const BTN = {
-  primary: `bg-brand-600 text-brand-ink ${RAISED} shadow-brand-600/30`,
+  primary: 'btn-jewel bg-brand-600 text-brand-ink active:brightness-[0.95]',
   secondary: 'bg-white/80 text-slate-700 border border-slate-900/10 shadow-xs backdrop-blur hover:bg-white/95 hover:border-slate-900/15',
   danger: `bg-red-600 text-white ${RAISED}`,
   ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
@@ -72,7 +72,7 @@ export function Field({ label, hint, error, required, className, children }) {
 }
 
 export function Card({ className, children, ...props }) {
-  return <div className={cx('glass rounded-[20px]', className)} {...props}>{children}</div>;
+  return <div className={cx('glass rounded-[22px]', className)} {...props}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, action }) {
@@ -134,7 +134,7 @@ export function PageHeader({ title, subtitle, actions }) {
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-slate-900">{title}</h1>
+        <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.025em] text-slate-900">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-slate-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

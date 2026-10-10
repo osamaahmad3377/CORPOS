@@ -27,6 +27,7 @@ class StoreSaleRequest extends FormRequest
             // restaurant mode
             'order_type' => ['nullable', 'string', 'in:dine_in,takeaway,delivery'],
             'table_no' => ['nullable', 'string', 'max:20'],
+            'waiter_id' => ['nullable', 'integer', 'exists:waiters,id'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'tax_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['required', 'string', Rule::in(array_keys(config('pos.payment_methods')))],

@@ -14,6 +14,7 @@ class Sale extends Model
     protected $fillable = [
         'order_type',
         'table_no',
+        'waiter_id',
         'kitchen_status',
         'invoice_number',
         'idempotency_key',
@@ -140,5 +141,10 @@ class Sale extends Model
     public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(SalePayment::class)->with('user')->orderBy('id');
+    }
+
+    public function waiter(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Waiter::class);
     }
 }

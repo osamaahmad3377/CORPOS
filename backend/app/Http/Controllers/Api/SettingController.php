@@ -66,6 +66,7 @@ class SettingController extends Controller
             'layout' => ['nullable', 'string', 'max:50000', 'json'],
             'takeaway' => ['nullable', 'in:0,1'],
             'delivery' => ['nullable', 'in:0,1'],
+            'require_waiter' => ['nullable', 'in:0,1'],
         ],
         'features' => [
             'restaurant' => ['nullable', 'in:0,1'],
