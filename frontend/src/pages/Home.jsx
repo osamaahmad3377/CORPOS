@@ -159,6 +159,29 @@ export default function Home() {
 
   const time = (v) => new Date(v).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 
+  const summaryPanel = (className, wide = false) => (
+        <Panel className={className} title={t('Summary')} subtitle={t('Last {n} days', { n: days })} bodyClass={cx('p-3 pt-2', wide && 'grid content-start gap-x-6 gap-y-1 sm:grid-cols-2')}>
+          {[
+            { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-emerald-50 text-emerald-600' },
+            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-blue-50 text-blue-600' },
+            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-amber-50 text-amber-600' },
+            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-violet-50 text-violet-600' }] : []),
+          ].map((k) => (
+            <div key={k.label} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-slate-500/[0.05]">
+              <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', k.tone)}><k.icon className="size-5" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-slate-500">{k.label}</div>
+                <div className="num text-lg font-extrabold leading-tight tracking-tight text-slate-900">{k.value}</div>
+                {k.delta != null && <Delta value={k.delta} />}
+              </div>
+              <div className="w-24 shrink-0"><Sparkline values={k.spark} color={k.color} height={36} /></div>
+            </div>
+          ))}
+        </Panel>
+  );
+
+
+
   return (
     <Page className="max-w-[1440px]">
       {/* ------------------------------------------------ header */}
@@ -213,24 +236,7 @@ export default function Home() {
           <TrendChart data={trend} height={290} format={money} formatTick={shortMoney} formatDate={(x) => x.long} emptyText={empty} ariaLabel={t('Sales trend')} labels={{ current: t('Last {n} days', { n: days }), previous: t('The {n} days before', { n: days }), previousShort: t('before') }} />
         </Panel>
 
-        <Panel className="lg:col-span-4" title={t('Summary')} subtitle={t('Last {n} days', { n: days })} bodyClass="p-3 pt-2">
-          {[
-            { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-emerald-50 text-emerald-600' },
-            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-blue-50 text-blue-600' },
-            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-amber-50 text-amber-600' },
-            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-violet-50 text-violet-600' }] : []),
-          ].map((k) => (
-            <div key={k.label} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-slate-500/[0.05]">
-              <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', k.tone)}><k.icon className="size-5" /></span>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-medium text-slate-500">{k.label}</div>
-                <div className="num text-lg font-extrabold leading-tight tracking-tight text-slate-900">{k.value}</div>
-                {k.delta != null && <Delta value={k.delta} />}
-              </div>
-              <div className="w-24 shrink-0"><Sparkline values={k.spark} color={k.color} height={36} /></div>
-            </div>
-          ))}
-        </Panel>
+        {restaurant && can('inventory.view') ? <KitchenStockCard className="lg:col-span-4" compact /> : summaryPanel('lg:col-span-4')}
 
         <Panel className="lg:col-span-4" title={t('How customers paid')} subtitle={t('Share of sales by payment method')}>
           <DonutChart items={payments} format={money} totalLabel={t('Total')} emptyText={empty} size={150} stacked />
@@ -274,7 +280,7 @@ export default function Home() {
 
         {restaurant ? (
           <>
-            {can('inventory.view') && <KitchenStockCard className="lg:col-span-8" />}
+            {can('inventory.view') && summaryPanel('lg:col-span-8', true)}
             <Panel className={can('inventory.view') ? 'lg:col-span-4' : 'lg:col-span-12'} title={t('Top waiters')} subtitle={t('Today')} action={can('users.manage') && <ViewAll to="/waiters" label={t('See all')} />}>
               {(() => {
                 const list = [...(waiters.data?.data || [])].filter((w) => w.is_active).sort((a, b) => b.sales - a.sales).slice(0, 5);
@@ -333,7 +339,7 @@ export default function Home() {
 
 // Restaurants: progress of every kitchen item (most urgent first) with a
 // summary — what's fine, running low and finished — and the stock value.
-function KitchenStockCard({ className }) {
+function KitchenStockCard({ className, compact = false }) {
   const { t } = useLang();
   const q = useQuery({ queryKey: ['ingredients', 'home'], queryFn: () => api.get('/ingredients'), refetchInterval: 60_000 });
   const units = { kg: 'Kg', g: 'Gram', litre: 'Litre', ml: 'ml', piece: 'Piece', dozen: 'Dozen', packet: 'Packet' };
@@ -342,7 +348,7 @@ function KitchenStockCard({ className }) {
   const fmt = (v, u) => `${Math.round(Number(v) * 1000) / 1000} ${t(units[u] || u)}`;
   const urgency = (i) => (i.stock_qty <= 0 ? -1 : i.alert_qty > 0 ? i.stock_qty / i.alert_qty : 99);
   const all = (q.data?.data || []).filter((i) => i.is_active).sort((x, y) => urgency(x) - urgency(y));
-  const shown = all.slice(0, 8);
+  const shown = all.slice(0, compact ? 5 : 8);
   const alerts = (sum.low || 0) + (sum.out || 0);
   const ok = Math.max(0, (sum.items || 0) - alerts);
 
@@ -371,7 +377,7 @@ function KitchenStockCard({ className }) {
           {t('Add chicken, flour, buns, oil… with how much you have now. Then add a recipe to each dish.')}
         </Link>
       ) : (
-        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        <div className={cx('grid gap-x-8', compact ? 'gap-y-3' : 'gap-y-4 sm:grid-cols-2')}>
           {shown.map((i) => {
             const ref = Math.max(i.alert_qty * 3, i.alert_qty + 1, 1);
             const pct = Math.max(0, Math.min(100, (i.stock_qty / ref) * 100));
