@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  BadgePercent, BarChart3, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
+  BadgePercent, BarChart3, Beef, Bell, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
   Moon, ReceiptText, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
@@ -67,7 +69,7 @@ function restaurantSections() {
       { to: '/offers', label: 'Deals & loyalty', icon: BadgePercent, perm: 'promotions.manage' },
     ] },
     { title: 'Supplies', items: [
-      { to: '/purchases', label: 'Buy supplies', icon: Boxes, perm: 'purchases.view' },
+      { to: '/kitchen-stock', label: 'Kitchen stock', icon: Beef, perm: 'inventory.view' },
       { to: '/suppliers', label: 'Suppliers', icon: Truck, perm: 'suppliers.manage' },
       { to: '/expenses', label: 'Expenses', icon: Wallet, perm: 'expenses.manage' },
     ] },
@@ -148,6 +150,26 @@ function Sidebar({ onNavigate }) {
   );
 }
 
+// Restaurants: bell in the top bar with the number of kitchen items that are
+// low or finished; opens Kitchen stock filtered to those.
+function KitchenAlerts() {
+  const shop = useShop();
+  const { can } = useAuth();
+  const { t } = useLang();
+  const navigate = useNavigate();
+  const on = shop.isRestaurant && can('inventory.view');
+  const q = useQuery({ queryKey: ['ingredients', 'alerts'], queryFn: () => api.get('/ingredients/alerts'), enabled: on, refetchInterval: 60_000, staleTime: 30_000 });
+  if (!on) return null;
+  const n = q.data?.count || 0;
+  return (
+    <button type="button" onClick={() => navigate('/kitchen-stock?level=alert')} title={n ? t('{n} kitchen items need attention', { n }) : t('Kitchen stock is fine')} aria-label={t('Kitchen stock alerts')}
+      className="relative grid size-10 place-items-center rounded-xl border border-slate-900/10 bg-white/60 text-slate-600 transition hover:bg-white/90">
+      <Bell className={cx('size-5', n && 'text-amber-600')} />
+      {n > 0 && <span className="num absolute -end-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-5 text-white ring-2 ring-white">{n > 99 ? '99+' : n}</span>}
+    </button>
+  );
+}
+
 export function LanguageSwitch({ className }) {
   const { lang, setLang } = useLang();
   return (
@@ -220,6 +242,7 @@ export default function Layout() {
 
           {/* end: language, theme, user */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+            <KitchenAlerts />
             <LanguageSwitch className="hidden sm:flex" />
             <ThemeSwitch />
             <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-start hover:bg-slate-100">

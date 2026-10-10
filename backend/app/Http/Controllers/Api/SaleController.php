@@ -186,6 +186,11 @@ class SaleController extends Controller
                 }
             }
 
+            // restaurant kitchen stock: take each dish's recipe off the ingredients
+            if ($status === 'completed') {
+                \App\Services\IngredientService::consumeForSale($sale, $user);
+            }
+
             if ($status === 'completed' && $sale->customer_id) {
                 Customer::where('id', $sale->customer_id)->increment('total_purchases', $grandTotal);
                 $this->settleLoyalty($sale);
@@ -281,6 +286,8 @@ class SaleController extends Controller
             $sale->status = 'completed';
             $sale->syncPaymentStatus();
             $sale->save();
+
+            \App\Services\IngredientService::consumeForSale($sale, $user);
 
             if ($sale->customer_id) {
                 Customer::where('id', $sale->customer_id)->increment('total_purchases', $sale->grand_total);

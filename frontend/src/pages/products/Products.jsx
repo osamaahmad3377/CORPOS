@@ -11,6 +11,7 @@ import { primaryImage, useBrands, useCategories } from '../../lib/catalog';
 import { money, qty, variantLabel } from '../../lib/format';
 import { Page } from '../../components/Layout';
 import ProductForm from '../../components/ProductForm';
+import RecipeEditor from '../../components/RecipeEditor';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, Table, Td, Textarea, Th,
   useConfirm, useToast,
@@ -320,6 +321,7 @@ function ProductDetail({ id, onClose }) {
               </table>
             </div>
             {counted && <p className="mt-2 text-xs text-slate-500">{t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.')}</p>}
+            {shop.isRestaurant && can('inventory.view') && <div className="mt-5"><RecipeEditor variants={p.variants} canEdit={canEdit} /></div>}
           </div>
         </div>
       )}

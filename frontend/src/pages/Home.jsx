@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, Coins, BarChart3, Boxes, ChefHat, FileText, UtensilsCrossed, HandCoins, LayoutDashboard, Package, PackagePlus, ReceiptText, Settings, ShoppingCart, TrendingUp, Trophy, Vault, Wallet, Warehouse,
+  AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, Beef, CheckCircle2, Coins, BarChart3, Boxes, ChefHat, FileText, UtensilsCrossed, HandCoins, LayoutDashboard, Package, PackagePlus, ReceiptText, Settings, ShoppingCart, TrendingUp, Trophy, Vault, Wallet, Warehouse,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -50,6 +50,7 @@ export default function Home() {
 
   const tiles = restaurant ? [
     { to: '/kitchen', icon: ChefHat, title: t('Kitchen screen'), hint: t('Orders the kitchen has to cook'), color: 'orange' },
+    can('inventory.view') && { to: '/kitchen-stock', icon: Beef, title: t('Kitchen stock'), hint: t('Chicken, flour, buns… and alerts'), color: 'rose' },
     can('products.create') && { to: '/products?new=1', icon: PackagePlus, title: t('Add a dish'), hint: t('New item on the menu'), color: 'blue' },
     can('products.view') && { to: '/products', icon: UtensilsCrossed, title: t('Menu items'), hint: t('Prices and dishes'), color: 'indigo' },
     can('sales.create') && { to: '/sales', icon: ReceiptText, title: t('Old bills'), hint: t('Reprint, return, take payment'), color: 'violet' },
@@ -120,6 +121,8 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {restaurant && can('inventory.view') && <KitchenStockCard />}
 
       <Overview />
 
@@ -270,5 +273,50 @@ function Overview() {
         </ChartCard>
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------- kitchen stock
+
+// Restaurants: kitchen items that are low or finished, most urgent first.
+function KitchenStockCard() {
+  const { t } = useLang();
+  const q = useQuery({ queryKey: ['ingredients', 'alerts'], queryFn: () => api.get('/ingredients/alerts'), refetchInterval: 60_000 });
+  const list = q.data?.data || [];
+  const units = { kg: 'Kg', g: 'Gram', litre: 'Litre', ml: 'ml', piece: 'Piece', dozen: 'Dozen', packet: 'Packet' };
+  if (q.isLoading) return null;
+  return (
+    <Card className="mb-6 p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <span className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', list.length ? 'bg-amber-50 text-amber-600 ring-amber-600/15' : 'bg-emerald-50 text-emerald-600 ring-emerald-600/15')}>
+            {list.length ? <AlertTriangle className="size-5" /> : <CheckCircle2 className="size-5" />}
+          </span>
+          <div>
+            <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">{t('Kitchen stock')}</h3>
+            <p className="text-xs text-slate-500">{list.length ? t('Low or finished: {n} — buy soon', { n: list.length }) : t('Everything is above its alert level')}</p>
+          </div>
+        </div>
+        <Link to={list.length ? '/kitchen-stock?level=alert' : '/kitchen-stock'} className="text-sm font-semibold text-brand-700 hover:underline">{t('Open Kitchen stock')}</Link>
+      </div>
+      {list.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {list.slice(0, 6).map((i) => {
+            const ref = Math.max(i.alert_qty * 3, i.alert_qty + 1, 1);
+            const pct = Math.max(0, Math.min(100, (i.stock_qty / ref) * 100));
+            return (
+              <Link key={i.id} to="/kitchen-stock?level=alert" className="rounded-xl bg-slate-500/[0.05] px-3 py-2.5 ring-1 ring-inset ring-slate-900/5 transition hover:bg-slate-500/[0.09]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium text-slate-900">{i.name}</span>
+                  <span className={cx('num shrink-0 text-sm font-bold', i.level === 'out' ? 'text-red-600' : 'text-amber-700')}>{i.level === 'out' ? t('Finished') : `${Math.round(i.stock_qty * 1000) / 1000} ${t(units[i.unit] || i.unit)}`}</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-500/15" dir="ltr"><div className={cx('h-full rounded-full', i.level === 'out' ? 'bg-red-500' : 'bg-amber-500')} style={{ width: `${pct}%` }} /></div>
+                <div className="mt-1 text-xs text-slate-500">{t('Alert at {n}', { n: `${Math.round(i.alert_qty * 1000) / 1000} ${t(units[i.unit] || i.unit)}` })}</div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </Card>
   );
 }
