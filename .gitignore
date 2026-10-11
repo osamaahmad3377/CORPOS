@@ -25,3 +25,6 @@ backend/storage/logs/*.log
 backend/storage/framework/
 backend/bootstrap/cache/*.php
 backend/database/*.sqlite*
+
+# finished installers (too big for git)
+/Version */
