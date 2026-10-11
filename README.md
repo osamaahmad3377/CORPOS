@@ -70,11 +70,22 @@ Edit [desktop/app.config.json](desktop/app.config.json):
 ```bash
 cd desktop
 npm install
-npm run dist:all       # on a Mac: Windows .exe + one Universal Mac .dmg (Intel + Apple Silicon)
-npm run dist:win       # on a Windows PC (proper exe icon/metadata; add code signing here later)
-npm run dist:mac       # Mac .dmg only
+npm run dist:all       # on a Mac: all three installers below
+npm run dist:windows   # Windows only
+npm run dist:mac       # Mac only
+npm run dist:linux     # Linux only
 ```
-Output: `desktop/dist/CorePOS-Setup-<version>.exe` and `desktop/dist/CorePOS-<version>-mac-universal.dmg`. Upload it wherever shops download it
+Output in `desktop/dist/`, one installer per system:
+
+| File | Runs on |
+|---|---|
+| `CorePOS-Setup-<version>-Windows.exe` | Windows 7, 8, 8.1, 10, 11, 32-bit and 64-bit (the installer picks the right one) |
+| `CorePOS-<version>-Mac.dmg` | every Mac, Intel and Apple Silicon (Universal), macOS 12 Monterey or newer |
+| `CorePOS-<version>-Linux-x86_64.AppImage` | 64-bit Linux PCs (Ubuntu, Mint, Fedora…) |
+| `CorePOS-<version>-Linux-arm64.AppImage` | ARM Linux (Raspberry Pi 4/5 and similar) |
+
+The Windows installer uses Electron 22 and PHP 8.2 because they are the last versions that
+still run on Windows 7/8. Upload the files wherever shops download them
 (your website, Google Drive, and so on) and put that link in `DOWNLOAD_URL`.
 
 `npm run prepare` (part of `dist:*`) does the following:

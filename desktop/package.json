@@ -18,12 +18,14 @@
     "dist:win": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 && electron-builder --win nsis --ia32",
     "dist:win:mac": "npm run prepare:php:win && npm run prepare:app && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --win nsis --ia32 -c.win.signAndEditExecutable=false",
     "dist:mac": "npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal",
-    "dist:all": "npm run prepare:php:win && npm run prepare:php:win7 && npm run prepare:php:mac && npm run prepare:php:linux && npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --win nsis --ia32 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false && electron-builder --linux AppImage deb --x64 --arm64",
+    "dist:all": "npm run prepare:php:win7 && npm run prepare:php:mac && npm run prepare:php:linux && npm run dist:everything",
     "test:license": "node scripts/test-license.mjs",
     "prepare:php:win7": "node scripts/prepare-php.mjs legacy",
     "prepare:php:linux": "node scripts/prepare-php-linux.mjs",
     "dist:win7": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false",
-    "dist:linux": "npm run prepare:php:linux && npm run prepare:app && electron-builder --linux AppImage deb --x64 --arm64"
+    "dist:linux": "npm run prepare:php:linux && npm run prepare:app && electron-builder --linux AppImage --x64 --arm64",
+    "dist:windows": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/windows-all.config.cjs --win nsis --x64 --ia32 -c.win.signAndEditExecutable=false",
+    "dist:everything": "npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --config build/windows-all.config.cjs --win nsis --x64 --ia32 -c.win.signAndEditExecutable=false && electron-builder --linux AppImage --x64 --arm64"
   },
   "devDependencies": {
     "electron": "^38.0.0",
@@ -102,24 +104,17 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "identity": null,
-      "artifactName": "CorePOS-${version}-mac-${arch}.${ext}"
+      "artifactName": "CorePOS-${version}-Mac.${ext}"
     },
     "dmg": {
       "title": "CorePOS ${version}",
-      "artifactName": "CorePOS-${version}-mac-${arch}.${ext}"
+      "artifactName": "CorePOS-${version}-Mac.${ext}"
     },
     "afterPack": "build/after-pack.cjs",
     "linux": {
       "target": [
         {
           "target": "AppImage",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "deb",
           "arch": [
             "x64",
             "arm64"
@@ -139,7 +134,7 @@
           "to": "php"
         }
       ],
-      "artifactName": "CorePOS-${version}-linux-${arch}.${ext}"
+      "artifactName": "CorePOS-${version}-Linux-${arch}.${ext}"
     }
   },
   "homepage": "https://nextcore.com.pk"
