@@ -1,16 +1,15 @@
 // Small SVG charts for the Home overview — no chart library, works offline.
 // Colours follow the data-viz method: categorical slots in a fixed order
-// (validated for colour-blind safety in light and dark), one series = the
+// (shades of the shop's brand colour), one series = the
 // shop's brand colour, text always in the normal text colours, recessive
 // grid, and a hover tooltip on every chart.
 import { useId, useLayoutEffect, useState } from 'react';
 import { cx } from './ui';
 
-// Categorical slots (blue, orange, aqua, yellow, magenta), light / dark steps.
-const SLOTS = {
-  light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'],
-  dark: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'],
-};
+// Categories are shades of the shop's brand colour, alternating dark and
+// light so neighbours stay apart (in dark mode the deep shades turn light).
+const BRAND_SHADES = ['var(--color-brand-600)', 'var(--color-brand-800)', 'var(--color-brand-400)', 'var(--color-brand-900)', 'var(--color-brand-300)'];
+const SLOTS = { light: BRAND_SHADES, dark: BRAND_SHADES };
 const OTHER = { light: '#a8a29e', dark: '#6b6964' };
 
 export function slotColor(i, dark) {

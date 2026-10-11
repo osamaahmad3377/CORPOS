@@ -11,8 +11,8 @@ import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
 import { LANGUAGES, fontVar } from '../lib/languages';
 import { cx } from './ui';
-import { NextcoreLogo } from './Brand';
-import BusinessSwitcher from './BusinessSwitcher';
+import { ShopLogo } from './Brand';
+import BusinessSwitcher, { useBusinesses } from './BusinessSwitcher';
 
 // Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
@@ -149,7 +149,7 @@ function Sidebar({ onNavigate }) {
         })}
       </div>
       <div className="mx-3 mb-3 rounded-xl bg-[var(--sb-hover)] px-3 py-2.5 text-center text-[11px] text-[var(--sb-label)]" dir="ltr">
-        CorePOS by <span className="font-semibold text-[var(--sb-muted)]">NextCore</span>
+        Powered by <span className="font-semibold text-[var(--sb-muted)]">CorePOS</span>
         <span className="mt-0.5 block font-mono text-[10px] opacity-80" title={`Built ${__APP_BUILD__}`}>v{__APP_VERSION__} · {__APP_BUILD__}</span>
       </div>
     </nav>
@@ -241,7 +241,11 @@ export function ThemeSwitch({ className }) {
 }
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
+  const shop = useShop();
+  // the business switch already shows the shop's name when it is there
+  const businesses = useBusinesses().data?.data || [];
+  const switcherShown = businesses.length > 1 || (businesses.length === 1 && can('settings.manage'));
   const { t } = useLang();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -274,10 +278,11 @@ export default function Layout() {
             <BusinessSwitcher />
           </div>
 
-          {/* centre: developer logo */}
-          <a href="https://nextcore.com.pk" target="_blank" rel="noreferrer" className="flex items-center text-slate-900" title="NextCore — nextcore.com.pk" dir="ltr">
-            <NextcoreLogo className="h-7 sm:h-8" />
-          </a>
+          {/* centre: the shop itself (the sidebar shows it on wide screens) */}
+          <button type="button" onClick={() => navigate('/')} className={cx('flex min-w-0 items-center gap-2.5 rounded-2xl px-2 py-1 text-slate-900 xl:invisible', switcherShown && 'invisible')} title={shop.shopName}>
+            <ShopLogo className="size-9 text-base" rounded="rounded-xl" />
+            <span className="hidden max-w-[16rem] truncate text-[17px] font-bold tracking-tight sm:block">{shop.shopName}</span>
+          </button>
 
           {/* end: language, theme, user */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2">

@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { DEFAULT_BRAND, applyBrand, applyMode, applySidebar, setStoredMode, storedMode } from './theme';
+import { applyShopIdentity } from './branding';
+import { useLang } from './i18n';
 
 // Shop-wide configuration: settings (shop/receipt/tax/business/product) and
 // the static lists from /meta (units, payment methods, business types).
@@ -24,6 +26,16 @@ export function ShopProvider({ children }) {
   const sidebarColor = settings.data?.brand?.sidebar_color;
   useEffect(() => { applySidebar(sidebarColor); }, [sidebarColor]);
   const setMode = useCallback((m) => { setStoredMode(m); setModeState(m); }, []);
+
+  // the shop's name and logo on the window, tab, taskbar and in messages
+  const { setAppName } = useLang();
+  const shopName = settings.data?.shop?.name;
+  const logoPath = settings.data?.brand?.logo;
+  useEffect(() => {
+    if (!shopName) return;
+    setAppName(shopName);
+    applyShopIdentity({ name: shopName, color: brandColor, logoUrl: logoPath ? `/storage/${logoPath}` : null });
+  }, [shopName, brandColor, logoPath, setAppName]);
 
   const value = useMemo(() => {
     const s = settings.data || {};

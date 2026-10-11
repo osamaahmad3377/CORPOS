@@ -166,9 +166,9 @@ export default function Home() {
         <Panel className={className} title={t('Summary')} subtitle={t('Last {n} days', { n: days })} bodyClass={cx('p-3 pt-2', wide && 'grid content-start gap-x-6 gap-y-1 sm:grid-cols-2')}>
           {[
             { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-brand-50 text-brand-600' },
-            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-brand-50 text-brand-600' },
-            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-brand-50 text-brand-600' },
-            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-brand-50 text-brand-600' }] : []),
+            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: 'var(--color-brand-600)', icon: ReceiptText, tone: 'bg-brand-50 text-brand-600' },
+            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: 'var(--color-brand-600)', icon: Coins, tone: 'bg-brand-50 text-brand-600' },
+            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: 'var(--color-brand-600)', icon: Trophy, tone: 'bg-brand-50 text-brand-600' }] : []),
           ].map((k) => (
             <div key={k.label} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-slate-500/[0.05]">
               <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', k.tone)}><k.icon className="size-5" /></span>

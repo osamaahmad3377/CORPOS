@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Check, Languages, ReceiptText, ShieldCheck, WifiOff } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { api, business } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { useT } from '../lib/i18n';
+import { useLang } from '../lib/i18n';
+import { DEFAULT_BRAND, applyBrand } from '../lib/theme';
+import { applyShopIdentity, rememberedBrand } from '../lib/branding';
 import { LanguageSwitch } from '../components/Layout';
-import { NEXTCORE, NextcoreLogo } from '../components/Brand';
+import { NEXTCORE } from '../components/Brand';
 import { Button, ErrorBox, Field, Input, cx } from '../components/ui';
 import { BusinessBadge } from '../components/BusinessSwitcher';
 
 export default function Login() {
   const { user, login } = useAuth();
-  const t = useT();
+  const { t, locale, setAppName } = useLang();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -27,6 +29,19 @@ export default function Login() {
   }, [businesses, picked]);
 
   const pick = (id) => { business.set(id); setPicked(id); setError(null); };
+
+  // The sign-in screen belongs to the shop: its logo, name and colours
+  // (the last shop's colours until the list arrives).
+  const remembered = rememberedBrand();
+  const shop = businesses.find((b) => b.id === picked) || businesses[0] || null;
+  const name = shop?.name || remembered?.name || '';
+  const color = /^#[0-9a-f]{6}$/i.test(shop?.brand_color || '') ? shop.brand_color : (remembered?.color || DEFAULT_BRAND);
+  const logo = shop?.logo_url || null;
+  useEffect(() => {
+    applyBrand(color);
+    if (name) { setAppName(name); applyShopIdentity({ name, color, logoUrl: logo }); }
+  }, [name, color, logo, setAppName]);
+  const now = useClock();
 
   if (user) return <Navigate to="/" replace />;
 
@@ -45,31 +60,25 @@ export default function Login() {
 
   return (
     <div className="app-canvas flex min-h-full">
-      {/* brand panel (large screens) */}
-      <aside className="relative hidden w-[44%] max-w-xl flex-col justify-between overflow-hidden bg-ink-900 p-10 text-white lg:flex xl:p-12">
-        <span aria-hidden className="absolute -start-24 -top-24 size-96 rounded-full bg-brand-600 opacity-25 blur-3xl" />
-        <span aria-hidden className="absolute -bottom-32 -end-20 size-96 rounded-full bg-brand-500 opacity-15 blur-3xl" />
-        <span aria-hidden className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255/0.035)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.035)_1px,transparent_1px)] bg-[size:44px_44px]" />
+      {/* the shop's own panel (large screens): its colour, logo and name */}
+      <aside className="relative hidden w-[44%] max-w-xl flex-col justify-between overflow-hidden p-10 lg:flex xl:p-12"
+        style={{ backgroundImage: 'linear-gradient(155deg, var(--color-brand-500), var(--color-brand-700) 60%, var(--color-brand-900))', color: '#fff' }}>
+        <span aria-hidden className="absolute -end-28 -top-28 size-[28rem] rounded-full bg-[rgb(255_255_255/0.12)]" />
+        <span aria-hidden className="absolute -bottom-40 -start-24 size-[30rem] rounded-full bg-[rgb(255_255_255/0.08)]" />
+        <span aria-hidden className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255/0.05)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.05)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_75%)]" />
         <div className="relative">
-          <span className="inline-flex rounded-2xl bg-[#fff] px-5 py-3 shadow-[0_10px_30px_-10px_rgb(0_0_0/0.6)]"><NextcoreLogo className="h-9" /></span>
+          <ShopMark name={name} logo={logo} className="size-24 text-4xl" />
         </div>
         <div className="relative">
-          <h2 className="max-w-md text-4xl font-bold leading-tight tracking-[-0.02em] xl:text-[44px]">{t('Everything your shop needs, in one place.')}</h2>
-          <ul className="mt-8 space-y-4 text-[17px] text-[#c3cad8]">
-            {[
-              [WifiOff, t('Works without internet — your data stays on this computer')],
-              [Languages, t('Many languages, easy for everyone')],
-              [ReceiptText, t('Bills, stock, udhaar and reports')],
-              [ShieldCheck, t('Every person has their own login')],
-            ].map(([Icon, text]) => (
-              <li key={text} className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[rgb(255_255_255/0.07)] text-brand-500 ring-1 ring-inset ring-[rgb(255_255_255/0.1)]"><Icon className="size-5" /></span>
-                {text}
-              </li>
-            ))}
-          </ul>
+          <p className="text-lg font-medium text-[rgb(255_255_255/0.75)]">{t('Welcome back')}</p>
+          <h2 className="mt-1 max-w-md text-[44px] font-extrabold leading-[1.1] tracking-[-0.02em] xl:text-[52px]">{name}</h2>
+          {shop?.type_label && <p className="mt-3 text-lg text-[rgb(255_255_255/0.75)]">{t(shop.type_label)}</p>}
+          <div className="mt-10 inline-flex flex-col rounded-3xl bg-[rgb(255_255_255/0.12)] px-6 py-4 ring-1 ring-inset ring-[rgb(255_255_255/0.18)] backdrop-blur-md">
+            <span className="num text-4xl font-bold tracking-tight">{now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}</span>
+            <span className="mt-1 text-[15px] text-[rgb(255_255_255/0.8)]">{now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          </div>
         </div>
-        <p className="relative text-sm text-[#7c879d]" dir="ltr">{NEXTCORE.product} by <span className="font-semibold text-[#c3cad8]">{NEXTCORE.company}</span> · {NEXTCORE.website} · {NEXTCORE.email}</p>
+        <p className="relative text-xs text-[rgb(255_255_255/0.55)]" dir="ltr">Powered by {NEXTCORE.product} · {NEXTCORE.website}</p>
       </aside>
 
       {/* sign-in form */}
@@ -77,7 +86,10 @@ export default function Login() {
         <div className="absolute end-4 top-4 z-10"><LanguageSwitch /></div>
         <form onSubmit={submit} className="glass-strong w-full max-w-[28rem] rounded-3xl p-7 sm:p-9">
           <div className="mb-8 text-center lg:text-start">
-            <NextcoreLogo className="mx-auto mb-8 h-12 lg:hidden" />
+            <div className="mb-6 flex flex-col items-center gap-3 lg:hidden">
+              <ShopMark name={name} logo={logo} className="size-20 text-3xl" />
+              <span className="text-xl font-bold text-slate-900">{name}</span>
+            </div>
             <h1 className="text-[30px] font-bold leading-tight tracking-[-0.02em] text-slate-900">{t('Welcome back')}</h1>
             <p className="mt-1.5 text-base text-slate-500">{t('Sign in to continue')}</p>
           </div>
@@ -111,9 +123,31 @@ export default function Login() {
             <Button type="submit" className="mt-2 w-full" size="lg" loading={busy}>{t('Sign in')}</Button>
           </div>
         </form>
-        <p className="absolute bottom-4 px-4 text-center text-xs text-slate-400 lg:hidden" dir="ltr">{NEXTCORE.product} by {NEXTCORE.company} · {NEXTCORE.website} · {NEXTCORE.email}</p>
+        <p className="absolute bottom-4 px-4 text-center text-xs text-slate-400 lg:hidden" dir="ltr">Powered by {NEXTCORE.product}</p>
       </main>
     </div>
   );
 }
 
+// The shop's logo on a white tile, or its first letter.
+function ShopMark({ name, logo, className }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [logo]);
+  if (logo && !broken) {
+    return <span className={cx('grid shrink-0 place-items-center overflow-hidden rounded-3xl bg-white p-2 shadow-[0_18px_40px_-16px_rgb(0_0_0/0.45)]', className)}><img src={logo} alt={name} onError={() => setBroken(true)} className="max-h-full max-w-full object-contain" /></span>;
+  }
+  return (
+    <span className={cx('grid shrink-0 place-items-center rounded-3xl bg-white font-extrabold text-brand-700 shadow-[0_18px_40px_-16px_rgb(0_0_0/0.45)]', className)}>
+      {(name || 'C').trim().charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}

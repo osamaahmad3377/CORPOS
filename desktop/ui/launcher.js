@@ -7,7 +7,18 @@ function render(s) {
   $('#version').textContent = `Version ${s.version}`;
   $('#machine-id').textContent = s.machineId;
   document.querySelectorAll('#support-email, .support-email').forEach((el) => { el.textContent = s.supportEmail || 'info@nextcore.com.pk'; });
-  $('#busy-text').textContent = s.state === 'checking' ? 'Checking your license online…' : 'Starting CorePOS…';
+  // White-label: while starting, the screen shows the shop (its icon, name
+  // and colour) once it has been opened before; other screens show CorePOS.
+  const shop = (s.state === 'starting' || s.state === 'checking') && s.brand?.name ? s.brand : null;
+  $('#product-logo').hidden = !!shop;
+  $('#shop-icon').hidden = !shop?.icon;
+  if (shop?.icon) $('#shop-icon').src = shop.icon;
+  $('#shop-name').hidden = !shop;
+  $('#shop-name').textContent = shop?.name || '';
+  document.title = shop?.name || 'CorePOS';
+  if (shop?.color) document.documentElement.style.setProperty('--primary', shop.color);
+  else document.documentElement.style.removeProperty('--primary');
+  $('#busy-text').textContent = s.state === 'checking' ? 'Checking your license online…' : (shop ? `Opening ${shop.name}…` : 'Starting CorePOS…');
 
   const msg = $('#activate-msg');
   msg.hidden = !(s.state === 'activate' && s.message);

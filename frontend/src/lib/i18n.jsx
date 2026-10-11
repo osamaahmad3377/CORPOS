@@ -17,6 +17,14 @@ for (const [path, mod] of Object.entries(modules)) {
 const KEY = 'corepos_lang';
 const LangContext = createContext(null);
 
+// White-label: messages that name the product use the shop's own name
+// instead ("Lite mode makes Madina Store faster…"). The data folder on disk
+// really is called CorePOS, so that message keeps it.
+function withAppName(str, appName, key) {
+  if (!appName || typeof str !== 'string' || !str.includes('CorePOS') || /data folder/.test(key)) return str;
+  return str.replace(/CorePOS/g, appName);
+}
+
 function interpolate(str, vars) {
   if (!vars) return str;
   return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
@@ -27,6 +35,7 @@ export function LanguageProvider({ children }) {
     try { const l = localStorage.getItem(KEY); return LANG_CODES.includes(l) ? l : 'en'; } catch { return 'en'; }
   });
   const info = langInfo(lang);
+  const [appName, setAppName] = useState(null);
 
   useEffect(() => {
     const el = document.documentElement;
@@ -49,18 +58,18 @@ export function LanguageProvider({ children }) {
       if (import.meta.env.DEV && lang !== 'en' && DICTS[lang]?.[str] === undefined && typeof str === 'string' && /[a-z]/i.test(str)) {
         ((window.__missing ||= {})[lang] ||= new Set()).add(str);
       }
-      return interpolate(out ?? str, vars);
+      return withAppName(interpolate(out ?? str, vars), appName, str);
     };
     const rtl = info.dir === 'rtl';
     // isUrdu: any right-to-left language (prints use the same no-monospace, tall-line layout)
-    return { lang, setLang, info, isRtl: rtl, isUrdu: rtl, dir: info.dir, locale: info.locale, t };
-  }, [lang, setLang, info]);
+    return { lang, setLang, info, isRtl: rtl, isUrdu: rtl, dir: info.dir, locale: info.locale, t, setAppName };
+  }, [lang, setLang, info, appName]);
 
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
 // Fallback (English, no-op switch) if a component ever renders outside the provider.
-const FALLBACK = { lang: 'en', setLang: () => {}, info: langInfo('en'), isRtl: false, isUrdu: false, dir: 'ltr', locale: 'en-PK', t: (s, v) => interpolate(s ?? '', v) };
+const FALLBACK = { lang: 'en', setLang: () => {}, setAppName: () => {}, info: langInfo('en'), isRtl: false, isUrdu: false, dir: 'ltr', locale: 'en-PK', t: (s, v) => interpolate(s ?? '', v) };
 
 export const useLang = () => useContext(LangContext) || FALLBACK;
 

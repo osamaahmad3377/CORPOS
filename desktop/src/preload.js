@@ -21,5 +21,7 @@ if (location.protocol === 'file:') {
     printers: () => ipcRenderer.invoke('printers'),
     print: (options) => ipcRenderer.invoke('print', options),
     systemInfo: () => ipcRenderer.invoke('system-info'),
+    // the shop's name, colour and icon for the taskbar / dock and start screen
+    setBrand: (brand) => ipcRenderer.invoke('brand', brand),
   });
 }
