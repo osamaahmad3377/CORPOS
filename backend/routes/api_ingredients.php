@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 // Kitchen stock (restaurant raw materials) and dish recipes.
 Route::get('ingredients/alerts', [IngredientController::class, 'alerts']);
+Route::get('recipes/alerts', [IngredientController::class, 'recipeAlerts']);
 Route::middleware('permission:inventory.view')->group(function () {
     Route::get('ingredients', [IngredientController::class, 'index']);
     Route::get('ingredients/{ingredient}/movements', [IngredientController::class, 'movements'])->whereNumber('ingredient');

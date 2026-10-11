@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  AlertTriangle, Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -77,6 +77,20 @@ export default function Pos() {
   const waiterMissing = restaurant && shop.requireWaiter && order.type === 'dine_in' && !order.waiter;
   const [view, setView] = useState('tables'); // restaurant: 'tables' | 'menu'
   const [tableMenu, setTableMenu] = useState(null); // busy table tapped
+  // dishes whose recipe uses a low / finished kitchen item (warning only)
+  const recipeAlerts = useQuery({
+    queryKey: ['recipes', 'alerts'],
+    queryFn: () => api.get('/recipes/alerts'),
+    enabled: restaurant,
+    refetchInterval: 60_000,
+    select: (r) => r.data || {},
+  });
+  const kitchenWarn = (variantIds) => {
+    const all = (variantIds || []).flatMap((id) => recipeAlerts.data?.[id] || []);
+    if (!all.length) return null;
+    const names = [...new Set(all.map((x) => x.name))];
+    return { out: all.some((x) => x.level === 'out'), names };
+  };
   const heldOrders = useQuery({
     queryKey: ['sales', 'held', 'tables'],
     queryFn: () => api.get('/sales', { status: 'held', per_page: 100 }),
@@ -472,6 +486,10 @@ export default function Pos() {
                       <div className="line-clamp-2 text-[15px] font-semibold leading-snug text-slate-900">{p.name}</div>
                       <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-1">
                         <span className="num text-lg font-bold tracking-tight text-slate-900">{money(Math.min(...prices))}{prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? '+' : ''}</span>
+                        {!tracked && restaurant && (() => {
+                          const w = kitchenWarn((p.variants || []).map((v) => v.id));
+                          return w && <span title={w.names.join(', ')} className={cx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold', w.out ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700')}><AlertTriangle className="size-3" />{w.out ? t('Ingredient out') : t('Ingredient low')}</span>;
+                        })()}
                         {tracked && <span className={cx('rounded-full px-2 py-0.5 text-xs font-semibold', stock <= 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500')}>{stock <= 0 ? t('Finished') : <span className="num">{qty(stock)} {p.unit}</span>}</span>}
                       </div>
                     </div>
@@ -645,10 +663,17 @@ export default function Pos() {
           <p className="mb-3 text-base text-slate-600">{t('Which one?')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {picking.variants.filter((v) => v.is_active !== false).map((v) => (
-              <button key={v.id} type="button" disabled={Number(v.stock_qty) <= 0} onClick={() => { addVariant(v, picking); setPicking(null); focusScan(); }} className="flex items-center justify-between rounded-xl border-2 border-slate-200 p-4 text-start hover:border-brand-400 disabled:opacity-50">
-                <div>
+              <button key={v.id} type="button" disabled={picking.track_stock !== false && Number(v.stock_qty) <= 0} onClick={() => { addVariant(v, picking); setPicking(null); focusScan(); }} className="glass-tile glass-lift flex items-center justify-between gap-3 rounded-2xl p-4 text-start disabled:pointer-events-none disabled:opacity-50">
+                <div className="min-w-0">
                   <div className="text-lg font-semibold">{variantLabel(v) || t('Standard')}</div>
-                  <div className="text-sm text-slate-500">{t('{n} in stock', { n: qty(v.stock_qty) })}</div>
+                  {picking.track_stock !== false ? (
+                    <div className="text-sm text-slate-500">{t('{n} in stock', { n: qty(v.stock_qty) })}</div>
+                  ) : (() => {
+                    const w = kitchenWarn([v.id]);
+                    return w
+                      ? <div className={cx('mt-0.5 flex items-center gap-1 text-xs font-semibold', w.out ? 'text-red-600' : 'text-amber-700')}><AlertTriangle className="size-3.5 shrink-0" /><span className="line-clamp-2">{w.out ? t('Kitchen: {names} finished', { names: w.names.join(', ') }) : t('Kitchen: {names} low', { names: w.names.join(', ') })}</span></div>
+                      : <div className="text-sm text-emerald-700">{t('Available')}</div>;
+                  })()}
                 </div>
                 <span className="num text-lg font-bold text-brand-700">{money(v.selling_price)}</span>
               </button>

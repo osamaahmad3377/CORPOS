@@ -177,6 +177,25 @@ class IngredientController extends Controller
         return response()->json(['data' => $rows]);
     }
 
+    /**
+     * For the order screen: dishes (by size/type) whose recipe uses a kitchen
+     * item that is low or finished. Only a warning — the dish can still be sold.
+     */
+    public function recipeAlerts()
+    {
+        $rows = RecipeItem::query()
+            ->join('ingredients', 'ingredients.id', '=', 'recipe_items.ingredient_id')
+            ->where('ingredients.is_active', true)
+            ->whereColumn('ingredients.stock_qty', '<=', 'ingredients.alert_qty')
+            ->get(['recipe_items.variant_id', 'ingredients.name', 'ingredients.stock_qty']);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r->variant_id][] = ['name' => $r->name, 'level' => (float) $r->stock_qty <= 0 ? 'out' : 'low'];
+        }
+
+        return response()->json(['data' => (object) $out]);
+    }
+
     // ------------------------------------------------------------ recipes
 
     public function recipe(ProductVariant $variant)
