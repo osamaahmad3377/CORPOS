@@ -150,6 +150,7 @@ function Sidebar({ onNavigate }) {
       </div>
       <div className="mx-3 mb-3 rounded-xl bg-[var(--sb-hover)] px-3 py-2.5 text-center text-[11px] text-[var(--sb-label)]" dir="ltr">
         CorePOS by <span className="font-semibold text-[var(--sb-muted)]">NextCore</span>
+        <span className="mt-0.5 block font-mono text-[10px] opacity-80" title={`Built ${__APP_BUILD__}`}>v{__APP_VERSION__} · {__APP_BUILD__}</span>
       </div>
     </nav>
   );
@@ -281,7 +282,7 @@ export default function Layout() {
           {/* end: language, theme, user */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2">
             <KitchenAlerts />
-            <LanguageSwitch className="hidden sm:flex" />
+            <LanguageSwitch />
             <ThemeSwitch />
             <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-start hover:bg-slate-100">
               <span className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-brand-ink ring-2 ring-white">{(user?.name || '?').charAt(0).toUpperCase()}</span>
