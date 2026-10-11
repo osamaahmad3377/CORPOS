@@ -223,6 +223,7 @@ export default {
   // sidebar colour
   'Sidebar colour': 'سائیڈ بار کا رنگ',
   'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'آپ کا لوگو اسی رنگ پر نظر آئے گا۔ اگر لوگو گہرا ہے تو ہلکا سائیڈ بار چنیں؛ اگر ہلکا ہے تو گہرا۔',
+  Glass: 'شیشہ',
   Midnight: 'گہرا نیلا سیاہ',
   Charcoal: 'کوئلہ',
   Navy: 'نیوی',

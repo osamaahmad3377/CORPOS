@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bike, Briefcase, Building2, CalendarClock, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
-import { BRAND_PRESETS, DEFAULT_SIDEBAR, SIDEBAR_PRESETS, sidebarTheme } from '../../lib/theme';
+import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_SWATCH, SIDEBAR_PRESETS, isSidebarValue, sidebarTheme } from '../../lib/theme';
 import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
@@ -21,7 +21,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 
 // Every key SettingController@update accepts (minus shop.logo), with defaults.
 const DEFAULTS = {
-  brand: { primary_color: '#1bd173', sidebar_color: '#0f1626', sidebar_logo_size: '96', theme: 'light', show_logo_on_receipt: '1' },
+  brand: { primary_color: '#1bd173', sidebar_color: 'glass', sidebar_logo_size: '96', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
   receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },
@@ -287,7 +287,8 @@ function BrandForm({ d, set }) {
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const color = d.brand.primary_color;
-  const sidebar = /^#[0-9a-f]{6}$/i.test(d.brand.sidebar_color || '') ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
+  const sidebar = isSidebarValue(d.brand.sidebar_color) ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
+  const sidebarHex = sidebar === 'glass' ? '#f2f4fc' : sidebar;
   const logoSize = clampLogo(d.brand.sidebar_logo_size);
   const upload = async (file) => {
     if (!file) return;
@@ -370,18 +371,18 @@ function BrandForm({ d, set }) {
                   return (
                     <button key={p.hex} type="button" title={t(p.name)} aria-label={t(p.name)} onClick={() => set('brand', 'sidebar_color')(p.hex)}
                       className={cx('grid size-11 place-items-center rounded-xl border border-slate-900/10 ring-offset-2 transition hover:scale-105', on && 'ring-2 ring-slate-900')}
-                      style={{ background: p.hex }}>
-                      {on && <Check className="size-5" style={{ color: sidebarTheme(p.hex).text }} />}
+                      style={{ background: p.hex === 'glass' ? GLASS_SWATCH : p.hex }}>
+                      {on && <Check className="size-5" style={{ color: p.hex === 'glass' ? '#18213a' : sidebarTheme(p.hex).text }} />}
                     </button>
                   );
                 })}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input type="color" value={sidebar} onChange={(e) => set('brand', 'sidebar_color')(e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
+                  <input type="color" value={sidebarHex} onChange={(e) => set('brand', 'sidebar_color')(e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
                   {t('Any other colour')}
                 </label>
-                <Input className="num w-32 font-mono" value={sidebar} maxLength={7} onChange={(e) => set('brand', 'sidebar_color')(e.target.value)} />
+                <Input className="num w-32 font-mono" value={sidebar === 'glass' ? '' : sidebar} placeholder={sidebar === 'glass' ? t('Glass') : ''} maxLength={7} onChange={(e) => set('brand', 'sidebar_color')(e.target.value || 'glass')} />
               </div>
               <p className="mt-2 text-xs text-slate-500">{t('Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.')}</p>
 
@@ -1051,7 +1052,8 @@ function SidebarPreview({ hex, size = 96 }) {
   const th = sidebarTheme(hex);
   const items = [[HomeIcon, 'Home', true], [CartIcon, 'Sell', false], [PackageIcon, 'Items & stock', false]];
   return (
-    <div className="w-56 shrink-0 overflow-hidden rounded-2xl border border-slate-200 shadow-card" style={{ background: th.bg }} aria-label={t('Preview')}>
+    <div className={cx('w-56 shrink-0 overflow-hidden rounded-2xl border border-slate-200 shadow-card', th.glass && 'app-canvas')} aria-label={t('Preview')}>
+      <div style={{ background: th.bg }}>
       <div className="flex min-h-[72px] items-center justify-center px-3 py-3">
         {shop.logoUrl ? (
           <img src={shop.logoUrl} alt="" style={{ maxHeight: Math.round(size * 0.86) }} className="w-auto max-w-full object-contain transition-[max-height] duration-150" />
@@ -1065,11 +1067,12 @@ function SidebarPreview({ hex, size = 96 }) {
       <div className="mx-4 h-px" style={{ background: th.line }} />
       <div className="space-y-0.5 p-2.5">
         {items.map(([Icon, label, active]) => (
-          <div key={label} className="relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium" style={{ background: active ? th.active : 'transparent', color: active ? th.text : th.muted }}>
-            {active && <span className="absolute inset-y-1.5 start-0 w-1 rounded-full" style={{ background: th.accent }} />}
+          <div key={label} className="relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium" style={{ background: active ? th.active : 'transparent', color: active ? th.text : th.muted, boxShadow: active && th.glass ? '0 8px 16px -10px rgb(64 76 150 / 0.5)' : undefined }}>
+            {active && !th.glass && <span className="absolute inset-y-1.5 start-0 w-1 rounded-full" style={{ background: th.accent }} />}
             <Icon className="size-4" style={{ color: active ? th.accent : th.icon }} />{t(label)}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

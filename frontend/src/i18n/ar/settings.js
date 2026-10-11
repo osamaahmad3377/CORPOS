@@ -194,6 +194,7 @@ export default {
   '1 copy': 'نسخة واحدة',
   'Sidebar colour': 'لون الشريط الجانبي',
   'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'يظهر شعارك على هذا اللون. إن كان شعارك داكناً فاختر شريطاً فاتحاً، وإن كان فاتحاً فاختر داكناً.',
+  Glass: 'زجاجي',
   Midnight: 'منتصف الليل',
   Charcoal: 'فحمي',
   Navy: 'كحلي',

@@ -41,7 +41,7 @@ export const Button = forwardRef(function Button(
   );
 });
 
-const FIELD = 'block w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[15px] text-slate-900 shadow-xs transition-[border-color,box-shadow] placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-100 disabled:text-slate-500';
+const FIELD = 'block w-full rounded-xl border border-slate-900/10 bg-white/80 px-3.5 text-[15px] text-slate-900 shadow-xs transition-[border-color,box-shadow] placeholder:text-slate-400 hover:border-slate-900/20 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-100 disabled:text-slate-500';
 
 export const Input = forwardRef(function Input({ className, ...props }, ref) {
   return <input ref={ref} className={cx(FIELD, 'h-11', className)} {...props} />;
@@ -72,7 +72,7 @@ export function Field({ label, hint, error, required, className, children }) {
 }
 
 export function Card({ className, children, ...props }) {
-  return <div className={cx('glass rounded-[22px]', className)} {...props}>{children}</div>;
+  return <div className={cx('glass rounded-3xl', className)} {...props}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, action }) {
@@ -154,13 +154,13 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }) {
   const width = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl' }[size];
   return (
     <div role="dialog" aria-modal="true" data-modal-open="true" className="fixed inset-0 z-50 flex animate-fade-in items-start justify-center overflow-y-auto bg-[rgb(10_15_28/0.38)] p-4 backdrop-blur-md sm:p-8 sm:pt-[8vh]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
-      <div className={cx('glass-strong glass-dialog w-full animate-pop-in rounded-2xl', width)}>
+      <div className={cx('glass-strong glass-dialog w-full animate-pop-in rounded-3xl', width)}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-4 dark:border-white/[0.06]">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <button type="button" onClick={onClose} className="-me-2 grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label={t('Close')}><X className="size-5" /></button>
         </div>
         <div className="px-6 py-5">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-2 rounded-b-2xl border-t border-slate-900/[0.06] bg-slate-500/[0.04] px-6 py-3.5 dark:border-white/[0.06]">{footer}</div>}
+        {footer && <div className="flex flex-wrap justify-end gap-2 rounded-b-3xl border-t border-slate-900/[0.06] bg-slate-500/[0.04] px-6 py-3.5 dark:border-white/[0.06]">{footer}</div>}
       </div>
     </div>
   );
@@ -196,10 +196,10 @@ export function StatCard({ icon: Icon, label, value, sub, tone = 'brand' }) {
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
-        {Icon && <div className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', tones[tone])}><Icon className="size-5" /></div>}
+        <span className="text-[15px] font-semibold text-slate-700">{label}</span>
+        {Icon && <div className={cx('grid size-10 place-items-center rounded-2xl ring-1 ring-inset', tones[tone])}><Icon className="size-5" /></div>}
       </div>
-      <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{value}</div>
+      <div className="num mt-2.5 text-[30px] font-bold leading-tight tracking-tight text-slate-900">{value}</div>
       {sub && <div className="num mt-0.5 truncate text-xs text-slate-500">{sub}</div>}
     </Card>
   );

@@ -194,6 +194,7 @@ export default {
   '1 copy': '1 کاپي',
   'Sidebar colour': 'د غاړې پټې رنګ',
   'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'ستاسو لوګو پر همدې رنګ ښکاري. که لوګو تیاره وي روښانه پټه، او که روښانه وي تیاره پټه وټاکئ.',
+  Glass: 'ښیښه',
   Midnight: 'نیمه شپه',
   Charcoal: 'سکروټ',
   Navy: 'سمندري شین',

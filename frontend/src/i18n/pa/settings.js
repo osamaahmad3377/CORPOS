@@ -194,6 +194,7 @@ export default {
   '1 copy': '1 کاپی',
   'Sidebar colour': 'سائیڈ بار دا رنگ',
   'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'تہاڈا لوگو ایسے رنگ اُتے دسے گا۔ جے لوگو گوڑھا اے تاں ہلکا سائیڈ بار چُنو؛ جے ہلکا اے تاں گوڑھا۔',
+  Glass: 'شیشہ',
   Midnight: 'گوڑھا نیلا کالا',
   Charcoal: 'کوئلہ',
   Navy: 'نیوی',

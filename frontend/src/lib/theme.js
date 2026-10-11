@@ -108,11 +108,15 @@ export function applyBrand(hex) {
 // ---------------------------------------------------------------- sidebar
 // The menu's background is the shop's choice too (Settings → Brand & look).
 // Text, icons and highlights are worked out from it: light text on a dark
-// sidebar, dark text on a light one.
+// sidebar, dark text on a light one. 'glass' is the frosted panel: its
+// colours live in index.css (--sbg-*) so they follow light/dark mode.
 
-export const DEFAULT_SIDEBAR = '#0f1626';
+export const DEFAULT_SIDEBAR = 'glass';
+export const GLASS_SWATCH = 'linear-gradient(135deg, #ffffff 0%, #dfe5fc 55%, #e7dcfd 100%)';
+export const isSidebarValue = (v) => v === 'glass' || /^#[0-9a-f]{6}$/i.test(v || '');
 
 export const SIDEBAR_PRESETS = [
+  { name: 'Glass', hex: 'glass' },
   { name: 'Midnight', hex: '#0f1626' },
   { name: 'Charcoal', hex: '#202326' },
   { name: 'Navy', hex: '#0c2340' },
@@ -124,8 +128,23 @@ export const SIDEBAR_PRESETS = [
   { name: 'White', hex: '#ffffff' },
 ];
 
+const GLASS_THEME = {
+  light: true,
+  glass: true,
+  bg: 'var(--sbg-bg)',
+  text: 'var(--sbg-text)',
+  muted: 'var(--sbg-muted)',
+  label: 'var(--sbg-label)',
+  icon: 'var(--sbg-icon)',
+  hover: 'var(--sbg-hover)',
+  active: 'var(--sbg-active)',
+  line: 'var(--sbg-line)',
+  accent: 'var(--color-brand-600)',
+};
+
 export function sidebarTheme(hex) {
-  const bg = /^#[0-9a-f]{6}$/i.test(hex || '') ? hex : DEFAULT_SIDEBAR;
+  const bg = isSidebarValue(hex) ? hex : DEFAULT_SIDEBAR;
+  if (bg === 'glass') return GLASS_THEME;
   const light = luminance(bg) > 0.35;
   const ink = light ? '15 23 42' : '255 255 255';
   return {
@@ -146,6 +165,8 @@ export function applySidebar(hex) {
   const th = sidebarTheme(hex);
   const root = document.documentElement;
   for (const k of ['bg', 'text', 'muted', 'label', 'icon', 'hover', 'active', 'line', 'accent']) root.style.setProperty(`--sb-${k}`, th[k]);
+  if (th.glass) root.dataset.sidebar = 'glass';
+  else delete root.dataset.sidebar;
 }
 
 const MODE_KEY = 'corepos_theme';

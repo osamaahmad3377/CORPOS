@@ -48,7 +48,7 @@ class SettingController extends Controller
         // White-label look: brand colour + logo (logo is set via uploadLogo()).
         'brand' => [
             'primary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'sidebar_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'sidebar_color' => ['nullable', 'regex:/^(#[0-9a-fA-F]{6}|glass)$/'], // a colour, or the frosted glass panel
             'sidebar_logo_size' => ['nullable', 'integer', 'min:40', 'max:180'], // logo height in the sidebar, px
             'theme' => ['nullable', 'in:light,dark,system'],
             'show_logo_on_receipt' => ['nullable', 'in:0,1'],

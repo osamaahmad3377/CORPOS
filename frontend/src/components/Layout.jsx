@@ -130,7 +130,7 @@ function Sidebar({ onNavigate }) {
                     end={end}
                     onClick={onNavigate}
                     className={({ isActive }) => cx(
-                      'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
+                      'nav-item group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors',
                       isActive ? 'nav-active font-semibold text-[var(--sb-text)]' : 'text-[var(--sb-muted)] hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)]',
                     )}
                   >
@@ -169,7 +169,7 @@ function KitchenAlerts() {
   const n = q.data?.count || 0;
   return (
     <button type="button" onClick={() => navigate('/kitchen-stock?level=alert')} title={n ? t('{n} kitchen items need attention', { n }) : t('Kitchen stock is fine')} aria-label={t('Kitchen stock alerts')}
-      className="relative grid size-10 place-items-center rounded-xl border border-slate-900/10 bg-white/60 text-slate-600 transition hover:bg-white/90">
+      className="glass-btn relative grid size-10 place-items-center rounded-xl text-slate-600">
       <Bell className={cx('size-5', n && 'text-amber-600')} />
       {n > 0 && <span className="num absolute -end-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-5 text-white ring-2 ring-white">{n > 99 ? '99+' : n}</span>}
     </button>
@@ -195,7 +195,7 @@ export function LanguageSwitch({ className, up = false }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-10 items-center gap-2 rounded-xl border border-slate-900/10 bg-white/60 px-3 text-[15px] font-semibold text-slate-700 transition hover:bg-white/90"
+        className="glass-btn flex h-10 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-slate-700"
         title="Language / زبان"
       >
         <Languages className="size-5 text-brand-700" />
@@ -231,7 +231,7 @@ export function ThemeSwitch({ className }) {
     <button
       type="button"
       onClick={() => shop.setMode(shop.isDark ? 'light' : 'dark')}
-      className={cx('grid size-10 place-items-center rounded-xl border border-slate-900/10 bg-white/60 text-slate-600 transition hover:bg-white/90', className)}
+      className={cx('glass-btn grid size-10 place-items-center rounded-xl text-slate-600', className)}
       title={shop.isDark ? t('Light mode') : t('Dark mode')}
       aria-label={shop.isDark ? t('Light mode') : t('Dark mode')}
     >
@@ -249,12 +249,12 @@ export default function Layout() {
 
   return (
     <div className="app-canvas flex h-full">
-      <aside className="hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-2xl xl:block"><Sidebar /></aside>
+      <aside className="app-sidebar hidden w-64 shrink-0 border-e border-[var(--sb-line)] bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-2xl xl:block"><Sidebar /></aside>
 
       {open && (
         <div className="fixed inset-0 z-40 xl:hidden">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 start-0 w-72 bg-[var(--sb-bg)] shadow-xl">
+          <aside className="app-drawer absolute inset-y-0 start-0 w-72 bg-[var(--sb-bg)] shadow-xl">
             <button type="button" className="absolute end-2 top-4 z-10 rounded-lg p-2 text-[var(--sb-muted)] hover:text-[var(--sb-text)]" onClick={() => setOpen(false)} aria-label={t('Close')}><X className="size-6" /></button>
             <Sidebar onNavigate={() => setOpen(false)} />
           </aside>
@@ -262,12 +262,12 @@ export default function Layout() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative z-20 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[var(--glass-edge)] bg-[var(--glass-bg-strong)] px-3 shadow-[0_1px_0_var(--glass-ring),0_8px_24px_-18px_rgb(16_24_40/0.25)] backdrop-blur-2xl backdrop-saturate-150 sm:px-5">
+        <header className="relative z-20 grid h-[72px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-5">
           {/* start: menu + home */}
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 xl:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-7" /></button>
+            <button type="button" className="glass-btn grid size-10 place-items-center rounded-xl text-slate-600 xl:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu className="size-6" /></button>
             {pathname !== '/' && (
-              <button type="button" onClick={() => navigate('/')} className="flex h-10 items-center gap-2 rounded-xl bg-slate-100 px-3 text-[15px] font-semibold text-slate-700 hover:bg-slate-200">
+              <button type="button" onClick={() => navigate('/')} className="glass-btn flex h-10 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-slate-700">
                 <Home className="size-5" /><span className="hidden sm:inline">{t('Home')}</span>
               </button>
             )}
@@ -284,7 +284,7 @@ export default function Layout() {
             <KitchenAlerts />
             <LanguageSwitch />
             <ThemeSwitch />
-            <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-xl px-1.5 py-1 text-start hover:bg-slate-100">
+            <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-2xl px-1.5 py-1 text-start transition hover:bg-white/50">
               <span className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-brand-ink ring-2 ring-white">{(user?.name || '?').charAt(0).toUpperCase()}</span>
               <span className="hidden xl:block">
                 <span className="block text-sm font-semibold leading-tight text-slate-900">{user?.name}</span>

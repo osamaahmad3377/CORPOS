@@ -194,6 +194,7 @@ export default {
   '1 copy': '۱ نسخه',
   'Sidebar colour': 'رنگ نوار کناری',
   'Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.': 'لوگو روی همین رنگ دیده می‌شود. اگر لوگو تیره است نوار روشن، و اگر روشن است نوار تیره انتخاب کنید.',
+  Glass: 'شیشه‌ای',
   Midnight: 'نیمه‌شب',
   Charcoal: 'زغالی',
   Navy: 'سرمه‌ای',
