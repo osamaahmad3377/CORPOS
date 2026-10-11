@@ -4,11 +4,12 @@
 // expiry tracking live under "More options" so the form stays simple.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ImagePlus, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
+import { ChevronDown, Dices, ImagePlus, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShop } from '../lib/shop';
 import { useT } from '../lib/i18n';
 import { useBrands, useCategories } from '../lib/catalog';
+import { randomBarcode } from '../lib/barcode';
 import { Button, ErrorBox, Field, Input, Modal, Select, Textarea, cx, useToast } from './ui';
 
 const emptyRow = (barcode = '') => ({ color: '', size: '', barcode, purchase_price: '', selling_price: '', wholesale_price: '', stock_qty: '', low_stock_threshold: '', serials: '', batch_no: '', expiry_date: '' });
@@ -183,10 +184,13 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                   <Input type="number" min={requireStock ? step : '0'} step={step} required={requireStock} className="h-12 text-lg" value={rows[0].stock_qty} onChange={(e) => setRow(0, 'stock_qty', e.target.value)} />
                 </Field>
               )}
-              <Field label={t('Barcode — scan it or leave empty')} hint={t('If you leave it empty, a barcode is made for you.')} className={hideStock || form.track_serial ? 'sm:col-span-2' : undefined}>
-                <div className="relative">
-                  <ScanBarcode className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                  <Input className="h-12 ps-10 font-mono" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={noEnter} placeholder={t('Scan or type barcode')} />
+              <Field label={t('Barcode — scan it or leave empty')} hint={t('No barcode on the item? Press Generate, or leave it empty and a random barcode is made for you.')} className={hideStock || form.track_serial ? 'sm:col-span-2' : undefined}>
+                <div className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <ScanBarcode className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                    <Input className="h-12 ps-10 font-mono" dir="ltr" value={rows[0].barcode} onChange={(e) => setRow(0, 'barcode', e.target.value)} onKeyDown={noEnter} placeholder={t('Scan or type barcode')} />
+                  </div>
+                  <Button type="button" variant="secondary" className="h-12 shrink-0 rounded-xl px-4" icon={Dices} onClick={() => setRow(0, 'barcode', randomBarcode())} title={t('Make a random barcode')}>{t('Generate')}</Button>
                 </div>
               </Field>
               {form.track_expiry && !hideStock && (
@@ -293,7 +297,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                     <Button variant="secondary" icon={Wand2} onClick={generate}>{t('Make rows')}</Button>
                   </div>
                   <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className={cx('w-full text-sm', counted ? 'min-w-[820px]' : 'min-w-[600px]')}>
+                    <table className={cx('w-full text-sm', counted ? 'min-w-[900px]' : 'min-w-[680px]')}>
                       <thead className="bg-slate-50 text-xs text-slate-500">
                         <tr>{[opt1, opt2, t('Barcode'), t('Buying price'), `${t('Selling price')} *`, ...(wholesale ? [t('Wholesale price')] : []), ...(counted ? [t('Stock')] : []), ''].map((h, i) => <th key={i} className="px-2 py-2 text-start font-semibold">{h}</th>)}</tr>
                       </thead>
@@ -302,7 +306,12 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                           <tr key={i} className="border-t border-slate-100">
                             <td className="p-1.5"><Input value={r.color} onChange={(e) => setRow(i, 'color', e.target.value)} /></td>
                             <td className="p-1.5"><Input value={r.size} onChange={(e) => setRow(i, 'size', e.target.value)} /></td>
-                            <td className="p-1.5"><Input className="font-mono" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} /></td>
+                            <td className="p-1.5">
+                              <div className="flex items-center gap-1">
+                                <Input className="w-36 font-mono" dir="ltr" placeholder={t('Auto')} value={r.barcode} onChange={(e) => setRow(i, 'barcode', e.target.value)} onKeyDown={noEnter} />
+                                <button type="button" onClick={() => setRow(i, 'barcode', randomBarcode())} className="rounded-lg p-2.5 text-slate-400 hover:bg-brand-50 hover:text-brand-700" aria-label={t('Make a random barcode')} title={t('Make a random barcode')}><Dices className="size-5" /></button>
+                              </div>
+                            </td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" value={r.purchase_price} onChange={(e) => setRow(i, 'purchase_price', e.target.value)} /></td>
                             <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" required value={r.selling_price} onChange={(e) => setRow(i, 'selling_price', e.target.value)} /></td>
                             {wholesale && <td className="p-1.5"><Input className="w-24" type="number" min="0" step="0.01" placeholder="—" value={r.wholesale_price} onChange={(e) => setRow(i, 'wholesale_price', e.target.value)} /></td>}

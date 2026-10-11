@@ -32,7 +32,7 @@ export function isValidEan13(code) {
 }
 
 // 'ean13' preference only applies to codes that are valid EAN-13; anything
-// else (shop-generated 12-digit codes, SKUs) prints as CODE128.
+// else (SKUs, typed codes) prints as CODE128.
 // A valid EAN-13 (manufacturer barcodes on packaged goods) always prints as
 // EAN-13 so the label matches the pack; everything else is CODE128.
 export function pickFormat(code) {

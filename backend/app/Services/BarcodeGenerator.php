@@ -10,53 +10,58 @@ use Illuminate\Support\Facades\DB;
 class BarcodeGenerator
 {
     /**
-     * 12-digit format: [Year(2)][CategoryID(2)][ProductID(4)][VariantID(4)].
-     * VariantID is not known until the variant row exists, so this must be
-     * called AFTER the variant has been created and saved.
+     * A random 13-digit EAN-13 for items that came without a barcode:
+     * "20" + 10 random digits + check digit. Codes starting with 2 are the
+     * GS1 in-store range, so they never clash with a manufacturer's barcode
+     * on a packet, and every scanner reads them.
      *
      * Collisions are checked against the `barcodes` history table (not just
      * the live product_variants.barcode column) because old codes stay
-     * permanently reserved there even after a variant's barcode changes —
-     * checking the live column only lets a stale historical code be handed
-     * out again, which then dies on the table's unique constraint.
+     * permanently reserved there even after a variant's barcode changes.
      */
-    public static function generate(Product $product, ProductVariant $variant): string
+    public static function generate(?Product $product = null, ?ProductVariant $variant = null): string
     {
-        $year = date('y');
-        $categoryId = str_pad((string) ($product->category_id % 100), 2, '0', STR_PAD_LEFT);
-        $productId = str_pad((string) ($product->id % 10000), 4, '0', STR_PAD_LEFT);
-        $variantId = str_pad((string) ($variant->id % 10000), 4, '0', STR_PAD_LEFT);
-
-        $code = "{$year}{$categoryId}{$productId}{$variantId}";
-
-        $attempt = 0;
-        while (Barcode::where('barcode_number', $code)->where('variant_id', '!=', $variant->id)->exists()) {
-            $attempt++;
-            $code = substr($code, 0, 8).str_pad((string) (((int) substr($code, 8) + $attempt) % 10000), 4, '0', STR_PAD_LEFT);
-        }
+        do {
+            $body = '20';
+            for ($i = 0; $i < 10; $i++) {
+                $body .= random_int(0, 9);
+            }
+            $code = $body.self::ean13CheckDigit($body);
+        } while (
+            Barcode::where('barcode_number', $code)->exists()
+            || ProductVariant::withTrashed()->where('barcode', $code)->exists()
+        );
 
         return $code;
+    }
+
+    public static function ean13CheckDigit(string $twelve): int
+    {
+        $sum = 0;
+        foreach (str_split($twelve) as $i => $d) {
+            $sum += (int) $d * ($i % 2 ? 3 : 1);
+        }
+
+        return (10 - $sum % 10) % 10;
     }
 
     public static function assignToVariant(Product $product, ProductVariant $variant): ProductVariant
     {
         return DB::transaction(function () use ($product, $variant) {
-            $code = self::generate($product, $variant);
-
-            // Idempotent: this variant already holds this exact code (e.g.
-            // "Generate Barcode" clicked twice) — nothing to do.
-            $alreadyRecorded = Barcode::where('barcode_number', $code)->where('variant_id', $variant->id)->exists();
-            if ($variant->barcode === $code && $alreadyRecorded) {
+            // Idempotent: a variant that already has a real barcode keeps it
+            // (e.g. "Generate Barcode" clicked twice) — printed stickers stay valid.
+            if ($variant->barcode && ! str_starts_with($variant->barcode, 'TMP-')) {
                 return $variant;
             }
 
+            $code = self::generate($product, $variant);
             $variant->update(['barcode' => $code]);
 
-            if (! $alreadyRecorded) {
+            if (! Barcode::where('barcode_number', $code)->where('variant_id', $variant->id)->exists()) {
                 Barcode::create([
                     'variant_id' => $variant->id,
                     'barcode_number' => $code,
-                    'barcode_type' => 'code128',
+                    'barcode_type' => 'ean13',
                     'is_custom' => false,
                 ]);
             }
