@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  AlertTriangle, Banknote, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  AlertTriangle, ArrowRightLeft, Banknote, Combine, Split, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -19,7 +19,7 @@ import Receipt from '../../components/Receipt';
 import Keypad from '../../components/Keypad';
 import WaiterPicker, { initials } from '../../components/WaiterPicker';
 import KitchenSlip, { ORDER_TYPES } from '../../components/KitchenSlip';
-import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, cx, useToast } from '../../components/ui';
+import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, Select, cx, useToast } from '../../components/ui';
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 const PAY_ICONS = { cash: Banknote, card: CreditCard, jazzcash: Smartphone, easypaisa: Smartphone };
@@ -76,7 +76,8 @@ export default function Pos() {
   // Settings → Restaurant can require a waiter on every dine-in order
   const waiterMissing = restaurant && shop.requireWaiter && order.type === 'dine_in' && !order.waiter;
   const [view, setView] = useState('tables'); // restaurant: 'tables' | 'menu'
-  const [tableMenu, setTableMenu] = useState(null); // busy table tapped
+  const [tableMenu, setTableMenu] = useState(null); // busy table tapped: { orders, i }
+  const [tableAction, setTableAction] = useState(null); // { type: move|merge|split, order }
   // dishes whose recipe uses a low / finished kitchen item (warning only)
   const recipeAlerts = useQuery({
     queryKey: ['recipes', 'alerts'],
@@ -428,7 +429,7 @@ export default function Pos() {
             current={order}
             onPickTable={(no) => { setOrder((o) => ({ ...o, type: 'dine_in', table: String(no) })); setView('menu'); focusScan(); }}
             onNew={(type) => { setOrder((o) => ({ ...o, type, table: '' })); setView('menu'); focusScan(); }}
-            onOpenOrder={setTableMenu}
+            onOpenOrder={(list) => setTableMenu({ orders: list, i: 0 })}
           />
         ) : (
         <>
@@ -712,18 +713,45 @@ export default function Pos() {
 
       {paying && <PayModal totals={totals} customer={customer} onClose={() => { setPaying(false); focusScan(); }} payload={payload} onDone={completed} />}
       {resuming && <ResumeModal restaurant={restaurant} initialInvoice={typeof resuming === 'string' ? resuming : null} onClose={() => { setResuming(false); focusScan(); }} onDone={completed} onEdit={(sale) => { editHeld(sale); setView('menu'); }} />}
-      {tableMenu && (
-        <Modal open onClose={() => setTableMenu(null)} size="sm" title={tableMenu.table_no ? t('Table {n}', { n: tableMenu.table_no }) : tableMenu.invoice_number}>
-          <div className="mb-4 rounded-xl bg-slate-50 p-4 text-center">
-            <div className="num text-3xl font-bold text-slate-900">{money(tableMenu.grand_total)}</div>
-            <div className="text-sm text-slate-500">{t('{n} items', { n: tableMenu.items_count })} · {tableMenu.invoice_number}</div>
-          </div>
-          <div className="grid gap-2">
-            <Button size="lg" variant="secondary" icon={Plus} onClick={async () => { const res = await api.get(`/sales/${tableMenu.invoice_number}`); setTableMenu(null); await editHeld(res.data); setView('menu'); }}>{t('Add more items')}</Button>
-            <Button size="lg" variant="secondary" icon={Printer} onClick={() => { setResuming(tableMenu.invoice_number); setTableMenu(null); }}>{t('Print bill')}</Button>
-            <Button size="lg" variant="success" icon={Banknote} onClick={() => { setResuming(tableMenu.invoice_number); setTableMenu(null); }}>{t('Take payment')}</Button>
-          </div>
-        </Modal>
+      {tableMenu && (() => {
+        const o = tableMenu.orders[Math.min(tableMenu.i, tableMenu.orders.length - 1)];
+        const close = () => setTableMenu(null);
+        return (
+          <Modal open onClose={close} size="sm" title={o.table_no && o.order_type === 'dine_in' ? t('Table {n}', { n: o.table_no }) : o.invoice_number}>
+            {tableMenu.orders.length > 1 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {tableMenu.orders.map((x, i) => (
+                  <button key={x.invoice_number} type="button" onClick={() => setTableMenu((m) => ({ ...m, i }))} className={cx('rounded-full px-3 py-1.5 text-sm font-semibold transition', i === tableMenu.i ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/15')}>
+                    {t('Bill {n}', { n: i + 1 })} · <span className="num">{money(x.grand_total)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mb-4 rounded-2xl bg-slate-500/[0.06] p-4 text-center">
+              <div className="num text-3xl font-bold text-slate-900">{money(o.grand_total)}</div>
+              <div className="text-sm text-slate-500">{itemsLabel(t, o.items_count)} · {o.invoice_number}{o.waiter ? ` · ${o.waiter}` : ''}</div>
+            </div>
+            <div className="grid gap-2">
+              <Button size="lg" variant="secondary" icon={Plus} onClick={async () => { const res = await api.get(`/sales/${o.invoice_number}`); close(); await editHeld(res.data); setView('menu'); }}>{t('Add more items')}</Button>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="secondary" icon={ArrowRightLeft} onClick={() => { setTableAction({ type: 'move', order: o }); close(); }}>{t('Move')}</Button>
+                <Button variant="secondary" icon={Combine} onClick={() => { setTableAction({ type: 'merge', order: o }); close(); }}>{t('Merge')}</Button>
+                <Button variant="secondary" icon={Split} disabled={Number(o.items_count) < 1} onClick={() => { setTableAction({ type: 'split', order: o }); close(); }}>{t('Split bill')}</Button>
+              </div>
+              <Button size="lg" variant="secondary" icon={Printer} onClick={() => { setResuming(o.invoice_number); close(); }}>{t('Print bill')}</Button>
+              <Button size="lg" variant="success" icon={Banknote} onClick={() => { setResuming(o.invoice_number); close(); }}>{t('Take payment')}</Button>
+            </div>
+          </Modal>
+        );
+      })()}
+      {tableAction && (
+        <TableActionModal
+          action={tableAction}
+          areas={shop.tableAreas}
+          orders={heldOrders.data || []}
+          onClose={() => setTableAction(null)}
+          onDone={(msg) => { setTableAction(null); qc.invalidateQueries({ queryKey: ['sales', 'held'] }); qc.invalidateQueries({ queryKey: ['kitchen'] }); toast(msg); }}
+        />
       )}
       {serialPick && <SerialPicker line={serialPick.line} preselect={serialPick.preselect} onClose={() => { setSerialPick(null); focusScan(); }} onDone={(list) => { setSerials(serialPick.line, list); setSerialPick(null); focusScan(); }} />}
       <Modal open={!!kot} onClose={() => { setKot(null); focusScan(); }} size="sm" title={t('Kitchen order')}
@@ -1125,7 +1153,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                 <button
                   key={no}
                   type="button"
-                  onClick={() => (busy ? onOpenOrder(first) : onPickTable(no))}
+                  onClick={() => (busy ? onOpenOrder(list) : onPickTable(no))}
                   className={cx(
                     'relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 text-center transition active:scale-[0.97]',
                     busy ? 'border border-brand-600 bg-brand-600 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_12px_28px_-12px_var(--color-brand-700)]' : 'glass-tile glass-lift text-slate-700',
@@ -1139,6 +1167,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                       <span className="num mt-1 text-sm font-bold">{money(sum)}</span>
                       <span className="mt-0.5 flex items-center gap-1 text-xs text-brand-ink/80"><Clock className="size-3" /><span className="num">{t('{n} min', { n: minutesSince(first.created_at) })}</span></span>
                       <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow', statusTone[st] || statusTone.new)}>{t(statusLabel[st] || 'Sent to kitchen')}</span>
+                      {list.length > 1 && <span className="absolute -top-2 start-2 rounded-full bg-[rgb(255_255_255/0.95)] px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow ring-1 ring-slate-900/10">{t('{n} bills', { n: list.length })}</span>}
                       {first.waiter && <span className="absolute -bottom-2 start-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-[rgb(255_255_255/0.95)] px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow ring-1 ring-slate-900/10" title={first.waiter}>{first.waiter.split(' ')[0]}</span>}
                     </>
                   ) : (
@@ -1158,7 +1187,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
           <h2 className="mb-2 mt-6 text-base font-bold text-slate-800">{t('Other open orders')}</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {others.map((o) => (
-              <button key={o.invoice_number} type="button" onClick={() => onOpenOrder(o)} className="glass-tile glass-lift flex items-center justify-between rounded-xl px-4 py-3 text-start hover:border-brand-400">
+              <button key={o.invoice_number} type="button" onClick={() => onOpenOrder([o])} className="glass-tile glass-lift flex items-center justify-between rounded-xl px-4 py-3 text-start hover:border-brand-400">
                 <span>
                   <span className="block font-bold text-slate-900">{o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
                   <span className="text-sm text-slate-500">{o.waiter ? `${o.waiter} · ` : ''}{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
@@ -1172,3 +1201,143 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
     </div>
   );
 }
+
+// Move an open order to another table, merge other open orders into it, or
+// split it (some items — or part of a line — go to a new bill).
+function TableActionModal({ action, areas, orders, onClose, onDone }) {
+  const t = useT();
+  const { type, order } = action;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const where = (o) => (o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : `${t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · ${o.invoice_number}`);
+  const run = async (fn) => { setBusy(true); setError(null); try { await fn(); } catch (e) { setError(e); } finally { setBusy(false); } };
+
+  // ----- move: pick a free table
+  if (type === 'move') {
+    const busyTables = new Set(orders.filter((o) => o.invoice_number !== order.invoice_number && o.order_type === 'dine_in' && o.table_no).map((o) => o.table_no.toLowerCase()));
+    const move = (no) => run(async () => { await api.post(`/sales/${order.invoice_number}/move`, { table_no: no }); onDone(t('Moved to table {n}', { n: no })); });
+    return (
+      <Modal open onClose={onClose} size="lg" title={t('Move {from} to…', { from: where(order) })}>
+        <ErrorBox error={error} />
+        <p className="mb-4 text-sm text-slate-500">{t('Tap a free table. Busy tables are greyed out — to put two orders on one bill use Merge.')}</p>
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+          {areas.filter((a) => a.tables.length).map((a, ai) => (
+            <div key={ai}>
+              {(areas.length > 1 || a.name) && <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{a.name || t('Tables')}</h4>}
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                {a.tables.map((tb) => {
+                  const no = String(tb.no);
+                  const isBusy = busyTables.has(no.toLowerCase());
+                  const here = order.order_type === 'dine_in' && (order.table_no || '').toLowerCase() === no.toLowerCase();
+                  return (
+                    <button key={no} type="button" disabled={isBusy || here || busy} onClick={() => move(no)}
+                      className={cx('flex aspect-square flex-col items-center justify-center rounded-2xl text-center transition', here ? 'bg-brand-600 text-brand-ink' : isBusy ? 'bg-slate-500/10 text-slate-400' : 'glass-tile glass-lift text-slate-800')}>
+                      <span className="num text-2xl font-extrabold leading-none">{no}</span>
+                      <span className="mt-1 text-[10px] font-semibold uppercase">{here ? t('Now') : isBusy ? t('Busy') : t('Free')}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+    );
+  }
+
+  // ----- merge: choose other open orders to bring onto this bill
+  if (type === 'merge') {
+    return <MergeOrders order={order} orders={orders} where={where} busy={busy} error={error} onClose={onClose}
+      onMerge={(from) => run(async () => { await api.post(`/sales/${order.invoice_number}/merge`, { from }); onDone(t('Orders merged into {to}', { to: where(order) })); })} />;
+  }
+
+  return <SplitBill order={order} areas={areas} where={where} busy={busy} error={error} onClose={onClose}
+    onSplit={(items, tableNo) => run(async () => { const r = await api.post(`/sales/${order.invoice_number}/split`, { items, table_no: tableNo || null }); onDone(t('New bill {inv} made', { inv: r.new?.invoice_number || r.new?.data?.invoice_number || '' })); })} />;
+}
+
+function MergeOrders({ order, orders, where, busy, error, onClose, onMerge }) {
+  const t = useT();
+  const others = orders.filter((o) => o.invoice_number !== order.invoice_number);
+  const [picked, setPicked] = useState([]);
+  const toggle = (inv) => setPicked((p) => (p.includes(inv) ? p.filter((x) => x !== inv) : [...p, inv]));
+  const total = Number(order.grand_total) + others.filter((o) => picked.includes(o.invoice_number)).reduce((a, o) => a + Number(o.grand_total), 0);
+  return (
+    <Modal open onClose={onClose} title={t('Merge into {to}', { to: where(order) })}
+      footer={<><Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button><Button size="lg" icon={Combine} loading={busy} disabled={!picked.length} onClick={() => onMerge(picked)}>{t('Merge — total {amount}', { amount: money(total) })}</Button></>}>
+      <ErrorBox error={error} />
+      <p className="mb-3 text-sm text-slate-500">{t('Choose the orders to put on this bill. Their items move here and those tables become free.')}</p>
+      {!others.length ? <p className="py-6 text-center text-slate-500">{t('There are no other open orders.')}</p> : (
+        <div className="max-h-[55vh] space-y-2 overflow-y-auto">
+          {others.map((o) => (
+            <label key={o.invoice_number} className={cx('flex cursor-pointer items-center gap-3 rounded-2xl p-3 ring-1 ring-inset transition', picked.includes(o.invoice_number) ? 'bg-brand-50 ring-brand-500' : 'ring-slate-900/10 hover:bg-slate-500/[0.04]')}>
+              <input type="checkbox" className="size-5 accent-brand-600" checked={picked.includes(o.invoice_number)} onChange={() => toggle(o.invoice_number)} />
+              <span className="min-w-0 flex-1"><span className="block font-semibold text-slate-900">{where(o)}{o.order_type === 'dine_in' && o.table_no ? <span className="num font-normal text-slate-500"> · {o.invoice_number}</span> : null}</span><span className="block text-xs text-slate-500">{itemsLabel(t, o.items_count)}{o.waiter ? ` · ${o.waiter}` : ''}</span></span>
+              <span className="num font-bold text-slate-900">{money(o.grand_total)}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function SplitBill({ order, areas, where, busy, error, onClose, onSplit }) {
+  const t = useT();
+  const full = useQuery({ queryKey: ['sales', 'one', order.invoice_number], queryFn: () => api.get(`/sales/${order.invoice_number}`), select: (r) => r.data });
+  const [qtys, setQtys] = useState({});
+  const [table, setTable] = useState('');
+  const items = full.data?.items || [];
+  const setQ = (it, v) => setQtys((q) => ({ ...q, [it.id]: Math.max(0, Math.min(Number(it.quantity), Math.round(Number(v || 0) * 1000) / 1000)) }));
+  const moving = items.filter((it) => (qtys[it.id] || 0) > 0);
+  const lineShare = (it) => (Number(it.total_price) * (qtys[it.id] || 0)) / Number(it.quantity || 1);
+  const newSub = moving.reduce((a, it) => a + lineShare(it), 0);
+  const sub = Number(full.data?.subtotal || 0);
+  const share = sub > 0 ? newSub / sub : 0;
+  const newTotal = newSub - Number(full.data?.discount_amount || 0) * share + Number(full.data?.tax_amount || 0) * share;
+  const left = items.reduce((a, it) => a + Number(it.quantity) - (qtys[it.id] || 0), 0);
+  const allTables = areas.flatMap((a) => a.tables.map((tb) => String(tb.no)));
+  return (
+    <Modal open onClose={onClose} size="lg" title={t('Split bill — {from}', { from: where(order) })}
+      footer={<><Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button><Button size="lg" icon={Split} loading={busy} disabled={!moving.length || left <= 0} onClick={() => onSplit(moving.map((it) => ({ id: it.id, quantity: qtys[it.id] })), table)}>{t('Make new bill — {amount}', { amount: money(newTotal) })}</Button></>}>
+      <ErrorBox error={error} />
+      <p className="mb-3 text-sm text-slate-500">{t('Choose what goes on the new bill (e.g. what one guest ate). You can move part of a line — 1 of 3.')}</p>
+      {full.isLoading ? <Loading /> : (
+        <div className="space-y-2">
+          {items.map((it) => {
+            const q = qtys[it.id] || 0;
+            return (
+              <div key={it.id} className={cx('flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1 ring-inset', q > 0 ? 'bg-brand-50 ring-brand-500' : 'ring-slate-900/10')}>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-semibold text-slate-900">{it.product_name}{variantLabel(it) ? ` (${variantLabel(it)})` : ''}</div>
+                  <div className="num text-xs text-slate-500">{qty(it.quantity)} × {money(Number(it.total_price) / Number(it.quantity || 1))} = {money(it.total_price)}</div>
+                </div>
+                <div className="flex items-center rounded-xl bg-white/80 ring-1 ring-slate-900/10">
+                  <button type="button" onClick={() => setQ(it, q - 1)} disabled={q <= 0} className="grid size-10 place-items-center text-slate-600 disabled:opacity-30" aria-label="−"><Minus className="size-4" /></button>
+                  <input inputMode="decimal" className="num h-10 w-14 bg-transparent text-center text-base font-bold focus:outline-none" value={q} onChange={(e) => setQ(it, e.target.value)} aria-label={t('Quantity')} />
+                  <button type="button" onClick={() => setQ(it, q + 1)} disabled={q >= Number(it.quantity)} className="grid size-10 place-items-center text-slate-600 disabled:opacity-30" aria-label="+"><Plus className="size-4" /></button>
+                </div>
+                <button type="button" onClick={() => setQ(it, q >= Number(it.quantity) ? 0 : it.quantity)} className="rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-100">{q >= Number(it.quantity) ? t('None') : t('All')}</button>
+              </div>
+            );
+          })}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-slate-700">{t('New bill stays on')}</span>
+              <Select value={table} onChange={(e) => setTable(e.target.value)}>
+                <option value="">{order.table_no ? t('Same table ({n})', { n: order.table_no }) : t('Same as this order')}</option>
+                {allTables.filter((no) => no.toLowerCase() !== (order.table_no || '').toLowerCase()).map((no) => <option key={no} value={no}>{t('Table {n}', { n: no })}</option>)}
+              </Select>
+            </label>
+            <div className="rounded-2xl bg-slate-500/[0.06] p-3 text-sm">
+              <div className="flex justify-between"><span className="text-slate-500">{t('New bill')}</span><span className="num font-bold text-slate-900">{money(newTotal)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">{t('Stays on this bill')}</span><span className="num font-bold text-slate-900">{money(Number(full.data?.grand_total || 0) - newTotal)}</span></div>
+            </div>
+          </div>
+          {left <= 0 && moving.length > 0 && <p className="text-sm font-medium text-amber-700">{t('Leave at least one item on this bill (to move everything, use Move table).')}</p>}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+const itemsLabel = (t, n) => (Number(n) === 1 ? t('1 item') : t('{n} items', { n }));
