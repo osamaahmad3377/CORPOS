@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useScanner from '../../lib/useScanner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImageIcon, Package, Pencil, Plus, ScanBarcode, Search, Trash2, X } from 'lucide-react';
+import { ImageIcon, Package, Pencil, Plus, ScanBarcode, Search, Trash2, Upload, X } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -12,6 +12,7 @@ import { money, qty, variantLabel } from '../../lib/format';
 import { Page } from '../../components/Layout';
 import ProductForm from '../../components/ProductForm';
 import RecipeEditor from '../../components/RecipeEditor';
+import { ExportItemsButton, ImportItemsModal } from '../../components/ItemTransfer';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, Table, Td, Textarea, Th,
   useConfirm, useToast,
@@ -43,6 +44,7 @@ export default function Products() {
   const [term, setTerm] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [active, setActive] = useState('');
+  const [importing, setImporting] = useState(false);
   const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
   const [adding, setAdding] = useState(searchParams.get('new') ? { barcode: '', name: '' } : null); // { barcode, name } when open
@@ -77,7 +79,13 @@ export default function Products() {
       <PageHeader
         title={label}
         subtitle={shop.isRestaurant ? t('Your dishes and prices. Switch a dish off when it is not available — it can be ordered any number of times while it is on.') : t('Everything you sell, with price and stock. Scan a barcode in the search box to find an item, or add a new one.')}
-        actions={can('products.create') && <Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: '', name: '' })}>{t('Add new item')}</Button>}
+        actions={(
+          <>
+            {can('products.create') && <Button variant="secondary" size="lg" icon={Upload} onClick={() => setImporting(true)}>{t('Import')}</Button>}
+            <ExportItemsButton />
+            {can('products.create') && <Button icon={Plus} size="lg" onClick={() => setAdding({ barcode: '', name: '' })}>{t('Add new item')}</Button>}
+          </>
+        )}
       />
 
       <Card>
@@ -165,6 +173,7 @@ export default function Products() {
 
       <ProductForm open={!!adding} onClose={() => setAdding(null)} initialBarcode={adding?.barcode} initialName={adding?.name} onSaved={(p) => { setSearch(''); setOpenId(p.id); }} />
       {openId && <ProductDetail id={openId} onClose={() => setOpenId(null)} />}
+      {importing && <ImportItemsModal onClose={() => setImporting(false)} />}
     </Page>
   );
 }
