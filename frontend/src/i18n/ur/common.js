@@ -161,7 +161,7 @@ export default {
   // sign-in page
   'Everything your shop needs, in one place.': 'آپ کی دکان کی ہر ضرورت، ایک ہی جگہ۔',
   'Works without internet — your data stays on this computer': 'انٹرنیٹ کے بغیر چلتا ہے — آپ کا ڈیٹا اسی کمپیوٹر پر رہتا ہے',
-  'English and Urdu, easy for everyone': 'انگریزی اور اردو، ہر ایک کے لیے آسان',
+  'Many languages, easy for everyone': 'کئی زبانیں، ہر ایک کے لیے آسان',
   'Bills, stock, udhaar and reports': 'بل، اسٹاک، ادھار اور رپورٹس',
   'Every person has their own login': 'ہر شخص کا اپنا لاگ اِن',
   'Welcome back': 'خوش آمدید',

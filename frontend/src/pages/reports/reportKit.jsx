@@ -20,15 +20,15 @@ const parseDay = (s) => {
 // ("08/10/2026") and Urdu times ("4:05 شام") so mixed scripts never jumble;
 // month names (prettyMonth) are in Urdu.
 export function useDates() {
-  const { lang, t } = useLang();
-  const ur = lang === 'ur';
+  const { isRtl, locale, t } = useLang();
+  const ur = isRtl;
   const loc = ur ? 'en-GB' : 'en-PK';
   const prettyDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, ur ? { day: '2-digit', month: '2-digit', year: 'numeric' } : { day: '2-digit', month: 'short', year: 'numeric' }) : '');
   const shortDate = (s) => (s ? parseDay(s).toLocaleDateString(loc, ur ? { day: '2-digit', month: '2-digit' } : { day: 'numeric', month: 'short' }) : '');
   const prettyMonth = (s) => {
     if (!s) return '';
     const [y, m] = s.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(ur ? 'ur-PK' : 'en-PK', { month: 'long', year: 'numeric' });
+    return new Date(y, m - 1, 1).toLocaleDateString(locale || 'en-PK', { month: 'long', year: 'numeric' });
   };
   const time = (v) => {
     if (!v) return '';

@@ -12,6 +12,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
+import { langInfo } from '../lib/languages';
 import { money, qty } from '../lib/format';
 import { Page } from '../components/Layout';
 import { Badge, Card, cx } from '../components/ui';
@@ -86,7 +87,7 @@ export default function Home() {
   const navigate = useNavigate();
   const restaurant = shop.isRestaurant;
   const dark = shop.isDark;
-  const locale = lang === 'ur' ? 'ur-PK' : 'en-GB';
+  const locale = lang === 'en' ? 'en-GB' : langInfo(lang).locale;
   const [days, setDays] = useState(() => { try { return Number(localStorage.getItem('corepos_home_days')) === 30 ? 30 : 7; } catch { return 7; } });
   const pickDays = (d) => { setDays(d); try { localStorage.setItem('corepos_home_days', String(d)); } catch { /* ignore */ } };
 
@@ -346,7 +347,7 @@ export default function Home() {
 // Restaurant: the next table bookings today.
 function TodayBookings({ className }) {
   const { t, lang } = useLang();
-  const locale = lang === 'ur' ? 'ur-PK' : 'en-GB';
+  const locale = lang === 'en' ? 'en-GB' : langInfo(lang).locale;
   const q = useQuery({ queryKey: ['reservations', 'today'], queryFn: () => api.get('/reservations/today'), refetchInterval: 60_000, select: (r) => r.data || [] });
   const list = (q.data || []).filter((r) => new Date(r.ends_at).getTime() > Date.now()).slice(0, 5);
   const time = (v) => new Date(v).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });

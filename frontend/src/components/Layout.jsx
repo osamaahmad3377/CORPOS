@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BadgePercent, BarChart3, Beef, Bell, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
-  Bike, CalendarClock, Moon, ReceiptText, UserRound, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
+  Bike, CalendarClock, Check, ChevronDown, Moon, ReceiptText, UserRound, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
+import { LANGUAGES, fontVar } from '../lib/languages';
 import { cx } from './ui';
 import { NextcoreLogo } from './Brand';
 import BusinessSwitcher from './BusinessSwitcher';
@@ -174,18 +175,51 @@ function KitchenAlerts() {
   );
 }
 
-export function LanguageSwitch({ className }) {
-  const { lang, setLang } = useLang();
+export function LanguageSwitch({ className, up = false }) {
+  const { lang, setLang, info } = useLang();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
   return (
-    <button
-      type="button"
-      onClick={() => setLang(lang === 'ur' ? 'en' : 'ur')}
-      className={cx('flex h-10 items-center gap-2 rounded-xl border border-slate-900/10 bg-white/60 px-3 text-[15px] font-semibold text-slate-700 transition hover:bg-white/90', className)}
-      title="English / اردو"
-    >
-      <Languages className="size-5 text-brand-700" />
-      {lang === 'ur' ? <span style={{ fontFamily: 'var(--font-sans)' }}>English</span> : <span style={{ fontFamily: 'var(--font-urdu)' }}>اردو</span>}
-    </button>
+    <div ref={ref} className={cx('relative', className)}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex h-10 items-center gap-2 rounded-xl border border-slate-900/10 bg-white/60 px-3 text-[15px] font-semibold text-slate-700 transition hover:bg-white/90"
+        title="Language / زبان"
+      >
+        <Languages className="size-5 text-brand-700" />
+        <span lang={lang} style={{ fontFamily: fontVar(info) }}>{info.native}</span>
+        <ChevronDown className={cx('size-4 text-slate-400 transition', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div role="listbox" aria-label="Language" className={cx('glass-strong absolute end-0 z-50 w-60 animate-pop-in overflow-hidden rounded-2xl p-1.5', up ? 'bottom-12' : 'top-12')}>
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              role="option"
+              aria-selected={l.code === lang}
+              onClick={() => { setLang(l.code); setOpen(false); }}
+              className={cx('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-start transition', l.code === lang ? 'bg-brand-50 text-brand-800' : 'text-slate-700 hover:bg-slate-500/10')}
+            >
+              <span lang={l.code} dir={l.dir} className="min-w-0 flex-1 truncate text-[17px] font-semibold" style={{ fontFamily: fontVar(l), lineHeight: l.font === 'nastaliq' ? 1.9 : 1.5 }}>{l.native}</span>
+              {l.code !== 'en' && <span dir="ltr" className="shrink-0 text-xs text-slate-500" style={{ fontFamily: 'var(--font-sans)' }}>{l.name}</span>}
+              {l.code === lang && <Check className="size-4 shrink-0 text-brand-700" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

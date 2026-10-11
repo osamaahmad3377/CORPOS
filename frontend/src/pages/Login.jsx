@@ -58,7 +58,7 @@ export default function Login() {
           <ul className="mt-8 space-y-4 text-[17px] text-[#c3cad8]">
             {[
               [WifiOff, t('Works without internet — your data stays on this computer')],
-              [Languages, t('English and Urdu, easy for everyone')],
+              [Languages, t('Many languages, easy for everyone')],
               [ReceiptText, t('Bills, stock, udhaar and reports')],
               [ShieldCheck, t('Every person has their own login')],
             ].map(([Icon, text]) => (
@@ -74,7 +74,7 @@ export default function Login() {
 
       {/* sign-in form */}
       <main className="relative flex flex-1 flex-col items-center justify-center px-4 py-16">
-        <LanguageSwitch className="absolute end-4 top-4" />
+        <div className="absolute end-4 top-4 z-10"><LanguageSwitch /></div>
         <form onSubmit={submit} className="glass-strong w-full max-w-[28rem] rounded-3xl p-7 sm:p-9">
           <div className="mb-8 text-center lg:text-start">
             <NextcoreLogo className="mx-auto mb-8 h-12 lg:hidden" />

@@ -10,6 +10,7 @@ import { api, switchBusiness } from '../../lib/api';
 import { BusinessBadge, useBusinesses } from '../../components/BusinessSwitcher';
 import { useAuth } from '../../lib/auth';
 import { LOGO_SIZE, clampLogo, deliveryAreas, tableAreas, useShop } from '../../lib/shop';
+import { LANGUAGES, fontVar } from '../../lib/languages';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
@@ -748,7 +749,7 @@ function BusinessForm({ d, set, err }) {
 }
 
 // Language is chosen per computer (saved in this browser), not for the whole
-// shop — the same choice as the English / اردو button at the top.
+// shop — the same choice as the language button at the top.
 // Printers are chosen per computer (each till has its own printer).
 const PRINT_JOBS = [
   { kind: 'receipt', label: 'Bill / receipt printer', hint: 'Usually the small thermal printer (58 or 80 mm) at the counter.', auto: true, copies: true },
@@ -832,17 +833,13 @@ function PrintersCard() {
 
 function LanguageCard() {
   const { lang, setLang, t } = useLang();
-  const choices = [
-    { code: 'en', label: 'English', font: 'var(--font-sans)' },
-    { code: 'ur', label: 'اردو', font: 'var(--font-urdu)' },
-  ];
   return (
     <div className="max-w-3xl">
       <Card>
         <CardHeader title={t('Language')} subtitle={t('Choose the language for menus, buttons and receipts.')} />
         <div className="space-y-4 p-5">
           <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('Language')}>
-            {choices.map((c) => {
+            {LANGUAGES.map((c) => {
               const active = lang === c.code;
               return (
                 <button
@@ -851,10 +848,13 @@ function LanguageCard() {
                   role="radio"
                   aria-checked={active}
                   onClick={() => setLang(c.code)}
-                  className={cx('flex min-h-16 items-center justify-between gap-3 rounded-xl border-2 px-5 py-3 text-xl font-semibold transition-colors',
+                  className={cx('flex min-h-16 items-center justify-between gap-3 rounded-xl border-2 px-5 py-3 transition-colors',
                     active ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
                 >
-                  <span lang={c.code} style={{ fontFamily: c.font }}>{c.label}</span>
+                  <span className="min-w-0 text-start">
+                    <span lang={c.code} dir={c.dir} className="block text-xl font-semibold" style={{ fontFamily: fontVar(c), lineHeight: c.font === 'nastaliq' ? 2 : 1.5 }}>{c.native}</span>
+                    {c.code !== 'en' && <span dir="ltr" className="block text-xs font-medium text-slate-500" style={{ fontFamily: 'var(--font-sans)' }}>{c.name}</span>}
+                  </span>
                   {active && <Check className="size-6 shrink-0" />}
                 </button>
               );
@@ -862,6 +862,7 @@ function LanguageCard() {
           </div>
           <p className="text-sm text-slate-600">{t('This is saved on this computer only. Each computer in the shop can use its own language.')}</p>
           <p className="text-sm text-slate-500">{t('Item, customer and supplier names stay as you typed them.')}</p>
+          <p className="text-sm text-slate-500">{t('Punjabi, Sindhi, Pashto and Balochi show Urdu where a word is not translated yet.')}</p>
         </div>
       </Card>
     </div>

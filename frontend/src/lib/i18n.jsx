@@ -1,12 +1,18 @@
-// English / Urdu. Every visible string goes through t() with its English text; the
-// English text is the key, and src/i18n/ur/*.js map it to Urdu. Missing
-// translations fall back to English, so nothing ever shows blank.
+// Every visible string goes through t() with its English text; the English
+// text is the key, and src/i18n/<lang>/*.js map it to that language (see
+// lib/languages.js). Missing translations fall back (e.g. Pashto -> Urdu ->
+// English), so nothing ever shows blank.
 //   t('Today\'s sale')                 -> "آج کی سیل"
 //   t('{n} items', { n: 3 })           -> "3 اشیاء"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { LANG_CODES, langInfo } from './languages';
 
-const modules = import.meta.glob('../i18n/ur/*.js', { eager: true });
-const UR = Object.assign({}, ...Object.values(modules).map((m) => m.default || {}));
+const modules = import.meta.glob('../i18n/*/*.js', { eager: true });
+const DICTS = {};
+for (const [path, mod] of Object.entries(modules)) {
+  const code = path.split('/').at(-2);
+  DICTS[code] = Object.assign(DICTS[code] || {}, mod.default || {});
+}
 
 const KEY = 'corepos_lang';
 const LangContext = createContext(null);
@@ -18,37 +24,43 @@ function interpolate(str, vars) {
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(() => {
-    try { return localStorage.getItem(KEY) === 'ur' ? 'ur' : 'en'; } catch { return 'en'; }
+    try { const l = localStorage.getItem(KEY); return LANG_CODES.includes(l) ? l : 'en'; } catch { return 'en'; }
   });
+  const info = langInfo(lang);
 
   useEffect(() => {
     const el = document.documentElement;
     el.lang = lang;
-    el.dir = lang === 'ur' ? 'rtl' : 'ltr';
-  }, [lang]);
+    el.dir = info.dir;
+    el.dataset.font = info.font;
+  }, [lang, info]);
 
   const setLang = useCallback((l) => {
-    setLangState(l);
+    setLangState(LANG_CODES.includes(l) ? l : 'en');
     try { localStorage.setItem(KEY, l); } catch { /* ignore */ }
   }, []);
 
   const value = useMemo(() => {
+    const chain = [DICTS[lang], info.fallback && DICTS[info.fallback]].filter(Boolean);
     const t = (str, vars) => {
       if (str == null) return '';
-      const out = lang === 'ur' ? (UR[str] ?? str) : str;
-      if (import.meta.env.DEV && lang === 'ur' && UR[str] === undefined && typeof str === 'string' && /[a-z]/i.test(str)) {
-        (window.__missingUrdu ||= new Set()).add(str);
+      let out;
+      if (lang !== 'en') for (const d of chain) { if (d[str] !== undefined) { out = d[str]; break; } }
+      if (import.meta.env.DEV && lang !== 'en' && DICTS[lang]?.[str] === undefined && typeof str === 'string' && /[a-z]/i.test(str)) {
+        ((window.__missing ||= {})[lang] ||= new Set()).add(str);
       }
-      return interpolate(out, vars);
+      return interpolate(out ?? str, vars);
     };
-    return { lang, setLang, isUrdu: lang === 'ur', dir: lang === 'ur' ? 'rtl' : 'ltr', t };
-  }, [lang, setLang]);
+    const rtl = info.dir === 'rtl';
+    // isUrdu: any right-to-left language (prints use the same no-monospace, tall-line layout)
+    return { lang, setLang, info, isRtl: rtl, isUrdu: rtl, dir: info.dir, locale: info.locale, t };
+  }, [lang, setLang, info]);
 
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
 // Fallback (English, no-op switch) if a component ever renders outside the provider.
-const FALLBACK = { lang: 'en', setLang: () => {}, isUrdu: false, dir: 'ltr', t: (s, v) => interpolate(s ?? '', v) };
+const FALLBACK = { lang: 'en', setLang: () => {}, info: langInfo('en'), isRtl: false, isUrdu: false, dir: 'ltr', locale: 'en-PK', t: (s, v) => interpolate(s ?? '', v) };
 
 export const useLang = () => useContext(LangContext) || FALLBACK;
 

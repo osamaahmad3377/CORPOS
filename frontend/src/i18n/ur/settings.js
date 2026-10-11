@@ -120,6 +120,7 @@ export default {
   'Choose the language for menus, buttons and receipts.': 'مینو، بٹن اور رسید کی زبان چُنیں۔',
   'This is saved on this computer only. Each computer in the shop can use its own language.': 'یہ صرف اسی کمپیوٹر پر محفوظ ہوتی ہے۔ دکان کا ہر کمپیوٹر اپنی زبان رکھ سکتا ہے۔',
   'Item, customer and supplier names stay as you typed them.': 'مال، گاہک اور سپلائر کے نام ویسے ہی رہتے ہیں جیسے آپ نے لکھے۔',
+  'Punjabi, Sindhi, Pashto and Balochi show Urdu where a word is not translated yet.': 'پنجابی، سندھی، پشتو اور بلوچی میں جہاں کوئی لفظ ابھی ترجمہ نہیں ہوا وہاں اردو نظر آتی ہے۔',
 
   // receipt preview
   'Sample item': 'نمونہ مال',

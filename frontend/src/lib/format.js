@@ -19,8 +19,8 @@ export function round3(v) {
   return Math.round(Number(v || 0) * 1000) / 1000;
 }
 
-// In Urdu mode dates are all digits (08/10/2026, 16:32) — no English month names.
-const isUrdu = () => typeof document !== 'undefined' && document.documentElement.lang === 'ur';
+// In right-to-left languages dates are all digits (08/10/2026, 16:32) — no English month names.
+const isUrdu = () => typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
 
 export function date(v) {
   if (!v) return '';

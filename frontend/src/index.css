@@ -3,6 +3,8 @@
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource/noto-nastaliq-urdu/400.css";
 @import "@fontsource/noto-nastaliq-urdu/700.css";
+@import "@fontsource/noto-naskh-arabic/400.css";
+@import "@fontsource/noto-naskh-arabic/700.css";
 
 /* class-based dark mode (html.dark) */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -12,6 +14,8 @@
   /* Inter first: it has no Urdu letters, so Urdu falls through to Nastaliq
      while English words / product names keep the clean Latin font. */
   --font-urdu: "Plus Jakarta Sans Variable", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", sans-serif;
+  /* Arabic, Persian, Sindhi, Pashto: Naskh (Nastaliq has no Sindhi ڪ) */
+  --font-naskh: "Plus Jakarta Sans Variable", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
   --color-brand-50: #edfcf4;
   --color-brand-100: #d4f8e5;
   --color-brand-500: #34dc85;
@@ -52,6 +56,9 @@ html { font-size: 17px; }
 html[dir=rtl] { font-size: 18px; }
 html[dir=rtl] body { font-family: var(--font-urdu); line-height: 2; }
 html[dir=rtl] input, html[dir=rtl] select, html[dir=rtl] textarea, html[dir=rtl] button { font-family: var(--font-urdu); }
+/* Naskh languages: every "Urdu font" use switches to Naskh, with calmer line heights. */
+html[data-font=naskh] { --font-urdu: var(--font-naskh); font-size: 17.5px; }
+html[data-font=naskh] body { line-height: 1.75; }
 /* Numbers, barcodes, dates and money stay left-to-right inside Urdu text. */
 html[dir=rtl] input[type=number], html[dir=rtl] input[type=date], html[dir=rtl] input[type=email],
 html[dir=rtl] input[type=password], html[dir=rtl] .font-mono, html[dir=rtl] .ltr {
@@ -62,6 +69,8 @@ html[dir=rtl] input[type=number] { text-align: right; }
 /* Nastaliq letters are tall — tight line-heights make lines overlap. */
 html[dir=rtl] [class*="leading-"] { line-height: 1.75; }
 html[dir=rtl] h1, html[dir=rtl] h2, html[dir=rtl] h3 { line-height: 1.7; }
+html[data-font=naskh] [class*="leading-"] { line-height: 1.55; }
+html[data-font=naskh] h1, html[data-font=naskh] h2, html[data-font=naskh] h3 { line-height: 1.5; }
 body { @apply bg-canvas text-slate-900 antialiased; }
 ::selection { background: color-mix(in srgb, var(--color-brand-600) 28%, transparent); }
 
