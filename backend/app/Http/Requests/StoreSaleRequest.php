@@ -28,6 +28,13 @@ class StoreSaleRequest extends FormRequest
             'order_type' => ['nullable', 'string', 'in:dine_in,takeaway,delivery'],
             'table_no' => ['nullable', 'string', 'max:20'],
             'waiter_id' => ['nullable', 'integer', 'exists:waiters,id'],
+            // delivery orders: where it goes and the delivery charge
+            'delivery_fee' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'delivery_name' => ['nullable', 'string', 'max:80'],
+            'delivery_phone' => ['nullable', 'string', 'max:30'],
+            'delivery_address' => ['nullable', 'string', 'max:255'],
+            'delivery_area' => ['nullable', 'string', 'max:80'],
+            'rider_id' => ['nullable', 'integer', 'exists:riders,id'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'tax_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['required', 'string', Rule::in(array_keys(config('pos.payment_methods')))],

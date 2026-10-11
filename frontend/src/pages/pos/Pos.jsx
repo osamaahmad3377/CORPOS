@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowRightLeft, Banknote, Combine, Split, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
+  AlertTriangle, ArrowRightLeft, Bike, CalendarClock, MapPin, Banknote, Combine, Split, ChefHat, Clock, CreditCard, FileText, Gift, Grid3x3, LayoutGrid, ShoppingBag, Truck, Users, UtensilsCrossed, ImageIcon, ListChecks, MessageCircle, Minus, PauseCircle, PlayCircle, Plus,
   Printer, ScanBarcode, ShoppingCart, Smartphone, Tag, Trash2, UserPlus, Vault, X,
 } from 'lucide-react';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
@@ -18,9 +18,12 @@ import ProductForm from '../../components/ProductForm';
 import Receipt from '../../components/Receipt';
 import Keypad from '../../components/Keypad';
 import WaiterPicker, { initials } from '../../components/WaiterPicker';
+import DeliveryDetails from '../../components/DeliveryDetails';
 import KitchenSlip, { ORDER_TYPES } from '../../components/KitchenSlip';
 import { Badge, Button, ErrorBox, Field, Input, Loading, Modal, Select, cx, useToast } from '../../components/ui';
 
+// restaurant order details: table / waiter, or the delivery customer
+const EMPTY_ORDER = { table: '', note: '', waiter: null, name: '', phone: '', address: '', area: '', fee: '', rider: null };
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 const PAY_ICONS = { cash: Banknote, card: CreditCard, jazzcash: Smartphone, easypaisa: Smartphone };
 
@@ -66,7 +69,7 @@ export default function Pos() {
   const [busy, setBusy] = useState(false);
   const [serialPick, setSerialPick] = useState(null); // { line, preselect }
   const [qtyEdit, setQtyEdit] = useState(null); // cart line being edited on the keypad
-  const [order, setOrder] = useState({ type: 'dine_in', table: '', note: '', waiter: null }); // restaurant mode
+  const [order, setOrder] = useState({ type: 'dine_in', ...EMPTY_ORDER }); // restaurant mode
   const [kot, setKot] = useState(null); // kitchen slip to print
   const [priceLevel, setPriceLevel] = useState(null); // null = follow the customer
   const [pointsToUse, setPointsToUse] = useState('');
@@ -75,6 +78,12 @@ export default function Pos() {
   const restaurant = shop.isRestaurant;
   // Settings → Restaurant can require a waiter on every dine-in order
   const waiterMissing = restaurant && shop.requireWaiter && order.type === 'dine_in' && !order.waiter;
+  // delivery: phone and address are needed (Settings → Restaurant can relax it)
+  const isDelivery = restaurant && order.type === 'delivery';
+  const deliveryMissing = isDelivery && shop.requireAddress && (!order.phone.trim() || !order.address.trim());
+  const defaultFee = shop.deliveryFee > 0 ? String(shop.deliveryFee) : '';
+  const deliveryFee = isDelivery ? Math.max(0, Math.round(Number(order.fee || 0) * 100) / 100) : 0;
+  const blocked = waiterMissing || deliveryMissing;
   const [view, setView] = useState('tables'); // restaurant: 'tables' | 'menu'
   const [tableMenu, setTableMenu] = useState(null); // busy table tapped: { orders, i }
   const [tableAction, setTableAction] = useState(null); // { type: move|merge|split, order }
@@ -91,6 +100,25 @@ export default function Pos() {
     if (!all.length) return null;
     const names = [...new Set(all.map((x) => x.name))];
     return { out: all.some((x) => x.level === 'out'), names };
+  };
+  // today's table bookings: a table shows "Reserved" from shortly before the time
+  const reservations = useQuery({
+    queryKey: ['reservations', 'today'],
+    queryFn: () => api.get('/reservations/today'),
+    enabled: restaurant,
+    refetchInterval: 60_000,
+    select: (r) => r.data || [],
+  });
+  const bookings = useMemo(() => activeBookings(reservations.data || [], shop.reservationHold), [reservations.data, shop.reservationHold]);
+  const [seatAsk, setSeatAsk] = useState(null); // { no, booking }
+  const startTable = (no, extra = {}) => { setOrder((o) => ({ ...o, type: 'dine_in', table: String(no), ...extra })); setView('menu'); focusScan(); };
+  const seatBooking = async (b, no) => {
+    try {
+      await api.post(`/reservations/${b.id}/status`, { status: 'seated', table_no: String(no) });
+      qc.invalidateQueries({ queryKey: ['reservations'] });
+      toast(t('{name} seated at table {n}', { name: b.name, n: no }));
+    } catch (err) { toast(err.message, 'error'); return; }
+    startTable(no, { note: b.notes || '' });
   };
   const heldOrders = useQuery({
     queryKey: ['sales', 'held', 'tables'],
@@ -163,7 +191,7 @@ export default function Pos() {
     setPointsToUse('');
     setQuoteId(null);
     setDiscount({ value: '', mode: 'amount' });
-    setOrder((o) => ({ type: o.type, table: '', note: '', waiter: null }));
+    setOrder((o) => ({ type: o.type, ...EMPTY_ORDER, fee: o.type === 'delivery' ? defaultFee : '' }));
     focusScan();
   };
 
@@ -216,7 +244,8 @@ export default function Pos() {
     items: cart.filter((l) => Number(l.qty) > 0).map((l) => ({ variant_id: l.variant_id, quantity: Number(l.qty), discount_per_item: Number(l.discount || 0) })),
     price_level: level,
     points_redeemed: Number(pointsToUse || 0) || undefined,
-  }), [cart, customer?.id, level, pointsToUse]);
+    ...(isDelivery ? { order_type: 'delivery', delivery_fee: deliveryFee } : {}),
+  }), [cart, customer?.id, level, pointsToUse, isDelivery, deliveryFee]);
   const [previewKey, setPreviewKey] = useState(null);
   useEffect(() => { const h = setTimeout(() => setPreviewKey(JSON.stringify(previewBody)), 250); return () => clearTimeout(h); }, [previewBody]);
   const previewEnabled = !!previewKey && cart.length > 0 && !cart.some((l) => !(Number(l.qty) > 0));
@@ -247,6 +276,7 @@ export default function Pos() {
         discount: Math.round((pv.discount_amount + pv.points_discount) * 100) / 100,
         cashierDiscount: pv.discount_amount,
         tax: pv.tax_amount,
+        deliveryFee: pv.delivery_fee || 0,
         total: pv.grand_total,
         items: cart.length,
         promo: pv.promo_discount,
@@ -259,8 +289,8 @@ export default function Pos() {
     const saleDiscount = Math.min(Math.max(discount.mode === 'percent' ? (subtotal * dv) / 100 : dv, 0), subtotal);
     const tax = shop.taxEnabled ? Math.round((subtotal - saleDiscount) * shop.taxPercent) / 100 : 0;
     const round2 = (n) => Math.round(n * 100) / 100;
-    return { subtotal: round2(subtotal), discount: round2(saleDiscount), cashierDiscount: round2(saleDiscount), tax: round2(tax), total: round2(subtotal - saleDiscount + tax), items: cart.length };
-  }, [cart, discount, shop.taxEnabled, shop.taxPercent, pv]);
+    return { subtotal: round2(subtotal), discount: round2(saleDiscount), cashierDiscount: round2(saleDiscount), tax: round2(tax), deliveryFee, total: round2(subtotal - saleDiscount + tax + deliveryFee), items: cart.length };
+  }, [cart, discount, shop.taxEnabled, shop.taxPercent, pv, deliveryFee]);
 
   const lineProblem = (l) => {
     if (!(Number(l.qty) > 0)) return t('Enter a quantity above 0');
@@ -278,12 +308,16 @@ export default function Pos() {
     tax_amount: totals.tax,
     price_level: level,
     ...(Number(pointsToUse) > 0 ? { points_redeemed: Number(pointsToUse) } : {}),
-    ...(restaurant ? { order_type: order.type, table_no: order.table.trim() || null, notes: order.note.trim() || null, waiter_id: order.waiter || null } : {}),
+    ...(restaurant ? { order_type: order.type, table_no: order.type === 'dine_in' ? order.table.trim() || null : null, notes: order.note.trim() || null, waiter_id: order.type === 'delivery' ? null : order.waiter || null } : {}),
+    ...(isDelivery ? {
+      delivery_fee: deliveryFee, delivery_name: order.name.trim() || null, delivery_phone: order.phone.trim() || null,
+      delivery_address: order.address.trim() || null, delivery_area: order.area.trim() || null, rider_id: order.rider || null,
+    } : {}),
     ...extra,
   });
 
   const hold = async () => {
-    if (!cart.length) return;
+    if (!cart.length || blocked) return;
     setBusy(true);
     try {
       const res = await api.post('/sales', payload({ status: 'held', payment_method: 'cash', payment_received: 0, idempotency_key: uid() }));
@@ -317,7 +351,11 @@ export default function Pos() {
       price: Number(it.unit_price), stock: Infinity, qty: Number(it.quantity), discount: Number(it.discount_per_item || 0),
       serialTracked: !!it.serials?.length, serials: it.serials || [],
     })));
-    setOrder({ type: sale.order_type || 'dine_in', table: sale.table_no || '', note: sale.notes || '', waiter: sale.waiter_id || null });
+    setOrder({
+      ...EMPTY_ORDER, type: sale.order_type || 'dine_in', table: sale.table_no || '', note: sale.notes || '', waiter: sale.waiter_id || null,
+      name: sale.delivery_name || '', phone: sale.delivery_phone || '', address: sale.delivery_address || '', area: sale.delivery_area || '',
+      fee: Number(sale.delivery_fee) > 0 ? String(Number(sale.delivery_fee)) : '', rider: sale.delivery_status === 'out' ? sale.rider_id : null,
+    });
     setCustomer(sale.customer_id ? { id: sale.customer_id, name: sale.customer, phone: '' } : null);
     setResuming(false);
     qc.invalidateQueries({ queryKey: ['sales'] });
@@ -345,6 +383,16 @@ export default function Pos() {
       else toast(t('Quotation {n} loaded — take payment to finish', { n: q.quote_number }), 'info');
     }).catch((err) => toast(err.message, 'error'));
   }, [searchParams, setSearchParams, shop, t, toast]);
+
+  // From other pages: /pos?new=delivery (Deliveries) or /pos?table=5 (Reservations → Seat)
+  useEffect(() => {
+    const type = searchParams.get('new');
+    const table = searchParams.get('table');
+    if (!restaurant || (!type && !table)) return;
+    setSearchParams({}, { replace: true });
+    if (table) startTable(table, { note: searchParams.get('note') || '' });
+    else if (type === 'delivery' || type === 'takeaway') { setOrder((o) => ({ ...o, type, table: '', fee: type === 'delivery' && !o.fee ? defaultFee : o.fee })); setView('menu'); focusScan(); }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveQuote = async () => {
     if (!cart.length) return;
@@ -391,7 +439,7 @@ export default function Pos() {
     const onKey = (e) => {
       if (e.key === 'F2') { e.preventDefault(); focusScan(); }
       if (e.key === 'F4') { e.preventDefault(); hold(); }
-      if (e.key === 'F8') { e.preventDefault(); if (cart.length && !cartError) setPaying(true); }
+      if (e.key === 'F8') { e.preventDefault(); if (cart.length && !cartError && !blocked) setPaying(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -427,8 +475,9 @@ export default function Pos() {
             delivery={shop.delivery}
             orders={heldOrders.data || []}
             current={order}
-            onPickTable={(no) => { setOrder((o) => ({ ...o, type: 'dine_in', table: String(no) })); setView('menu'); focusScan(); }}
-            onNew={(type) => { setOrder((o) => ({ ...o, type, table: '' })); setView('menu'); focusScan(); }}
+            bookings={bookings}
+            onPickTable={(no) => { const b = bookings[String(no).toLowerCase()]; if (b) setSeatAsk({ no, booking: b }); else startTable(no); }}
+            onNew={(type) => { setOrder((o) => ({ ...o, type, table: '', fee: type === 'delivery' && !o.fee ? defaultFee : o.fee })); setView('menu'); focusScan(); }}
             onOpenOrder={(list) => setTableMenu({ orders: list, i: 0 })}
           />
         ) : (
@@ -516,7 +565,7 @@ export default function Pos() {
             <div className="flex gap-2">
               <div className="flex flex-1 rounded-xl bg-slate-100 p-1 text-base font-medium">
                 {ORDER_TYPES.filter((o) => o.code === 'dine_in' || shop[o.code]).map((o) => (
-                  <button key={o.code} type="button" onClick={() => setOrder((x) => ({ ...x, type: o.code }))} className={cx('flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 transition', order.type === o.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t(o.label)}</button>
+                  <button key={o.code} type="button" onClick={() => setOrder((x) => ({ ...x, type: o.code, fee: o.code === 'delivery' && !x.fee ? defaultFee : x.fee }))} className={cx('flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 transition', order.type === o.code ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}>{t(o.label)}</button>
                 ))}
               </div>
               {order.type === 'dine_in' && (
@@ -526,9 +575,11 @@ export default function Pos() {
               )}
             </div>
           )}
-          {restaurant && <WaiterPicker value={order.waiter} required={waiterMissing} onChange={(id) => setOrder((o) => ({ ...o, waiter: id }))} />}
+          {restaurant && !isDelivery && <WaiterPicker value={order.waiter} required={waiterMissing} onChange={(id) => setOrder((o) => ({ ...o, waiter: id }))} />}
           {waiterMissing && <p className="-mt-1 text-sm font-medium text-amber-700">{t('Choose the waiter for this table first.')}</p>}
-          <CustomerPicker value={customer} onChange={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} canCreate={can('customers.create')} />
+          {isDelivery && <DeliveryDetails order={order} onChange={setOrder} missing={deliveryMissing} folded={cart.length > 0} customer={customer} onCustomer={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} />}
+          {deliveryMissing && <p className="-mt-1 text-sm font-medium text-amber-700">{t('Enter the customer’s phone and address for delivery.')}</p>}
+          {!isDelivery && <CustomerPicker value={customer} onChange={(c) => { setCustomer(c); setPointsToUse(''); setPriceLevel(null); }} canCreate={can('customers.create')} />}
           <div className={cx('flex items-center justify-between gap-2', restaurant && !quoteId && 'hidden')}>
             <div className={cx('flex rounded-xl bg-slate-100 p-1 text-sm font-semibold', restaurant && 'hidden')}>
               {[['retail', 'Retail price'], ['wholesale', 'Wholesale price']].map(([code, label]) => (
@@ -634,6 +685,7 @@ export default function Pos() {
             </div>
           )}
           {shop.taxEnabled && <div className="flex justify-between text-slate-600"><span>{shop.taxLabel} ({shop.taxPercent}%)</span><span className="num">{money(totals.tax)}</span></div>}
+          {isDelivery && <div className="flex justify-between text-slate-600"><span className="flex items-center gap-1"><Bike className="size-4" />{t('Delivery charge')}{order.area ? ` · ${order.area}` : ''}</span><span className="num">{money(totals.deliveryFee || 0)}</span></div>}
           <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
             <span className="text-lg font-semibold text-slate-600">{t('Total')}</span>
             <span className="num text-[32px] font-bold leading-none tracking-tight text-slate-900">{money(totals.total)}</span>
@@ -641,12 +693,12 @@ export default function Pos() {
           {restaurant && <Input placeholder={t('Kitchen note (e.g. less spicy)')} value={order.note} onChange={(e) => setOrder((o) => ({ ...o, note: e.target.value }))} />}
           <div className="grid grid-cols-3 gap-2 pt-1">
             {restaurant
-              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError || waiterMissing} onClick={hold}>{t('Kitchen')}</Button>
+              ? <Button variant="secondary" icon={ChefHat} disabled={!cart.length || busy || !!cartError || blocked} onClick={hold}>{t('Kitchen')}</Button>
               : <Button variant="secondary" icon={PauseCircle} disabled={!cart.length || busy} onClick={hold}>{t('Save for later')}</Button>}
             <Button variant="secondary" icon={PlayCircle} onClick={() => setResuming(true)}>{restaurant ? t('Open orders') : t('Saved bills')}</Button>
             <Button variant="ghost" icon={X} disabled={!cart.length} onClick={clearSale}>{t('Clear')}</Button>
           </div>
-          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError || waiterMissing || (previewEnabled && preview.isFetching && !pv)} onClick={() => setPaying(true)}>
+          <Button size="xl" variant="success" className="w-full" disabled={!cart.length || !!cartError || blocked || (previewEnabled && preview.isFetching && !pv)} onClick={() => setPaying(true)}>
             {t('Take payment')} <span className="num">{money(totals.total)}</span>
           </Button>
           {preview.error && <p className="text-sm text-red-600">{t(preview.error.message)}</p>}
@@ -717,7 +769,7 @@ export default function Pos() {
         const o = tableMenu.orders[Math.min(tableMenu.i, tableMenu.orders.length - 1)];
         const close = () => setTableMenu(null);
         return (
-          <Modal open onClose={close} size="sm" title={o.table_no && o.order_type === 'dine_in' ? t('Table {n}', { n: o.table_no }) : o.invoice_number}>
+          <Modal open onClose={close} size="sm" title={o.table_no && o.order_type === 'dine_in' ? t('Table {n}', { n: o.table_no }) : o.order_type === 'delivery' ? `${t('Delivery')} · ${o.invoice_number}` : o.invoice_number}>
             {tableMenu.orders.length > 1 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {tableMenu.orders.map((x, i) => (
@@ -731,19 +783,52 @@ export default function Pos() {
               <div className="num text-3xl font-bold text-slate-900">{money(o.grand_total)}</div>
               <div className="text-sm text-slate-500">{itemsLabel(t, o.items_count)} · {o.invoice_number}{o.waiter ? ` · ${o.waiter}` : ''}</div>
             </div>
+            {o.order_type === 'delivery' && (
+              <div className="mb-4 space-y-1 rounded-2xl border border-blue-200/70 bg-blue-50/60 p-3 text-sm text-slate-700 dark:border-blue-400/20 dark:bg-blue-400/[0.06]">
+                <div className="font-semibold text-slate-900">{o.delivery_name || t('Customer')}{o.delivery_phone && <span className="num ms-2 font-normal" dir="ltr">{o.delivery_phone}</span>}</div>
+                {o.delivery_address && <div className="flex items-start gap-1"><MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />{o.delivery_address}{o.delivery_area ? ` · ${o.delivery_area}` : ''}</div>}
+                <div className="font-semibold text-blue-800 dark:text-blue-300">{o.delivery_status === 'out' ? t('Out for delivery with {name}', { name: o.rider }) : t('Waiting for a rider')}</div>
+              </div>
+            )}
             <div className="grid gap-2">
               <Button size="lg" variant="secondary" icon={Plus} onClick={async () => { const res = await api.get(`/sales/${o.invoice_number}`); close(); await editHeld(res.data); setView('menu'); }}>{t('Add more items')}</Button>
+              {o.order_type === 'delivery' ? (
+                <Button size="lg" variant="secondary" icon={Bike} onClick={() => { close(); navigate('/deliveries'); }}>{o.delivery_status === 'out' ? t('Open deliveries') : t('Send with a rider')}</Button>
+              ) : (
               <div className="grid grid-cols-3 gap-2">
                 <Button variant="secondary" icon={ArrowRightLeft} onClick={() => { setTableAction({ type: 'move', order: o }); close(); }}>{t('Move')}</Button>
                 <Button variant="secondary" icon={Combine} onClick={() => { setTableAction({ type: 'merge', order: o }); close(); }}>{t('Merge')}</Button>
                 <Button variant="secondary" icon={Split} disabled={Number(o.items_count) < 1} onClick={() => { setTableAction({ type: 'split', order: o }); close(); }}>{t('Split bill')}</Button>
               </div>
+              )}
               <Button size="lg" variant="secondary" icon={Printer} onClick={() => { setResuming(o.invoice_number); close(); }}>{t('Print bill')}</Button>
               <Button size="lg" variant="success" icon={Banknote} onClick={() => { setResuming(o.invoice_number); close(); }}>{t('Take payment')}</Button>
             </div>
           </Modal>
         );
       })()}
+      {seatAsk && (
+        <Modal open onClose={() => setSeatAsk(null)} size="sm" title={t('Table {n} is reserved', { n: seatAsk.no })}
+          footer={(
+            <>
+              <Button variant="secondary" onClick={() => setSeatAsk(null)}>{t('Cancel')}</Button>
+              <Button variant="secondary" onClick={() => { setSeatAsk(null); startTable(seatAsk.no); }}>{t('Use for walk-in')}</Button>
+              <Button icon={CalendarClock} onClick={() => { const { booking, no } = seatAsk; setSeatAsk(null); seatBooking(booking, no); }}>{t('Seat {name}', { name: seatAsk.booking.name.split(' ')[0] })}</Button>
+            </>
+          )}
+        >
+          <div className="rounded-2xl bg-amber-50 p-4 text-amber-950 dark:bg-amber-400/10 dark:text-amber-100">
+            <div className="text-lg font-bold">{seatAsk.booking.name}</div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <span className="flex items-center gap-1"><Clock className="size-4" /><span className="num">{clock(seatAsk.booking.reserved_for)}</span></span>
+              <span className="flex items-center gap-1"><Users className="size-4" />{t('{n} guests', { n: seatAsk.booking.guests })}</span>
+              {seatAsk.booking.phone && <span className="num" dir="ltr">{seatAsk.booking.phone}</span>}
+            </div>
+            {seatAsk.booking.notes && <div className="mt-2 text-sm italic">{seatAsk.booking.notes}</div>}
+          </div>
+          <p className="mt-3 text-sm text-slate-600">{t('Are these the guests who booked? Seat them to start their order — or use the table for someone else.')}</p>
+        </Modal>
+      )}
       {tableAction && (
         <TableActionModal
           action={tableAction}
@@ -1087,11 +1172,27 @@ function SerialPicker({ line, preselect, onClose, onDone }) {
 
 // ---------------------------------------------------------------- restaurant tables
 
+const clock = (iso) => new Date(iso).toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' });
+
+// table (lower-case) -> its booking, from `hold` minutes before the time until it ends
+function activeBookings(list, hold) {
+  const now = Date.now();
+  const map = {};
+  for (const r of list) {
+    if (r.status !== 'booked' || !r.table_no) continue;
+    const start = new Date(r.reserved_for).getTime();
+    if (now < start - hold * 60000 || now > new Date(r.ends_at).getTime()) continue;
+    const k = r.table_no.toLowerCase();
+    if (!map[k] || new Date(map[k].reserved_for) > new Date(r.reserved_for)) map[k] = r;
+  }
+  return map;
+}
+
 function minutesSince(iso) {
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, onNew, onOpenOrder }) {
+function TablesView({ areas, takeaway, delivery, orders, current, bookings = {}, onPickTable, onNew, onOpenOrder }) {
   const t = useT();
   const byTable = {};
   for (const o of orders) if (o.order_type === 'dine_in' && o.table_no) (byTable[o.table_no.toLowerCase()] ||= []).push(o);
@@ -1128,6 +1229,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="flex items-center gap-1"><span className="size-3 rounded border-2 border-slate-300 bg-white" />{t('Free')}</span>
           <span className="flex items-center gap-1"><span className="size-3 rounded bg-brand-600" />{t('Busy')}</span>
+          <span className="flex items-center gap-1"><span className="size-3 rounded border-2 border-dashed border-amber-400 bg-amber-50" />{t('Reserved')}</span>
         </div>
       </div>
       {total === 0 ? (
@@ -1149,6 +1251,8 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
               const first = list[0];
               const st = first?.kitchen_status || 'new';
               const selected = current?.type === 'dine_in' && current?.table?.toLowerCase() === no.toLowerCase();
+              const booked = bookings[no.toLowerCase()];
+              const late = booked && Date.now() > new Date(booked.reserved_for).getTime() + 15 * 60000;
               return (
                 <button
                   key={no}
@@ -1156,7 +1260,8 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                   onClick={() => (busy ? onOpenOrder(list) : onPickTable(no))}
                   className={cx(
                     'relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 text-center transition active:scale-[0.97]',
-                    busy ? 'border border-brand-600 bg-brand-600 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_12px_28px_-12px_var(--color-brand-700)]' : 'glass-tile glass-lift text-slate-700',
+                    busy ? 'border border-brand-600 bg-brand-600 text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_12px_28px_-12px_var(--color-brand-700)]'
+                      : booked ? 'border-2 border-dashed border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-400/10 dark:text-amber-100' : 'glass-tile glass-lift text-slate-700',
                     selected && !busy && 'ring-4 ring-brand-200',
                   )}
                 >
@@ -1170,11 +1275,18 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
                       {list.length > 1 && <span className="absolute -top-2 start-2 rounded-full bg-[rgb(255_255_255/0.95)] px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow ring-1 ring-slate-900/10">{t('{n} bills', { n: list.length })}</span>}
                       {first.waiter && <span className="absolute -bottom-2 start-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-[rgb(255_255_255/0.95)] px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow ring-1 ring-slate-900/10" title={first.waiter}>{first.waiter.split(' ')[0]}</span>}
                     </>
+                  ) : booked ? (
+                    <>
+                      <span className="mt-1 flex items-center gap-1 text-xs font-bold"><CalendarClock className="size-3" /><span className="num">{clock(booked.reserved_for)}</span></span>
+                      <span className="mt-0.5 flex max-w-full items-center gap-1 text-[11px] font-semibold"><span className="truncate">{booked.name.split(' ')[0]}</span><Users className="size-3 shrink-0" /><span className="num">{booked.guests}</span></span>
+                      <span className={cx('absolute -top-2 end-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow', late ? 'bg-red-500' : 'bg-amber-500')}>{late ? t('Late') : t('Reserved')}</span>
+                    </>
                   ) : (
                     <span className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                       {Number(tb.seats) > 0 ? <><Users className="size-3" /><span className="num">{tb.seats}</span></> : t('Free')}
                     </span>
                   )}
+                  {busy && booked && <span className="absolute -bottom-2 end-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow" title={booked.name}><span className="num">{clock(booked.reserved_for)}</span></span>}
                 </button>
               );
             })}
@@ -1190,7 +1302,12 @@ function TablesView({ areas, takeaway, delivery, orders, current, onPickTable, o
               <button key={o.invoice_number} type="button" onClick={() => onOpenOrder([o])} className="glass-tile glass-lift flex items-center justify-between rounded-xl px-4 py-3 text-start hover:border-brand-400">
                 <span>
                   <span className="block font-bold text-slate-900">{o.order_type === 'dine_in' && o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')} · <span className="num">{o.invoice_number}</span></span>
-                  <span className="text-sm text-slate-500">{o.waiter ? `${o.waiter} · ` : ''}{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
+                  {o.order_type === 'delivery' ? (
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                      <span>{[o.delivery_name, o.delivery_area].filter(Boolean).join(' · ') || t('Customer')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
+                      <span className={cx('whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold', o.delivery_status === 'out' ? 'bg-blue-600 text-white' : 'bg-amber-100 text-amber-800')}>{o.delivery_status === 'out' ? t('With {name}', { name: (o.rider || '').split(' ')[0] }) : t('Needs rider')}</span>
+                    </span>
+                  ) : <span className="text-sm text-slate-500">{o.waiter ? `${o.waiter} · ` : ''}{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>}
                 </span>
                 <span className="num text-lg font-bold">{money(o.grand_total)}</span>
               </button>

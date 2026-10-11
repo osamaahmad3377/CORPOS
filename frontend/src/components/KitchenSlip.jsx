@@ -21,6 +21,7 @@ export default function KitchenSlip({ order }) {
       <div className="text-center text-[15px] font-bold">{t('KITCHEN ORDER')}</div>
       <div className="text-center">{t(orderTypeLabel(order.order_type))}{order.table_no ? ` — ${t('Table {n}', { n: order.table_no })}` : ''}</div>
       {order.waiter && <div className="text-center text-[13px] font-bold">{t('Waiter')}: {order.waiter}</div>}
+      {order.order_type === 'delivery' && (order.delivery_name || order.delivery_area) && <div className="text-center text-[13px] font-bold">{[order.delivery_name, order.delivery_area].filter(Boolean).join(' · ')}</div>}
       <div className="mt-1 flex justify-between text-[11px]"><span>{order.invoice_number}</span><span>{new Date().toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' })}</span></div>
       <div className="my-2 border-t border-dashed border-black" />
       {order.items.map((it, i) => (

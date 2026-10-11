@@ -31,6 +31,9 @@ const Offers = lazy(() => import('./pages/offers/Offers'));
 const Kitchen = lazy(() => import('./pages/kitchen/Kitchen'));
 const KitchenStock = lazy(() => import('./pages/kitchen/KitchenStock'));
 const Waiters = lazy(() => import('./pages/waiters/Waiters'));
+const Deliveries = lazy(() => import('./pages/deliveries/Deliveries'));
+const Riders = lazy(() => import('./pages/deliveries/Riders'));
+const Reservations = lazy(() => import('./pages/reservations/Reservations'));
 
 // Permission-gated route (the backend enforces the same permissions).
 function Guard({ perm, children }) {
@@ -66,6 +69,9 @@ const ROUTES = [
   { path: '/kitchen', element: <Kitchen />, perm: 'sales.create' },
   { path: '/kitchen-stock', element: <KitchenStock />, perm: 'inventory.view' },
   { path: '/waiters', element: <Waiters />, perm: 'sales.create' },
+  { path: '/deliveries', element: <Deliveries />, perm: 'sales.create' },
+  { path: '/riders', element: <Riders />, perm: 'sales.create' },
+  { path: '/reservations', element: <Reservations />, perm: 'sales.create' },
 ];
 
 export default function App() {

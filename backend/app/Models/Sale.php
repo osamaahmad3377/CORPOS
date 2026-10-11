@@ -15,6 +15,15 @@ class Sale extends Model
         'order_type',
         'table_no',
         'waiter_id',
+        'rider_id',
+        'delivery_fee',
+        'delivery_name',
+        'delivery_phone',
+        'delivery_address',
+        'delivery_area',
+        'delivery_status',
+        'dispatched_at',
+        'delivered_at',
         'kitchen_status',
         'invoice_number',
         'idempotency_key',
@@ -44,6 +53,9 @@ class Sale extends Model
     {
         return [
             'sale_date' => 'datetime',
+            'dispatched_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'delivery_fee' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
@@ -146,5 +158,10 @@ class Sale extends Model
     public function waiter(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Waiter::class);
+    }
+
+    public function rider(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Rider::class);
     }
 }

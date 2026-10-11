@@ -58,6 +58,11 @@ export function ShopProvider({ children }) {
       takeaway: s.restaurant?.takeaway !== '0',
       requireWaiter: s.restaurant?.require_waiter === '1',
       delivery: s.restaurant?.delivery !== '0',
+      deliveryAreas: deliveryAreas(s.restaurant),
+      deliveryFee: Number(s.restaurant?.delivery_fee || 0),
+      requireAddress: s.restaurant?.require_address !== '0',
+      reservationMinutes: Number(s.restaurant?.reservation_minutes || 90),
+      reservationHold: s.restaurant?.reservation_hold === undefined || s.restaurant?.reservation_hold === '' ? 60 : Number(s.restaurant.reservation_hold),
       // white-label
       brandColor,
       logoUrl: s.brand?.logo ? `/storage/${s.brand.logo}` : null,
@@ -90,4 +95,13 @@ export function tableAreas(r = {}) {
   } catch { /* fall back to the count */ }
   const n = Math.max(0, Math.min(300, Number(r.tables ?? 12) || 0));
   return [{ name: '', tables: Array.from({ length: n }, (_, i) => ({ no: String(i + 1), seats: 4 })) }];
+}
+
+// Delivery areas and their charge: [{ name, fee }].
+export function deliveryAreas(r = {}) {
+  try {
+    const list = JSON.parse(r.delivery_areas || '[]');
+    if (Array.isArray(list)) return list.filter((a) => a && a.name).map((a) => ({ name: String(a.name), fee: Number(a.fee || 0) }));
+  } catch { /* none */ }
+  return [];
 }

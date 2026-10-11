@@ -59,6 +59,17 @@ export default function Receipt({ sale, preBill = false }) {
       {sale.customer && <div className="flex justify-between"><span>{t('Customer')}</span><span>{sale.customer}</span></div>}
       {sale.order_type && <div className="flex justify-between"><span>{t('Order')}</span><span>{t(orderTypeLabel(sale.order_type))}{sale.table_no ? ` · ${t('Table {n}', { n: sale.table_no })}` : ''}</span></div>}
       {sale.waiter && <div className="flex justify-between"><span>{t('Waiter')}</span><span>{sale.waiter}</span></div>}
+      {sale.order_type === 'delivery' && (sale.delivery_name || sale.delivery_phone || sale.delivery_address) && (
+        <>
+          <div className="my-2 border-t border-dashed border-black" />
+          <div className="font-bold">{t('DELIVER TO')}</div>
+          {sale.delivery_name && <div className="text-[14px] font-bold">{sale.delivery_name}</div>}
+          {sale.delivery_phone && <div className="num text-[14px] font-bold" dir="ltr">{sale.delivery_phone}</div>}
+          {sale.delivery_address && <div>{sale.delivery_address}</div>}
+          {sale.delivery_area && <div className="font-semibold">{sale.delivery_area}</div>}
+          {sale.rider && <div className="mt-1 flex justify-between"><span>{t('Rider')}</span><span>{sale.rider}{sale.rider_phone ? ` · ${sale.rider_phone}` : ''}</span></div>}
+        </>
+      )}
 
       <div className="my-2 border-t border-dashed border-black" />
       {(sale.items || []).map((it) => (
@@ -78,10 +89,13 @@ export default function Receipt({ sale, preBill = false }) {
       <Row label={t('Subtotal')} value={money(sale.subtotal)} />
       {Number(sale.discount_amount) > 0 && <Row label={t('Discount')} value={`-${money(sale.discount_amount)}`} />}
       {showTax && <Row label={shop.taxLabel} value={money(sale.tax_amount)} />}
+      {Number(sale.delivery_fee) > 0 && <Row label={t('Delivery charge')} value={money(sale.delivery_fee)} />}
       <div className="my-1 border-t border-black" />
       <Row label={t('TOTAL')} value={money(sale.grand_total)} strong big />
       {Number(sale.refunded_amount) > 0 && <Row label={t('Returned')} value={`-${money(sale.refunded_amount)}`} />}
-      {preBill ? (
+      {preBill && sale.order_type === 'delivery' ? (
+        <div className="mt-2 border-2 border-black p-1.5 text-center text-[15px] font-bold">{t('CASH TO COLLECT')}: <span className="num">{money(Math.max(0, Number(sale.grand_total) - Number(sale.paid_amount || 0)))}</span></div>
+      ) : preBill ? (
         <div className="mt-1 text-center text-[11px]">{t('Not paid yet — please pay at the counter')}</div>
       ) : (
         <>

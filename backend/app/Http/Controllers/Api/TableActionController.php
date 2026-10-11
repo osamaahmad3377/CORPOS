@@ -30,6 +30,10 @@ class TableActionController extends Controller
         if ($sale->status !== 'held') {
             abort(response()->json(['message' => 'Only open (unpaid) orders can be changed.'], 422));
         }
+        // a delivery has its own address, charge and rider — keep it whole
+        if ($sale->order_type === 'delivery') {
+            abort(response()->json(['message' => "{$sale->invoice_number} is a delivery order. Delivery orders can't be moved, merged or split."], 422));
+        }
     }
 
     private function busyOn(string $table, ?int $except = null): ?Sale

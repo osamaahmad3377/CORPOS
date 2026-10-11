@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BadgePercent, BarChart3, Beef, Bell, Boxes, ChefHat, ClipboardList, FileText, FolderTree, UtensilsCrossed, Home, Languages, LayoutDashboard, LogOut, Menu, Package,
-  Moon, ReceiptText, UserRound, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
+  Bike, CalendarClock, Moon, ReceiptText, UserRound, ScanBarcode, Settings, ShoppingCart, Sun, Truck, Users, UsersRound, Vault, Wallet, Warehouse, X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -57,11 +57,14 @@ function restaurantSections() {
       { to: '/', label: 'Home', icon: Home, end: true },
       { to: '/pos', label: 'Orders & tables', icon: ShoppingCart, perm: 'sales.create' },
       { to: '/kitchen', label: 'Kitchen screen', icon: ChefHat, perm: 'sales.create' },
+      { to: '/deliveries', label: 'Deliveries', icon: Bike, perm: 'sales.create', when: (shop) => shop.delivery },
+      { to: '/reservations', label: 'Reservations', icon: CalendarClock, perm: 'sales.create' },
     ] },
     { title: 'Sales', items: [
       { to: '/sales', label: 'Old bills', icon: ReceiptText, perm: 'sales.create' },
       { to: '/customers', label: 'Customers & udhaar', icon: Users, perm: 'customers.view' },
       { to: '/waiters', label: 'Waiters', icon: UserRound, perm: 'users.manage' },
+      { to: '/riders', label: 'Riders', icon: Bike, perm: 'users.manage', when: (shop) => shop.delivery },
       { to: '/cash', label: 'Cash drawer', icon: Vault, perm: 'cash.manage' },
     ] },
     { title: 'Menu', items: [
@@ -113,7 +116,7 @@ function Sidebar({ onNavigate }) {
       <div className="mx-5 mt-2 h-px bg-[var(--sb-line)]" />
       <div className="flex-1 space-y-6 px-3 py-5">
         {navSections(shop).map((section) => {
-          const items = section.items.filter((i) => !i.perm || can(i.perm));
+          const items = section.items.filter((i) => (!i.perm || can(i.perm)) && (!i.when || i.when(shop)));
           if (!items.length) return null;
           return (
             <div key={section.title || 'main'}>

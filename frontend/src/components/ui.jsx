@@ -191,7 +191,7 @@ export function Pagination({ meta, onPage }) {
   );
 }
 
-export function StatCard({ icon: Icon, label, value, tone = 'brand' }) {
+export function StatCard({ icon: Icon, label, value, sub, tone = 'brand' }) {
   const tones = { brand: 'bg-brand-50 text-brand-700 ring-brand-600/15', green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15', amber: 'bg-amber-50 text-amber-700 ring-amber-600/15', red: 'bg-red-50 text-red-700 ring-red-600/15' };
   return (
     <Card className="p-5">
@@ -200,6 +200,7 @@ export function StatCard({ icon: Icon, label, value, tone = 'brand' }) {
         {Icon && <div className={cx('grid size-10 place-items-center rounded-xl ring-1 ring-inset', tones[tone])}><Icon className="size-5" /></div>}
       </div>
       <div className="num mt-2 text-[26px] font-bold tracking-tight text-slate-900">{value}</div>
+      {sub && <div className="num mt-0.5 truncate text-xs text-slate-500">{sub}</div>}
     </Card>
   );
 }

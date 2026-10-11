@@ -57,6 +57,11 @@ class SettingSeeder extends Seeder
                 'takeaway' => '1',
                 'delivery' => '1',
                 'require_waiter' => '0',
+                'delivery_areas' => '',
+                'delivery_fee' => '0',
+                'require_address' => '1',
+                'reservation_minutes' => '90',
+                'reservation_hold' => '60',
             ],
             'features' => [
                 'restaurant' => '0',

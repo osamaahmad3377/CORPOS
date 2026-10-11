@@ -133,7 +133,10 @@ class SalePricing
         }
 
         $discountAmount = $saleDiscount + $pointsDiscount;
-        $grandTotal = $subtotal - $discountAmount + $tax;
+        // Delivery charge (delivery orders only) is added after discounts and
+        // tax: it is never discounted, taxed or counted for loyalty points.
+        $deliveryFee = ($data['order_type'] ?? null) === 'delivery' ? round(max(0, (float) ($data['delivery_fee'] ?? 0)), 2) : 0.0;
+        $grandTotal = $subtotal - $discountAmount + $tax + $deliveryFee;
 
         // A plain cashier can discount on their own authority only up to a
         // capped percentage of the pre-discount value — larger discounts need
@@ -162,8 +165,9 @@ class SalePricing
             'points_discount' => $pointsDiscount,
             'discount_amount' => $discountAmount,
             'tax_amount' => $tax,
+            'delivery_fee' => $deliveryFee,
             'grand_total' => $grandTotal,
-            'points_earned' => $customer ? self::pointsFor($grandTotal, $loyalty) : 0,
+            'points_earned' => $customer ? self::pointsFor($grandTotal - $deliveryFee, $loyalty) : 0,
             'loyalty' => $loyalty,
         ];
     }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Building2, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
+import { Bike, Briefcase, Building2, CalendarClock, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
 import { BRAND_PRESETS, DEFAULT_SIDEBAR, SIDEBAR_PRESETS, sidebarTheme } from '../../lib/theme';
 import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
 import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
@@ -9,7 +9,7 @@ import { ShopLogo } from '../../components/Brand';
 import { api, switchBusiness } from '../../lib/api';
 import { BusinessBadge, useBusinesses } from '../../components/BusinessSwitcher';
 import { useAuth } from '../../lib/auth';
-import { LOGO_SIZE, clampLogo, tableAreas, useShop } from '../../lib/shop';
+import { LOGO_SIZE, clampLogo, deliveryAreas, tableAreas, useShop } from '../../lib/shop';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
 import Receipt from '../../components/Receipt';
@@ -28,7 +28,7 @@ const DEFAULTS = {
   business: { type: 'general' },
   product: { option1_label: '', option2_label: '', default_unit: 'pcs' },
   features: { restaurant: '0', serials: '0', expiry: '0' },
-  restaurant: { tables: '12', layout: '', takeaway: '1', delivery: '1', require_waiter: '0' },
+  restaurant: { tables: '12', layout: '', takeaway: '1', delivery: '1', require_waiter: '0', delivery_areas: '', delivery_fee: '0', require_address: '1', reservation_minutes: '90', reservation_hold: '60' },
 };
 
 // Labels are English keys — shown through t(). Keep them in src/i18n/ur/settings.js.
@@ -212,6 +212,50 @@ function Section({ draft, saved, setDraft, onSaved }) {
 }
 
 // ---------------------------------------------------------------- forms
+
+// Delivery: areas with their own charge (picked on the order), a default charge.
+function DeliverySettings({ d, set, err }) {
+  const t = useT();
+  const areas = deliveryAreas(d.restaurant);
+  const [rows, setRows] = useState(() => (areas.length ? areas.map((a) => ({ name: a.name, fee: String(a.fee) })) : []));
+  const save = (next) => {
+    setRows(next);
+    set('restaurant', 'delivery_areas')(JSON.stringify(next.filter((a) => a.name.trim()).map((a) => ({ name: a.name.trim(), fee: Number(a.fee || 0) }))));
+  };
+  const edit = (i, patch) => save(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const names = rows.map((r) => r.name.trim().toLowerCase());
+  return (
+    <div className="border-t border-slate-100 pt-5">
+      <h3 className="flex items-center gap-2 text-base font-bold text-slate-900"><Bike className="size-5 text-brand-700" />{t('Delivery')}</h3>
+      <p className="mb-3 text-sm text-slate-500">{t('Add the areas you deliver to with their delivery charge. Picking the area on an order adds its charge to the bill.')}</p>
+      <div className="mb-4 grid gap-4 sm:grid-cols-2">
+        <Field label={t('Delivery charge when no area is picked (Rs)')} error={err('restaurant', 'delivery_fee')}>
+          <Input type="number" min="0" step="1" value={d.restaurant.delivery_fee || ''} placeholder="0" onChange={(e) => set('restaurant', 'delivery_fee')(e.target.value)} />
+        </Field>
+        <div className="pt-1 sm:pt-7">
+          <Toggle checked={d.restaurant.require_address !== '0'} onChange={(v) => set('restaurant', 'require_address')(v ? '1' : '0')} label={t('Phone and address are required')} hint={t('A delivery order can only go to the kitchen after the customer’s phone and address are written.')} />
+        </div>
+      </div>
+      {err('restaurant', 'delivery_areas') && <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err('restaurant', 'delivery_areas')}</p>}
+      <div className="space-y-2">
+        {rows.map((r, i) => {
+          const dup = r.name.trim() && names.indexOf(r.name.trim().toLowerCase()) !== i;
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <Input className={cx('min-w-0 flex-1', dup && 'border-red-400')} value={r.name} maxLength={80} onChange={(e) => edit(i, { name: e.target.value })} placeholder={t('Area — e.g. DHA Phase 5, Gulberg, Model Town')} aria-label={t('Area')} />
+              <label className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white ps-3 shadow-xs">
+                <span className="text-sm text-slate-500">Rs</span>
+                <input type="number" min="0" step="1" value={r.fee} onChange={(e) => edit(i, { fee: e.target.value })} placeholder="0" aria-label={t('Delivery charge')} className="num h-11 w-24 rounded-e-xl bg-transparent pe-3 text-end outline-none" />
+              </label>
+              <button type="button" onClick={() => save(rows.filter((_, j) => j !== i))} className="grid size-10 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label={t('Remove area')}><Trash2 className="size-4" /></button>
+            </div>
+          );
+        })}
+      </div>
+      <Button variant="secondary" icon={Plus} className="mt-2" onClick={() => setRows([...rows, { name: '', fee: d.restaurant.delivery_fee || '' }])} disabled={rows.length >= 200}>{t('Add area')}</Button>
+    </div>
+  );
+}
 
 function Toggle({ checked, onChange, label, hint }) {
   return (
@@ -431,6 +475,25 @@ function RestaurantForm({ d, set, err }) {
           <Toggle checked={onOff('takeaway')} onChange={(v) => set('restaurant', 'takeaway')(v ? '1' : '0')} label={t('Takeaway orders')} hint={t('Customer picks up the food.')} />
           <Toggle checked={onOff('delivery')} onChange={(v) => set('restaurant', 'delivery')(v ? '1' : '0')} label={t('Delivery orders')} hint={t('Food is sent to the customer’s home.')} />
           <Toggle checked={d.restaurant.require_waiter === '1'} onChange={(v) => set('restaurant', 'require_waiter')(v ? '1' : '0')} label={t('Waiter must be chosen')} hint={t('A dine-in order can only go to the kitchen or be paid after a waiter is picked.')} />
+        </div>
+
+        {onOff('delivery') && <DeliverySettings d={d} set={set} err={err} />}
+
+        <div className="border-t border-slate-100 pt-5">
+          <h3 className="flex items-center gap-2 text-base font-bold text-slate-900"><CalendarClock className="size-5 text-brand-700" />{t('Reservations')}</h3>
+          <p className="mb-3 text-sm text-slate-500">{t('How long a booking keeps the table, and when the table starts showing “Reserved” on the Sell screen.')}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t('A booking keeps the table for')} error={err('restaurant', 'reservation_minutes')}>
+              <Select value={d.restaurant.reservation_minutes || '90'} onChange={(e) => set('restaurant', 'reservation_minutes')(e.target.value)}>
+                {[60, 90, 120, 150, 180, 240].map((m) => <option key={m} value={m}>{m % 60 ? t('{h} h {m} min', { h: Math.floor(m / 60), m: m % 60 }) : t('{n} hours', { n: m / 60 })}</option>)}
+              </Select>
+            </Field>
+            <Field label={t('Show “Reserved” on the table')} error={err('restaurant', 'reservation_hold')}>
+              <Select value={d.restaurant.reservation_hold ?? '60'} onChange={(e) => set('restaurant', 'reservation_hold')(e.target.value)}>
+                {[0, 15, 30, 60, 90, 120, 180].map((m) => <option key={m} value={m}>{m === 0 ? t('Only at the booking time') : t('{n} min before', { n: m })}</option>)}
+              </Select>
+            </Field>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">

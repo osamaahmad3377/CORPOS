@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, BarChart3, Beef, Boxes, CheckCircle2, ChefHat, Clock, Coins, FileText, HandCoins,
+  AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BadgePercent, BarChart3, Beef, Bike, Boxes, CalendarClock, CheckCircle2, ChefHat, Clock, Coins, FileText, HandCoins,
   LayoutGrid, Package, PackagePlus, Plus, ReceiptText, Settings, ShoppingCart, Sparkles, TrendingUp, Trophy, UserRound, UtensilsCrossed, Vault, Wallet, Warehouse,
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -138,6 +138,8 @@ export default function Home() {
     can('sales.create') && { to: '/pos', icon: LayoutGrid, label: t('Tables'), tone: 'bg-brand-50 text-brand-700' },
     can('sales.create') && { to: '/kitchen', icon: ChefHat, label: t('Kitchen screen'), tone: 'bg-orange-50 text-orange-600' },
     can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add a dish'), tone: 'bg-blue-50 text-blue-600' },
+    can('sales.create') && shop.delivery && { to: '/deliveries', icon: Bike, label: t('Deliveries'), tone: 'bg-sky-50 text-sky-600' },
+    can('sales.create') && { to: '/reservations', icon: CalendarClock, label: t('Reservations'), tone: 'bg-amber-50 text-amber-600' },
     can('inventory.view') && { to: '/kitchen-stock', icon: Beef, label: t('Kitchen stock'), tone: 'bg-rose-50 text-rose-600' },
     can('users.manage') && { to: '/waiters', icon: UserRound, label: t('Waiters'), tone: 'bg-violet-50 text-violet-600' },
     can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-indigo-50 text-indigo-600' },
@@ -305,6 +307,8 @@ export default function Home() {
                 );
               })()}
             </Panel>
+            {can('sales.create') && <TodayBookings className={shop.delivery ? 'lg:col-span-6' : 'lg:col-span-12'} />}
+            {can('sales.create') && shop.delivery && <DeliveriesNow className="lg:col-span-6" />}
           </>
         ) : (
           <>
@@ -339,6 +343,76 @@ export default function Home() {
 
 // Restaurants: progress of every kitchen item (most urgent first) with a
 // summary — what's fine, running low and finished — and the stock value.
+// Restaurant: the next table bookings today.
+function TodayBookings({ className }) {
+  const { t, lang } = useLang();
+  const locale = lang === 'ur' ? 'ur-PK' : 'en-GB';
+  const q = useQuery({ queryKey: ['reservations', 'today'], queryFn: () => api.get('/reservations/today'), refetchInterval: 60_000, select: (r) => r.data || [] });
+  const list = (q.data || []).filter((r) => new Date(r.ends_at).getTime() > Date.now()).slice(0, 5);
+  const time = (v) => new Date(v).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  return (
+    <Panel className={className} title={t('Reservations')} subtitle={t('Still to come today')} action={<ViewAll to="/reservations" label={t('See all')} />}>
+      {!list.length ? (
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <CalendarClock className="size-8 text-slate-300" />
+          <p className="text-sm text-slate-400">{t('No more bookings today')}</p>
+          <Link to="/reservations" className="text-sm font-semibold text-brand-700 hover:underline">{t('Book a table')}</Link>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {list.map((r) => {
+            const late = Date.now() > new Date(r.reserved_for).getTime() + 15 * 60000;
+            return (
+              <div key={r.id} className="flex items-center gap-3 rounded-xl bg-slate-500/[0.05] px-3 py-2">
+                <span className={cx('num w-16 shrink-0 text-sm font-bold', late ? 'text-red-600' : 'text-slate-900')}>{time(r.reserved_for)}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-900">{r.name}</span><span className="block text-xs text-slate-500">{t('{n} guests', { n: r.guests })}{late ? ` · ${t('Late')}` : ''}</span></span>
+                {r.table_no ? <span className="num rounded-lg bg-brand-600 px-2 py-1 text-xs font-bold text-brand-ink">{t('Table {n}', { n: r.table_no })}</span> : <span className="text-xs text-slate-400">{t('No table')}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// Restaurant: deliveries right now — waiting, with riders, delivered today.
+function DeliveriesNow({ className }) {
+  const { t } = useLang();
+  const q = useQuery({ queryKey: ['deliveries', 'board'], queryFn: () => api.get('/deliveries'), refetchInterval: 30_000 });
+  const st = q.data?.stats;
+  const riders = (q.data?.riders || []).filter((r) => r.out > 0);
+  const tiles = st ? [
+    { label: t('Waiting for a rider'), value: st.pending, tone: 'bg-amber-50 text-amber-700' },
+    { label: t('Out for delivery'), value: st.out, tone: 'bg-blue-50 text-blue-700' },
+    { label: t('Delivered today'), value: st.delivered_today, tone: 'bg-emerald-50 text-emerald-700' },
+  ] : [];
+  return (
+    <Panel className={className} title={t('Deliveries')} subtitle={st?.delivered_today ? `${money(st.sales_today)}${st.avg_minutes != null ? ` · ${t('avg {n} min', { n: st.avg_minutes })}` : ''}` : t('Today')} action={<ViewAll to="/deliveries" label={t('Open')} />}>
+      <div className="grid grid-cols-3 gap-2">
+        {tiles.map((x) => (
+          <div key={x.label} className={cx('rounded-xl px-3 py-2.5', x.tone)}>
+            <div className="num text-2xl font-bold leading-none">{x.value}</div>
+            <div className="mt-1 text-xs font-medium leading-tight">{x.label}</div>
+          </div>
+        ))}
+      </div>
+      {riders.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {riders.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 text-sm">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-[11px] font-bold text-white">{initials(r.name)}</span>
+              <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{r.name}</span>
+              <span className="text-xs text-slate-500">{t('{n} out', { n: r.out })}</span>
+              {r.cash_to_collect > 0 && <span className="num font-semibold text-slate-900">{money(r.cash_to_collect)}</span>}
+            </div>
+          ))}
+        </div>
+      ) : st && <p className="mt-3 text-center text-sm text-slate-400">{t('No rider is out right now.')}</p>}
+    </Panel>
+  );
+}
+
 function KitchenStockCard({ className, compact = false }) {
   const { t } = useLang();
   const q = useQuery({ queryKey: ['ingredients', 'home'], queryFn: () => api.get('/ingredients'), refetchInterval: 60_000 });

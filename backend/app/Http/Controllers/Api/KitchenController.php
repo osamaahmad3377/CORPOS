@@ -13,6 +13,8 @@ class KitchenController extends Controller
     {
         $orders = Sale::with(['items.variant.product', 'cashier', 'waiter'])
             ->where('status', 'held')
+            // a delivery that left with its rider is done for the kitchen
+            ->where(fn ($q) => $q->whereNull('delivery_status')->orWhere('delivery_status', 'pending'))
             ->orderBy('created_at')
             ->get()
             ->map(fn (Sale $s) => [
@@ -22,6 +24,8 @@ class KitchenController extends Controller
                 'kitchen_status' => $s->kitchen_status ?: 'new',
                 'notes' => $s->notes,
                 'waiter' => $s->waiter?->name ?? $s->cashier?->name,
+                'delivery_name' => $s->delivery_name,
+                'delivery_area' => $s->delivery_area,
                 'grand_total' => $s->grand_total,
                 'created_at' => $s->created_at,
                 'items' => $s->items->map(fn ($i) => [

@@ -67,6 +67,12 @@ class SettingController extends Controller
             'takeaway' => ['nullable', 'in:0,1'],
             'delivery' => ['nullable', 'in:0,1'],
             'require_waiter' => ['nullable', 'in:0,1'],
+            // delivery areas and their charge, as JSON [{name, fee}]
+            'delivery_areas' => ['nullable', 'string', 'max:20000', 'json'],
+            'delivery_fee' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'require_address' => ['nullable', 'in:0,1'],
+            'reservation_minutes' => ['nullable', 'integer', 'min:15', 'max:720'],
+            'reservation_hold' => ['nullable', 'integer', 'min:0', 'max:480'],
         ],
         'features' => [
             'restaurant' => ['nullable', 'in:0,1'],
@@ -175,6 +181,30 @@ class SettingController extends Controller
         return $out;
     }
 
+    /** Delivery areas: [{name, fee}], names unique, at most 200. */
+    private static function normalizeAreas($areas): array
+    {
+        $fail = fn (string $msg) => throw \Illuminate\Validation\ValidationException::withMessages(['restaurant.delivery_areas' => $msg]);
+        if (! is_array($areas) || ! array_is_list($areas)) {
+            $fail('The delivery areas list is not valid.');
+        }
+        $seen = [];
+        $out = [];
+        foreach (array_slice($areas, 0, 200) as $a) {
+            $name = mb_substr(trim((string) ($a['name'] ?? '')), 0, 80);
+            if ($name === '') {
+                continue;
+            }
+            if (isset($seen[$k = mb_strtolower($name)])) {
+                $fail("Two delivery areas are both called \"{$name}\".");
+            }
+            $seen[$k] = true;
+            $out[] = ['name' => $name, 'fee' => round(max(0, min(100000, (float) ($a['fee'] ?? 0))), 2)];
+        }
+
+        return $out;
+    }
+
     public function update(Request $request)
     {
         $rules = [];
@@ -196,6 +226,10 @@ class SettingController extends Controller
             $layout = self::normalizeLayout(json_decode($validated['restaurant']['layout'], true));
             $validated['restaurant']['layout'] = json_encode($layout, JSON_UNESCAPED_UNICODE);
             $validated['restaurant']['tables'] = array_sum(array_map(fn ($a) => count($a['tables']), $layout));
+        }
+
+        if (! empty($validated['restaurant']['delivery_areas'])) {
+            $validated['restaurant']['delivery_areas'] = json_encode(self::normalizeAreas(json_decode($validated['restaurant']['delivery_areas'], true)), JSON_UNESCAPED_UNICODE);
         }
 
         foreach ($validated as $group => $values) {

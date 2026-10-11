@@ -15,6 +15,7 @@ use App\Models\SaleItem;
 use App\Models\Setting;
 use App\Services\ActivityLogger;
 use App\Services\BatchService;
+use App\Services\SaleCompletion;
 use App\Services\SalePricing;
 use App\Services\SerialService;
 use App\Services\StockService;
@@ -28,9 +29,15 @@ class SaleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Sale::with(['customer', 'cashier', 'waiter'])->withCount('items');
+        $query = Sale::with(['customer', 'cashier', 'waiter', 'rider'])->withCount('items');
         if ($request->filled('waiter_id')) {
             $query->where('waiter_id', $request->integer('waiter_id'));
+        }
+        if ($request->filled('rider_id')) {
+            $query->where('rider_id', $request->integer('rider_id'));
+        }
+        if ($request->filled('order_type')) {
+            $query->where('order_type', $request->string('order_type'));
         }
 
         if (! $request->user()->hasPermission('sales.view_all')) {
@@ -83,7 +90,7 @@ class SaleController extends Controller
         if ($idempotencyKey) {
             $existing = Sale::where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
-                return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
+                return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'rider', 'items.variant.product']));
             }
         }
 
@@ -157,6 +164,7 @@ class SaleController extends Controller
                 'order_type' => $validated['order_type'] ?? null,
                 'table_no' => $validated['table_no'] ?? null,
                 'waiter_id' => $validated['waiter_id'] ?? null,
+                ...self::deliveryFields($validated, $pricing['delivery_fee']),
                 'notes' => $validated['notes'] ?? null,
                 'price_level' => $pricing['price_level'],
                 'points_redeemed' => $pricing['points_redeemed'],
@@ -197,7 +205,7 @@ class SaleController extends Controller
 
             if ($status === 'completed' && $sale->customer_id) {
                 Customer::where('id', $sale->customer_id)->increment('total_purchases', $grandTotal);
-                $this->settleLoyalty($sale);
+                SaleCompletion::settleLoyalty($sale);
             }
 
             ActivityLogger::log($user, 'create', 'sales', "Created sale {$sale->invoice_number} ({$status}).");
@@ -212,7 +220,7 @@ class SaleController extends Controller
             if ($idempotencyKey && str_contains($e->getMessage(), 'idempotency_key')) {
                 $existing = Sale::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
-                    return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
+                    return new SaleResource($existing->load(['customer', 'cashier', 'waiter', 'rider', 'items.variant.product']));
                 }
             }
             if (str_contains($e->getMessage(), 'invoice_number') && $attempt < $maxAttempts) {
@@ -222,7 +230,7 @@ class SaleController extends Controller
         }
         }
 
-        return new SaleResource($sale->load(['customer', 'cashier', 'waiter', 'items.variant.product']));
+        return new SaleResource($sale->load(['customer', 'cashier', 'waiter', 'rider', 'items.variant.product']));
     }
 
     public function show(Request $request, Sale $sale)
@@ -247,61 +255,13 @@ class SaleController extends Controller
         $validated = $request->validated();
         $user = $request->user();
 
-        DB::transaction(function () use ($sale, $user, $validated) {
-            $sale = Sale::whereKey($sale->id)->lockForUpdate()->firstOrFail();
+        SaleCompletion::completeHeld(
+            $sale, $user,
+            $validated['payment_method'] ?? null,
+            isset($validated['payment_received']) ? (float) $validated['payment_received'] : null,
+        );
 
-            if ($sale->status !== 'held') {
-                throw ValidationException::withMessages([
-                    'items' => ['Only held sales can be resumed.'],
-                ]);
-            }
-
-            $sale->load('items');
-            $variants = ProductVariant::withTrashed()
-                ->whereIn('id', $sale->items->pluck('variant_id'))
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            $requestedByVariant = $sale->items->groupBy('variant_id')->map(fn ($rows) => Qty::round($rows->sum('quantity')));
-
-            foreach ($requestedByVariant as $variantId => $requestedQty) {
-                $variant = $variants[$variantId];
-                if ($variant->product?->track_stock !== false && Qty::round($variant->stock_qty) < $requestedQty) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Insufficient stock for {$variant->sku}. Available: ".Qty::format($variant->stock_qty).'.'],
-                    ]);
-                }
-            }
-
-            foreach ($sale->items as $i => $item) {
-                $variant = $variants[$item->variant_id];
-                SerialService::sell($variant, $item, $item->pending_serials ?? [], "items.{$i}.serials");
-                BatchService::consumeForSale($variant, $item);
-                StockService::decrement($variant, $item->quantity, 'out', $user, $sale, 'Resumed sale '.$sale->invoice_number);
-                $item->update(['pending_serials' => null]);
-            }
-
-            $paymentReceived = $validated['payment_received'] ?? $sale->grand_total;
-            $sale->payment_method = $validated['payment_method'] ?? $sale->payment_method;
-            $sale->payment_received = $paymentReceived;
-            $sale->change_amount = max(0, $paymentReceived - $sale->grand_total);
-            $sale->paid_amount = min($sale->grand_total, $paymentReceived);
-            $sale->status = 'completed';
-            $sale->syncPaymentStatus();
-            $sale->save();
-
-            \App\Services\IngredientService::consumeForSale($sale, $user);
-
-            if ($sale->customer_id) {
-                Customer::where('id', $sale->customer_id)->increment('total_purchases', $sale->grand_total);
-                $this->settleLoyalty($sale);
-            }
-
-            ActivityLogger::log($user, 'resume', 'sales', "Resumed held sale {$sale->invoice_number}.");
-        });
-
-        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'items.variant.product']));
+        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'rider', 'items.variant.product']));
     }
 
     /**
@@ -360,7 +320,7 @@ class SaleController extends Controller
             ActivityLogger::log($user, 'payment', 'sales', "Recorded payment of {$validated['amount']}{$via} against sale {$locked->invoice_number}.");
         });
 
-        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'items.variant.product']));
+        return new SaleResource($sale->fresh(['customer', 'cashier', 'waiter', 'rider', 'items.variant.product']));
     }
 
     /**
@@ -435,6 +395,7 @@ class SaleController extends Controller
             'points_discount' => $r2($pricing['points_discount']),
             'total_discount' => $r2($pricing['discount_amount']),
             'tax_amount' => $r2($pricing['tax_amount']),
+            'delivery_fee' => $r2($pricing['delivery_fee']),
             'tax_from_settings' => $taxFromSettings,
             'grand_total' => $r2($pricing['grand_total']),
             'points_earned' => $pricing['points_earned'],
@@ -449,35 +410,26 @@ class SaleController extends Controller
         ]]);
     }
 
-    /**
-     * A sale just became completed (new or resumed held bill): take the
-     * loyalty points the customer used and give the points they earned.
-     */
-    private function settleLoyalty(Sale $sale): void
+    /** Delivery details saved on a delivery order (nothing for dine-in / takeaway). */
+    private static function deliveryFields(array $v, float $fee): array
     {
-        if (! $sale->customer_id) {
-            return;
+        if (($v['order_type'] ?? null) !== 'delivery') {
+            return [];
         }
+        $clean = fn ($k) => ($x = trim((string) ($v[$k] ?? ''))) === '' ? null : $x;
+        $rider = $v['rider_id'] ?? null;
 
-        if ($sale->points_redeemed > 0) {
-            $taken = Customer::whereKey($sale->customer_id)
-                ->where('loyalty_points', '>=', $sale->points_redeemed)
-                ->decrement('loyalty_points', $sale->points_redeemed);
-            if (! $taken) {
-                throw ValidationException::withMessages([
-                    'points_redeemed' => ['This customer no longer has enough points.'],
-                ]);
-            }
-        }
-
-        $earned = SalePricing::pointsFor((float) $sale->grand_total);
-        if ($earned > 0) {
-            Customer::whereKey($sale->customer_id)->increment('loyalty_points', $earned);
-        }
-        if ($earned !== (int) $sale->points_earned) {
-            $sale->points_earned = $earned;
-            $sale->save();
-        }
+        return [
+            'delivery_fee' => $fee,
+            'delivery_name' => $clean('delivery_name'),
+            'delivery_phone' => DeliveryController::phone($v['delivery_phone'] ?? null),
+            'delivery_address' => $clean('delivery_address'),
+            'delivery_area' => $clean('delivery_area'),
+            // an order opened again to add items keeps its rider
+            'rider_id' => $rider,
+            'delivery_status' => $rider ? 'out' : 'pending',
+            'dispatched_at' => $rider ? now() : null,
+        ];
     }
 
     private function nextInvoiceNumber(): string

@@ -72,6 +72,7 @@ export default function Kitchen() {
                       {o.table_no ? t('Table {n}', { n: o.table_no }) : t(o.order_type === 'delivery' ? 'Delivery' : 'Takeaway')}
                     </div>
                     <div className="num text-sm text-slate-500">{o.invoice_number}{o.waiter ? ` · ${o.waiter}` : ''}</div>
+                    {o.order_type === 'delivery' && (o.delivery_name || o.delivery_area) && <div className="text-sm font-semibold text-blue-700">{[o.delivery_name, o.delivery_area].filter(Boolean).join(' · ')}</div>}
                   </div>
                   <span className={cx('flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-bold', mins >= 20 ? 'bg-red-100 text-red-700' : mins >= 10 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700')}>
                     <Clock className="size-4" /><span className="num">{t('{n} min', { n: mins })}</span>
