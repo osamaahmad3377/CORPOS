@@ -670,13 +670,13 @@ export default function Pos() {
           </div>
           {totals.promo > 0 && <div className="flex justify-between text-emerald-700"><span className="flex items-center gap-1"><Tag className="size-4" />{t('Offers applied')}</span><span className="num">−{money(totals.promo)}</span></div>}
           {pv?.loyalty?.enabled && customer && (
-            <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900">
+            <div className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-900">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1 font-semibold"><Gift className="size-4" />{t('{n} points available', { n: pv.loyalty.customer_points })}</span>
                 {pv.loyalty.max_redeemable > 0 ? (
                   <div className="flex items-center gap-1">
-                    <input className="num h-9 w-20 rounded-lg border border-violet-200 bg-white px-2 text-end" type="number" min="0" max={pv.loyalty.max_redeemable} step="1" placeholder="0" value={pointsToUse} onChange={(e) => setPointsToUse(e.target.value)} />
-                    <button type="button" className="rounded-lg px-2 py-1 font-semibold hover:bg-violet-100" onClick={() => setPointsToUse(String(pv.loyalty.max_redeemable))}>{t('Use all')}</button>
+                    <input className="num h-9 w-20 rounded-lg border border-brand-200 bg-white px-2 text-end" type="number" min="0" max={pv.loyalty.max_redeemable} step="1" placeholder="0" value={pointsToUse} onChange={(e) => setPointsToUse(e.target.value)} />
+                    <button type="button" className="rounded-lg px-2 py-1 font-semibold hover:bg-brand-100" onClick={() => setPointsToUse(String(pv.loyalty.max_redeemable))}>{t('Use all')}</button>
                   </div>
                 ) : <span className="text-xs">{t('Minimum {n} points to use', { n: pv.loyalty.min_redeem })}</span>}
               </div>
@@ -784,10 +784,10 @@ export default function Pos() {
               <div className="text-sm text-slate-500">{itemsLabel(t, o.items_count)} · {o.invoice_number}{o.waiter ? ` · ${o.waiter}` : ''}</div>
             </div>
             {o.order_type === 'delivery' && (
-              <div className="mb-4 space-y-1 rounded-2xl border border-blue-200/70 bg-blue-50/60 p-3 text-sm text-slate-700 dark:border-blue-400/20 dark:bg-blue-400/[0.06]">
+              <div className="mb-4 space-y-1 rounded-2xl border border-brand-200/70 bg-brand-50/60 p-3 text-sm text-slate-700 dark:border-brand-400/20 dark:bg-brand-400/[0.06]">
                 <div className="font-semibold text-slate-900">{o.delivery_name || t('Customer')}{o.delivery_phone && <span className="num ms-2 font-normal" dir="ltr">{o.delivery_phone}</span>}</div>
                 {o.delivery_address && <div className="flex items-start gap-1"><MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />{o.delivery_address}{o.delivery_area ? ` · ${o.delivery_area}` : ''}</div>}
-                <div className="font-semibold text-blue-800 dark:text-blue-300">{o.delivery_status === 'out' ? t('Out for delivery with {name}', { name: o.rider }) : t('Waiting for a rider')}</div>
+                <div className="font-semibold text-brand-800 dark:text-brand-300">{o.delivery_status === 'out' ? t('Out for delivery with {name}', { name: o.rider }) : t('Waiting for a rider')}</div>
               </div>
             )}
             <div className="grid gap-2">
@@ -1217,7 +1217,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, bookings = {},
           )}
           {delivery && (
             <button type="button" onClick={() => onNew('delivery')} className="glass-tile glass-lift flex items-center gap-3 rounded-2xl p-4 text-start">
-              <span className="grid size-12 place-items-center rounded-xl bg-blue-100 text-blue-700"><Truck className="size-6" /></span>
+              <span className="grid size-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Truck className="size-6" /></span>
               <span><span className="block text-lg font-bold text-slate-900">{t('Delivery')}</span><span className="text-sm text-slate-500">{t('New delivery order')}</span></span>
             </button>
           )}
@@ -1305,7 +1305,7 @@ function TablesView({ areas, takeaway, delivery, orders, current, bookings = {},
                   {o.order_type === 'delivery' ? (
                     <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
                       <span>{[o.delivery_name, o.delivery_area].filter(Boolean).join(' · ') || t('Customer')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>
-                      <span className={cx('whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold', o.delivery_status === 'out' ? 'bg-blue-600 text-white' : 'bg-amber-100 text-amber-800')}>{o.delivery_status === 'out' ? t('With {name}', { name: (o.rider || '').split(' ')[0] }) : t('Needs rider')}</span>
+                      <span className={cx('whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-bold', o.delivery_status === 'out' ? 'bg-brand-600 text-brand-ink' : 'bg-amber-100 text-amber-800')}>{o.delivery_status === 'out' ? t('With {name}', { name: (o.rider || '').split(' ')[0] }) : t('Needs rider')}</span>
                     </span>
                   ) : <span className="text-sm text-slate-500">{o.waiter ? `${o.waiter} · ` : ''}{o.customer || t('Walk-in')} · <span className="num">{t('{n} min', { n: minutesSince(o.created_at) })}</span></span>}
                 </span>

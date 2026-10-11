@@ -21,6 +21,11 @@
   --color-brand-500: #34dc85;
   --color-brand-600: #1bd173;
   --color-brand-700: #14a65b;
+  --color-brand-200: hsl(149.0 65.6% 87.0%);
+  --color-brand-300: hsl(149.0 65.6% 77.0%);
+  --color-brand-400: hsl(149.0 69.4% 60.3%);
+  --color-brand-800: hsl(149.0 77.1% 20.3%);
+  --color-brand-900: hsl(149.0 77.1% 14.3%);
   /* text on top of the brand colour — set at runtime by applyBrand() */
   --color-brand-ink: #0b1324;
   /* app background behind cards, and the dark navigation */
@@ -89,20 +94,39 @@ body { @apply bg-canvas text-slate-900 antialiased; }
   --glass-bg-strong: rgb(255 255 255 / 0.82);
   --glass-tile: rgb(255 255 255 / 0.72);
   --glass-edge: rgb(255 255 255 / 0.8);
-  --glass-ring: rgb(79 92 160 / 0.07);
-  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 22px 48px -26px rgb(64 76 150 / 0.32), 0 3px 10px -5px rgb(64 76 150 / 0.08);
-  --glass-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 28px 56px -24px rgb(64 76 150 / 0.38), 0 5px 14px -6px rgb(64 76 150 / 0.12);
-  --canvas-base: #e9edf9;
+  /* brand tints as "r g b" — applyBrand() replaces these with the shop's
+     colour; these are CorePOS green */
+  --bt-glow-1: 134 234 182;
+  --bt-glow-2: 175 233 203;
+  --bt-glow-3: 99 227 161;
+  --bt-glow-4: 204 234 219;
+  --bt-tint: 42 122 80;
+  --bt-canvas-a: 242 248 245;
+  --bt-canvas-b: 224 240 232;
+  --bt-ink: 21 50 35;
+  --bt-paper: 242 248 245;
+  --bt-dk-glow-1: 34 195 112;
+  --bt-dk-glow-2: 39 139 88;
+  --bt-dk-canvas-a: 16 40 28;
+  --bt-dk-canvas-b: 11 25 18;
+  --bt-dk-panel: 23 48 35;
+  --bt-dk-ink: 241 248 245;
+  --glass-ring: rgb(var(--bt-tint) / 0.08);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 22px 48px -26px rgb(var(--bt-tint) / 0.34), 0 3px 10px -5px rgb(var(--bt-tint) / 0.08);
+  --glass-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 28px 56px -24px rgb(var(--bt-tint) / 0.4), 0 5px 14px -6px rgb(var(--bt-tint) / 0.12);
+  --glass-btn-shadow: 0 8px 18px -12px rgb(var(--bt-tint) / 0.42);
+  --canvas-base: rgb(var(--bt-canvas-b));
   /* glass sidebar (Settings → Brand & look → Glass) */
   --sbg-bg: rgb(255 255 255 / 0.5);
-  --sbg-solid: #f2f4fc;
-  --sbg-text: #18213a;
-  --sbg-muted: rgb(24 33 58 / 0.7);
-  --sbg-label: rgb(24 33 58 / 0.42);
-  --sbg-icon: rgb(24 33 58 / 0.5);
+  --sbg-solid: rgb(var(--bt-paper));
+  --sbg-text: rgb(var(--bt-ink));
+  --sbg-muted: rgb(var(--bt-ink) / 0.72);
+  --sbg-label: rgb(var(--bt-ink) / 0.44);
+  --sbg-icon: rgb(var(--bt-ink) / 0.52);
   --sbg-hover: rgb(255 255 255 / 0.55);
   --sbg-active: rgb(255 255 255 / 0.92);
-  --sbg-line: rgb(24 33 58 / 0.07);
+  --sbg-line: rgb(var(--bt-ink) / 0.07);
+  --nav-pill-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 1px rgb(var(--bt-tint) / 0.06), 0 10px 20px -12px rgb(var(--bt-tint) / 0.48);
 }
 html.dark {
   --glass-bg: rgb(20 29 48 / 0.58);
@@ -112,13 +136,15 @@ html.dark {
   --glass-ring: rgb(0 0 0 / 0.25);
   --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 14px 34px -14px rgb(0 0 0 / 0.6);
   --glass-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 22px 44px -16px rgb(0 0 0 / 0.7);
-  --canvas-base: #0a0f22;
-  --sbg-bg: rgb(22 30 56 / 0.55);
-  --sbg-solid: #121a31;
-  --sbg-text: #f1f4ff;
-  --sbg-muted: rgb(241 244 255 / 0.7);
-  --sbg-label: rgb(241 244 255 / 0.4);
-  --sbg-icon: rgb(241 244 255 / 0.5);
+  --glass-btn-shadow: 0 8px 18px -12px rgb(0 0 0 / 0.6);
+  --nav-pill-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 20px -12px rgb(0 0 0 / 0.6);
+  --canvas-base: rgb(var(--bt-dk-canvas-b));
+  --sbg-bg: rgb(var(--bt-dk-panel) / 0.55);
+  --sbg-solid: rgb(var(--bt-dk-panel));
+  --sbg-text: rgb(var(--bt-dk-ink));
+  --sbg-muted: rgb(var(--bt-dk-ink) / 0.7);
+  --sbg-label: rgb(var(--bt-dk-ink) / 0.4);
+  --sbg-icon: rgb(var(--bt-dk-ink) / 0.5);
   --sbg-hover: rgb(255 255 255 / 0.06);
   --sbg-active: rgb(255 255 255 / 0.11);
   --sbg-line: rgb(255 255 255 / 0.07);
@@ -134,36 +160,35 @@ html.dark {
 .glass-lift:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-brand-600) 28%, transparent), var(--glass-shadow-lift); transform: translateY(-1.5px); }
 .glass-lift:active { transform: translateY(0); }
 
-/* soft periwinkle and lavender light behind the glass */
+/* soft light in the brand colour behind the glass */
 .app-canvas {
   background-color: var(--canvas-base);
   background-image:
-    radial-gradient(56rem 40rem at -8% -12%, rgb(132 152 255 / 0.62), transparent 64%),
-    radial-gradient(50rem 38rem at 108% -8%, rgb(186 164 255 / 0.6), transparent 62%),
-    radial-gradient(54rem 42rem at 104% 108%, rgb(112 126 246 / 0.44), transparent 62%),
-    radial-gradient(46rem 36rem at -4% 106%, rgb(176 214 255 / 0.55), transparent 62%),
+    radial-gradient(56rem 40rem at -8% -12%, rgb(var(--bt-glow-1) / 0.55), transparent 64%),
+    radial-gradient(50rem 38rem at 108% -8%, rgb(var(--bt-glow-2) / 0.6), transparent 62%),
+    radial-gradient(54rem 42rem at 104% 108%, rgb(var(--bt-glow-3) / 0.38), transparent 62%),
+    radial-gradient(46rem 36rem at -4% 106%, rgb(var(--bt-glow-4) / 0.7), transparent 62%),
     radial-gradient(36rem 28rem at 52% 46%, rgb(255 255 255 / 0.55), transparent 70%),
-    linear-gradient(160deg, #eceffc, #e2e5f8);
+    linear-gradient(160deg, rgb(var(--bt-canvas-a)), rgb(var(--bt-canvas-b)));
   background-attachment: fixed;
 }
 html.dark .app-canvas {
   background-image:
-    radial-gradient(52rem 38rem at -8% -12%, rgb(84 104 230 / 0.32), transparent 64%),
-    radial-gradient(46rem 34rem at 108% -8%, rgb(140 100 240 / 0.26), transparent 62%),
-    radial-gradient(50rem 40rem at 104% 108%, rgb(70 90 220 / 0.22), transparent 62%),
-    radial-gradient(42rem 34rem at -4% 106%, rgb(40 120 220 / 0.16), transparent 62%),
-    linear-gradient(160deg, #0d1330, #0a0f22);
+    radial-gradient(52rem 38rem at -8% -12%, rgb(var(--bt-dk-glow-1) / 0.3), transparent 64%),
+    radial-gradient(46rem 34rem at 108% -8%, rgb(var(--bt-dk-glow-2) / 0.28), transparent 62%),
+    radial-gradient(50rem 40rem at 104% 108%, rgb(var(--bt-dk-glow-1) / 0.18), transparent 62%),
+    radial-gradient(42rem 34rem at -4% 106%, rgb(var(--bt-dk-glow-2) / 0.16), transparent 62%),
+    linear-gradient(160deg, rgb(var(--bt-dk-canvas-a)), rgb(var(--bt-dk-canvas-b)));
 }
 
 /* round frosted buttons in the top bar */
 .glass-btn {
   background: var(--glass-tile);
   border: 1px solid var(--glass-edge);
-  box-shadow: 0 0 0 1px var(--glass-ring), 0 8px 18px -12px rgb(64 76 150 / 0.4);
+  box-shadow: 0 0 0 1px var(--glass-ring), var(--glass-btn-shadow);
   transition: background-color 150ms, box-shadow 150ms;
 }
-.glass-btn:hover { background: var(--glass-bg-strong); box-shadow: 0 0 0 1px var(--glass-ring), 0 10px 22px -12px rgb(64 76 150 / 0.5); }
-html.dark .glass-btn { box-shadow: 0 0 0 1px var(--glass-ring), 0 8px 18px -12px rgb(0 0 0 / 0.6); }
+.glass-btn:hover { background: var(--glass-bg-strong); }
 
 /* Glass sidebar: a floating frosted panel; the open page is a white pill. */
 html[data-sidebar=glass] .app-sidebar {
@@ -178,9 +203,8 @@ html[data-sidebar=glass] .app-drawer { background: var(--sbg-solid); }
 html[data-sidebar=glass] .sidebar-depth { background-image: none; }
 html[data-sidebar=glass] .nav-active {
   background: var(--sbg-active);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 1px rgb(79 92 160 / 0.06), 0 10px 20px -12px rgb(64 76 150 / 0.45);
+  box-shadow: var(--nav-pill-shadow);
 }
-html.dark[data-sidebar=glass] .nav-active { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 20px -12px rgb(0 0 0 / 0.6); }
 html[data-sidebar=glass] .nav-glow { display: none; }
 html[data-sidebar=glass] .nav-item { border-radius: 14px; }
 

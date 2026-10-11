@@ -55,8 +55,8 @@ export default function DeliveryDetails({ order, onChange, missing, folded = fal
 
   if (folded && !open && !missing) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-blue-200/70 bg-blue-50/50 px-3 py-2 text-start transition hover:bg-blue-50 dark:border-blue-400/20 dark:bg-blue-400/[0.06]">
-        <MapPin className="size-5 shrink-0 text-blue-600" />
+      <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-brand-200/70 bg-brand-50/50 px-3 py-2 text-start transition hover:bg-brand-50 dark:border-brand-400/20 dark:bg-brand-400/[0.06]">
+        <MapPin className="size-5 shrink-0 text-brand-600" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-slate-900">{order.name || t('Customer')}<span className="num ms-2 font-normal text-slate-500" dir="ltr">{order.phone}</span></span>
           <span className="block truncate text-xs text-slate-500">{[order.address, order.area].filter(Boolean).join(' · ') || t('No address')}</span>
@@ -67,7 +67,7 @@ export default function DeliveryDetails({ order, onChange, missing, folded = fal
   }
 
   return (
-    <div className="space-y-2 rounded-2xl border border-blue-200/70 bg-blue-50/50 p-2.5 dark:border-blue-400/20 dark:bg-blue-400/[0.06]">
+    <div className="space-y-2 rounded-2xl border border-brand-200/70 bg-brand-50/50 p-2.5 dark:border-brand-400/20 dark:bg-brand-400/[0.06]">
       <div className="flex gap-2">
         <label className="relative min-w-0 flex-1">
           <Phone className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -79,7 +79,7 @@ export default function DeliveryDetails({ order, onChange, missing, folded = fal
         </label>
       </div>
       {(k || (folded && open)) && (
-        <div className="flex items-center gap-1.5 px-1 text-xs font-semibold text-blue-800 dark:text-blue-300">
+        <div className="flex items-center gap-1.5 px-1 text-xs font-semibold text-brand-800 dark:text-brand-300">
           {k && <><History className="size-3.5" />{k.orders > 0 ? t('Returning customer · {n} orders before', { n: k.orders }) : t('Known customer')}</>}
           {folded && open && <button type="button" onClick={() => setOpen(false)} className="ms-auto flex items-center gap-1 rounded-md px-1.5 py-0.5 text-slate-500 hover:bg-white/70">{t('Done')}<ChevronDown className="size-3.5 rotate-180" /></button>}
         </div>

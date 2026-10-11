@@ -83,12 +83,12 @@ export default function Deliveries() {
           ) : (
             <div className="mb-6 flex gap-3 overflow-x-auto pb-1">
               {riders.map((r) => (
-                <div key={r.id} className={cx('glass-tile flex min-w-60 shrink-0 items-center gap-3 rounded-2xl p-3', r.out > 0 && 'ring-2 ring-blue-500/60')}>
-                  <span className={cx('grid size-11 shrink-0 place-items-center rounded-full text-sm font-bold', r.out > 0 ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white' : 'bg-slate-500/10 text-slate-600')}>{initials(r.name)}</span>
+                <div key={r.id} className={cx('glass-tile flex min-w-60 shrink-0 items-center gap-3 rounded-2xl p-3', r.out > 0 && 'ring-2 ring-brand-500/60')}>
+                  <span className={cx('grid size-11 shrink-0 place-items-center rounded-full text-sm font-bold', r.out > 0 ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-brand-ink' : 'bg-slate-500/10 text-slate-600')}>{initials(r.name)}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-slate-900">{r.name}</div>
                     <div className="text-xs text-slate-500">
-                      {r.out > 0 ? <span className="font-semibold text-blue-700 dark:text-blue-300">{t('{n} out', { n: r.out })}{r.cash_to_collect > 0 ? ` · ${money(r.cash_to_collect)}` : ''}</span> : t('Free')}
+                      {r.out > 0 ? <span className="font-semibold text-brand-700 dark:text-brand-300">{t('{n} out', { n: r.out })}{r.cash_to_collect > 0 ? ` · ${money(r.cash_to_collect)}` : ''}</span> : t('Free')}
                       {r.delivered_today > 0 && ` · ${t('{n} done today', { n: r.delivered_today })}`}
                     </div>
                   </div>
@@ -164,7 +164,7 @@ export default function Deliveries() {
 }
 
 function Column({ title, count, icon: Icon, tone, empty, children }) {
-  const tones = { amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', blue: 'bg-blue-500/15 text-blue-700 dark:text-blue-300' };
+  const tones = { amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', blue: 'bg-brand-500/15 text-brand-700 dark:text-brand-300' };
   return (
     <section>
       <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-slate-900">
@@ -192,7 +192,7 @@ function OrderCard({ o, t, actions }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-lg font-bold text-slate-900">{o.delivery_name || t('Customer')}</span>
             {!isOut && <span className={cx('rounded-full px-2 py-0.5 text-[11px] font-bold', kTone)}>{t(kLabel)}</span>}
-            {isOut && <span className="flex items-center gap-1 rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-bold text-white"><Bike className="size-3" />{o.rider}</span>}
+            {isOut && <span className="flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-brand-ink"><Bike className="size-3" />{o.rider}</span>}
           </div>
           <div className="num mt-0.5 text-sm text-slate-500">{o.invoice_number} · {Number(o.items_count) === 1 ? t('1 item') : t('{n} items', { n: o.items_count })}</div>
         </div>
@@ -203,7 +203,7 @@ function OrderCard({ o, t, actions }) {
       <div className="mt-3 space-y-1.5 text-sm text-slate-700">
         {o.delivery_phone && <a href={`tel:${o.delivery_phone}`} className="num flex items-center gap-2 hover:text-brand-700" dir="ltr"><Phone className="size-4 shrink-0 text-slate-400" />{o.delivery_phone}</a>}
         {(o.delivery_address || o.delivery_area) && (
-          <div className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{o.delivery_address}{o.delivery_area && <span className="ms-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-xs font-semibold text-blue-800 dark:text-blue-300">{o.delivery_area}</span>}</span></div>
+          <div className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{o.delivery_address}{o.delivery_area && <span className="ms-1 rounded-md bg-brand-500/10 px-1.5 py-0.5 text-xs font-semibold text-brand-800 dark:text-brand-300">{o.delivery_area}</span>}</span></div>
         )}
         {isOut && o.dispatched_at && <div className="flex items-center gap-2 text-slate-500"><Timer className="size-4 shrink-0 text-slate-400" />{t('Left at {time} · {n} min ago', { time: clock(o.dispatched_at), n: minsSince(o.dispatched_at) })}</div>}
         {o.notes && <div className="rounded-lg bg-amber-500/10 px-2 py-1 text-xs text-amber-900 dark:text-amber-200">{o.notes}</div>}
@@ -244,7 +244,7 @@ function SendModal({ order, riders, onClose, onDone, onPrint }) {
       <div className="grid gap-2">
         {riders.map((r) => (
           <button key={r.id} type="button" onClick={() => setPick(r)} className={cx('flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-start transition', pick?.id === r.id ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-slate-300')}>
-            <span className={cx('grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold', r.out > 0 ? 'bg-blue-600 text-white' : 'bg-slate-500/10 text-slate-700')}>{initials(r.name)}</span>
+            <span className={cx('grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold', r.out > 0 ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-700')}>{initials(r.name)}</span>
             <span className="min-w-0 flex-1">
               <span className="block font-semibold text-slate-900">{r.name}</span>
               <span className="block text-xs text-slate-500">{r.out > 0 ? t('Already has {n} orders out', { n: r.out }) : t('Free now')}</span>

@@ -85,6 +85,41 @@ export function onBrand(hex) {
   return 1.05 / (luminance(hex) + 0.05) >= 3 ? '#ffffff' : '#0b1324';
 }
 
+// "r g b" for rgb(var(--x) / alpha) — plain rgb, so the Windows 7/8 build
+// (Chrome 108, no color-mix) shows the same colours.
+function hslRgb(h, s, l) {
+  const S = Math.max(0, Math.min(100, s)) / 100;
+  const L = Math.max(0, Math.min(100, l)) / 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = S * Math.min(L, 1 - L);
+  const f = (n) => Math.round(255 * (L - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+  return `${f(0)} ${f(8)} ${f(4)}`;
+}
+
+// Background glow, glass shadows and the glass sidebar all take the brand
+// colour, lighter or deeper — light and dark sets, picked by html.dark in CSS.
+export function brandTints(hex) {
+  const { h, s } = hexToHsl(hex) || hexToHsl(DEFAULT_BRAND);
+  const soft = Math.min(s, 70);
+  return {
+    'glow-1': hslRgb(h, soft, 72),
+    'glow-2': hslRgb(h, soft * 0.8, 80),
+    'glow-3': hslRgb(h, soft, 64),
+    'glow-4': hslRgb(h, soft * 0.6, 86),
+    'tint': hslRgb(h, soft * 0.7, 32),
+    'canvas-a': hslRgb(h, soft * 0.45, 96),
+    'canvas-b': hslRgb(h, soft * 0.5, 91),
+    'ink': hslRgb(h, Math.min(s, 40), 14),
+    'paper': hslRgb(h, soft * 0.4, 96),
+    'dk-glow-1': hslRgb(h, soft, 45),
+    'dk-glow-2': hslRgb(h, soft * 0.8, 35),
+    'dk-canvas-a': hslRgb(h, soft * 0.6, 11),
+    'dk-canvas-b': hslRgb(h, soft * 0.55, 7),
+    'dk-panel': hslRgb(h, soft * 0.5, 14),
+    'dk-ink': hslRgb(h, soft * 0.5, 96),
+  };
+}
+
 export function applyBrand(hex) {
   const root = document.documentElement;
   const scale = brandScale(hex);
@@ -99,10 +134,12 @@ export function applyBrand(hex) {
     const light = brandScale(hex);
     scale[700] = light[300];
     scale[800] = light[200];
+    scale[900] = light[100];
   }
   for (const [k, v] of Object.entries(scale)) root.style.setProperty(`--color-brand-${k}`, v);
   root.style.setProperty('--brand-ink', onBrand(hex));
   root.style.setProperty('--color-brand-ink', onBrand(hex));
+  for (const [k, v] of Object.entries(brandTints(hex))) root.style.setProperty(`--bt-${k}`, v);
 }
 
 // ---------------------------------------------------------------- sidebar
@@ -112,7 +149,7 @@ export function applyBrand(hex) {
 // colours live in index.css (--sbg-*) so they follow light/dark mode.
 
 export const DEFAULT_SIDEBAR = 'glass';
-export const GLASS_SWATCH = 'linear-gradient(135deg, #ffffff 0%, #dfe5fc 55%, #e7dcfd 100%)';
+export const GLASS_SWATCH = 'linear-gradient(135deg, #ffffff 0%, rgb(var(--bt-glow-4)) 55%, rgb(var(--bt-glow-2)) 100%)';
 export const isSidebarValue = (v) => v === 'glass' || /^#[0-9a-f]{6}$/i.test(v || '');
 
 export const SIDEBAR_PRESETS = [

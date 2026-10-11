@@ -41,7 +41,7 @@ export function ExportItemsButton() {
             <FileSpreadsheet className="size-5 text-emerald-600" /><span><span className="block font-semibold text-slate-900">{t('Excel file (.xlsx)')}</span><span className="block text-xs text-slate-500">{t('Opens in Excel or Google Sheets')}</span></span>
           </button>
           <button type="button" onClick={() => run('csv')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start hover:bg-slate-500/[0.06]">
-            <FileSpreadsheet className="size-5 text-blue-600" /><span><span className="block font-semibold text-slate-900">{t('CSV file (.csv)')}</span><span className="block text-xs text-slate-500">{t('For other POS and software')}</span></span>
+            <FileSpreadsheet className="size-5 text-brand-600" /><span><span className="block font-semibold text-slate-900">{t('CSV file (.csv)')}</span><span className="block text-xs text-slate-500">{t('For other POS and software')}</span></span>
           </button>
         </div>
       )}

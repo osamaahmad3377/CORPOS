@@ -87,7 +87,7 @@ export default function Riders() {
             {rows.map((r) => (
               <div key={r.id} className={cx('glass-tile rounded-2xl p-4', !r.is_active && 'opacity-60')}>
                 <div className="flex items-center gap-3">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-base font-bold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]">{initials(r.name)}</span>
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-base font-bold text-brand-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]">{initials(r.name)}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-base font-semibold text-slate-900">{r.name}</div>
                     <div className="truncate text-sm text-slate-500">
@@ -97,7 +97,7 @@ export default function Riders() {
                   {canEdit && <Switch size="sm" checked={r.is_active} label={t('Working')} onChange={(v) => toggle(r, v)} />}
                 </div>
                 {r.out_now > 0 && (
-                  <div className="mt-3 flex items-center justify-between rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white">
+                  <div className="mt-3 flex items-center justify-between rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-brand-ink">
                     <span className="flex items-center gap-1.5"><Bike className="size-4" />{t('{n} orders out now', { n: r.out_now })}</span>
                     {r.cash_to_collect > 0 && <span className="num">{t('Cash {amount}', { amount: money(r.cash_to_collect) })}</span>}
                   </div>
@@ -108,7 +108,7 @@ export default function Riders() {
                   <div className="rounded-xl bg-slate-500/[0.06] py-2"><div className="num text-lg font-bold text-slate-900">{r.avg_minutes == null ? '—' : t('{n} min', { n: r.avg_minutes })}</div><div className="text-[11px] text-slate-500">{t('Avg. time')}</div></div>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-500"><span>{t('Delivery charges')}</span><span className="num font-semibold text-slate-700">{money(r.fees)}</span></div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-500/15" dir="ltr"><div className="h-full rounded-full bg-blue-600" style={{ width: `${(r.deliveries / maxDel) * 100}%` }} /></div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-500/15" dir="ltr"><div className="h-full rounded-full bg-brand-600" style={{ width: `${(r.deliveries / maxDel) * 100}%` }} /></div>
                 {canEdit && (
                   <div className="mt-3 flex justify-end gap-1">
                     <Button size="sm" variant="ghost" icon={Pencil} onClick={() => setEditing(r)}>{t('Edit')}</Button>

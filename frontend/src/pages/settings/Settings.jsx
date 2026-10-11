@@ -288,7 +288,7 @@ function BrandForm({ d, set }) {
   const fileRef = useRef(null);
   const color = d.brand.primary_color;
   const sidebar = isSidebarValue(d.brand.sidebar_color) ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
-  const sidebarHex = sidebar === 'glass' ? '#f2f4fc' : sidebar;
+  const sidebarHex = sidebar === 'glass' ? '#ffffff' : sidebar;
   const logoSize = clampLogo(d.brand.sidebar_logo_size);
   const upload = async (file) => {
     if (!file) return;
@@ -372,7 +372,7 @@ function BrandForm({ d, set }) {
                     <button key={p.hex} type="button" title={t(p.name)} aria-label={t(p.name)} onClick={() => set('brand', 'sidebar_color')(p.hex)}
                       className={cx('grid size-11 place-items-center rounded-xl border border-slate-900/10 ring-offset-2 transition hover:scale-105', on && 'ring-2 ring-slate-900')}
                       style={{ background: p.hex === 'glass' ? GLASS_SWATCH : p.hex }}>
-                      {on && <Check className="size-5" style={{ color: p.hex === 'glass' ? '#18213a' : sidebarTheme(p.hex).text }} />}
+                      {on && <Check className="size-5" style={{ color: p.hex === 'glass' ? 'rgb(var(--bt-ink))' : sidebarTheme(p.hex).text }} />}
                     </button>
                   );
                 })}
@@ -1067,7 +1067,7 @@ function SidebarPreview({ hex, size = 96 }) {
       <div className="mx-4 h-px" style={{ background: th.line }} />
       <div className="space-y-0.5 p-2.5">
         {items.map(([Icon, label, active]) => (
-          <div key={label} className="relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium" style={{ background: active ? th.active : 'transparent', color: active ? th.text : th.muted, boxShadow: active && th.glass ? '0 8px 16px -10px rgb(64 76 150 / 0.5)' : undefined }}>
+          <div key={label} className="relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium" style={{ background: active ? th.active : 'transparent', color: active ? th.text : th.muted, boxShadow: active && th.glass ? 'var(--nav-pill-shadow)' : undefined }}>
             {active && !th.glass && <span className="absolute inset-y-1.5 start-0 w-1 rounded-full" style={{ background: th.accent }} />}
             <Icon className="size-4" style={{ color: active ? th.accent : th.icon }} />{t(label)}
           </div>

@@ -137,25 +137,25 @@ export default function Home() {
 
   const actions = (restaurant ? [
     can('sales.create') && { to: '/pos', icon: LayoutGrid, label: t('Tables'), tone: 'bg-brand-50 text-brand-700' },
-    can('sales.create') && { to: '/kitchen', icon: ChefHat, label: t('Kitchen screen'), tone: 'bg-orange-50 text-orange-600' },
-    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add a dish'), tone: 'bg-blue-50 text-blue-600' },
-    can('sales.create') && shop.delivery && { to: '/deliveries', icon: Bike, label: t('Deliveries'), tone: 'bg-sky-50 text-sky-600' },
-    can('sales.create') && { to: '/reservations', icon: CalendarClock, label: t('Reservations'), tone: 'bg-amber-50 text-amber-600' },
-    can('inventory.view') && { to: '/kitchen-stock', icon: Beef, label: t('Kitchen stock'), tone: 'bg-rose-50 text-rose-600' },
-    can('users.manage') && { to: '/waiters', icon: UserRound, label: t('Waiters'), tone: 'bg-violet-50 text-violet-600' },
-    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-indigo-50 text-indigo-600' },
-    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-teal-50 text-teal-600' },
-    can('expenses.manage') && { to: '/expenses', icon: Wallet, label: t('Expenses'), tone: 'bg-amber-50 text-amber-600' },
+    can('sales.create') && { to: '/kitchen', icon: ChefHat, label: t('Kitchen screen'), tone: 'bg-brand-50 text-brand-600' },
+    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add a dish'), tone: 'bg-brand-50 text-brand-600' },
+    can('sales.create') && shop.delivery && { to: '/deliveries', icon: Bike, label: t('Deliveries'), tone: 'bg-brand-50 text-brand-600' },
+    can('sales.create') && { to: '/reservations', icon: CalendarClock, label: t('Reservations'), tone: 'bg-brand-50 text-brand-600' },
+    can('inventory.view') && { to: '/kitchen-stock', icon: Beef, label: t('Kitchen stock'), tone: 'bg-brand-50 text-brand-600' },
+    can('users.manage') && { to: '/waiters', icon: UserRound, label: t('Waiters'), tone: 'bg-brand-50 text-brand-600' },
+    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-brand-50 text-brand-600' },
+    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-brand-50 text-brand-600' },
+    can('expenses.manage') && { to: '/expenses', icon: Wallet, label: t('Expenses'), tone: 'bg-brand-50 text-brand-600' },
     can('reports.view') && { to: '/reports', icon: BarChart3, label: t('Reports'), tone: 'bg-slate-500/10 text-slate-600' },
   ] : [
-    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add new item'), tone: 'bg-blue-50 text-blue-600' },
-    can('purchases.manage') && { to: '/purchases/new', icon: Boxes, label: t('Stock arrived'), tone: 'bg-teal-50 text-teal-600' },
-    can('customers.view') && { to: '/customers', icon: HandCoins, label: t('Udhaar / Customers'), tone: 'bg-amber-50 text-amber-600' },
-    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-indigo-50 text-indigo-600' },
-    can('inventory.view') && { to: '/inventory', icon: Warehouse, label: t('Stock count'), tone: 'bg-orange-50 text-orange-600' },
-    can('quotations.manage') && { to: '/quotations', icon: FileText, label: t('Quotations'), tone: 'bg-sky-50 text-sky-600' },
-    can('promotions.manage') && { to: '/offers', icon: BadgePercent, label: t('Offers & loyalty'), tone: 'bg-violet-50 text-violet-600' },
-    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-emerald-50 text-emerald-600' },
+    can('products.create') && { to: '/products?new=1', icon: PackagePlus, label: t('Add new item'), tone: 'bg-brand-50 text-brand-600' },
+    can('purchases.manage') && { to: '/purchases/new', icon: Boxes, label: t('Stock arrived'), tone: 'bg-brand-50 text-brand-600' },
+    can('customers.view') && { to: '/customers', icon: HandCoins, label: t('Udhaar / Customers'), tone: 'bg-brand-50 text-brand-600' },
+    can('sales.create') && { to: '/sales', icon: ReceiptText, label: t('Old bills'), tone: 'bg-brand-50 text-brand-600' },
+    can('inventory.view') && { to: '/inventory', icon: Warehouse, label: t('Stock count'), tone: 'bg-brand-50 text-brand-600' },
+    can('quotations.manage') && { to: '/quotations', icon: FileText, label: t('Quotations'), tone: 'bg-brand-50 text-brand-600' },
+    can('promotions.manage') && { to: '/offers', icon: BadgePercent, label: t('Offers & loyalty'), tone: 'bg-brand-50 text-brand-600' },
+    can('cash.manage') && { to: '/cash', icon: Vault, label: t('Cash drawer'), tone: 'bg-brand-50 text-brand-600' },
     can('reports.view') && { to: '/reports', icon: BarChart3, label: t('Reports'), tone: 'bg-slate-500/10 text-slate-600' },
   ]).filter(Boolean);
   if (can('settings.manage')) actions.push({ to: '/settings', icon: Settings, label: t('Settings'), tone: 'bg-slate-500/10 text-slate-600' });
@@ -165,10 +165,10 @@ export default function Home() {
   const summaryPanel = (className, wide = false) => (
         <Panel className={className} title={t('Summary')} subtitle={t('Last {n} days', { n: days })} bodyClass={cx('p-3 pt-2', wide && 'grid content-start gap-x-6 gap-y-1 sm:grid-cols-2')}>
           {[
-            { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-emerald-50 text-emerald-600' },
-            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-blue-50 text-blue-600' },
-            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-amber-50 text-amber-600' },
-            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-violet-50 text-violet-600' }] : []),
+            { label: t('Sales'), value: money(d?.total ?? 0), delta: d?.change_percent, spark: series.total, color: 'var(--color-brand-600)', icon: TrendingUp, tone: 'bg-brand-50 text-brand-600' },
+            { label: t('Bills'), value: d?.bills ?? 0, delta: d?.bills_change_percent, spark: series.bills, color: slotColor(0, dark), icon: ReceiptText, tone: 'bg-brand-50 text-brand-600' },
+            { label: t('Average bill'), value: money(d?.average_bill ?? 0), spark: series.avg, color: slotColor(3, dark), icon: Coins, tone: 'bg-brand-50 text-brand-600' },
+            ...(d?.profit != null ? [{ label: t('Profit'), value: money(d.profit), spark: series.profit, color: dark ? '#9085e9' : '#4a3aa7', icon: Trophy, tone: 'bg-brand-50 text-brand-600' }] : []),
           ].map((k) => (
             <div key={k.label} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition hover:bg-slate-500/[0.05]">
               <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', k.tone)}><k.icon className="size-5" /></span>
@@ -209,16 +209,16 @@ export default function Home() {
         <TodayTile hero icon={TrendingUp} label={t('Today\'s sale')} value={money(s.today_revenue)} foot={t('{n} bills today', { n: s.today_sales_count ?? 0 })} to={can('sales.create') ? '/sales' : undefined} />
         {restaurant ? (
           <>
-            <TodayTile icon={LayoutGrid} tone="bg-blue-50 text-blue-600 ring-blue-600/10" label={t('Tables busy')} value={<>{busyTables}<span className="text-lg font-bold text-slate-400"> / {totalTables}</span></>} foot={t('{n} open orders', { n: openOrders.length })} to="/pos" />
-            <TodayTile icon={ChefHat} tone="bg-orange-50 text-orange-600 ring-orange-600/10" label={t('In the kitchen')} value={cooking} foot={t('Orders being cooked')} to="/kitchen" />
+            <TodayTile icon={LayoutGrid} tone="bg-brand-50 text-brand-600 ring-brand-600/10" label={t('Tables busy')} value={<>{busyTables}<span className="text-lg font-bold text-slate-400"> / {totalTables}</span></>} foot={t('{n} open orders', { n: openOrders.length })} to="/pos" />
+            <TodayTile icon={ChefHat} tone="bg-brand-50 text-brand-600 ring-brand-600/10" label={t('In the kitchen')} value={cooking} foot={t('Orders being cooked')} to="/kitchen" />
           </>
         ) : (
           <>
-            <TodayTile icon={ReceiptText} tone="bg-blue-50 text-blue-600 ring-blue-600/10" label={t('Bills today')} value={s.today_sales_count ?? 0} foot={s.today_sales_count ? t('Average {amount}', { amount: money((s.today_revenue || 0) / (s.today_sales_count || 1)) }) : t('No bills yet today')} />
-            <TodayTile icon={Package} tone="bg-violet-50 text-violet-600 ring-violet-600/10" label={t('Items')} value={s.total_products ?? '—'} foot={t('{n} customers', { n: s.total_customers ?? 0 })} to={can('products.view') ? '/products' : undefined} />
+            <TodayTile icon={ReceiptText} tone="bg-brand-50 text-brand-600 ring-brand-600/10" label={t('Bills today')} value={s.today_sales_count ?? 0} foot={s.today_sales_count ? t('Average {amount}', { amount: money((s.today_revenue || 0) / (s.today_sales_count || 1)) }) : t('No bills yet today')} />
+            <TodayTile icon={Package} tone="bg-brand-50 text-brand-600 ring-brand-600/10" label={t('Items')} value={s.total_products ?? '—'} foot={t('{n} customers', { n: s.total_customers ?? 0 })} to={can('products.view') ? '/products' : undefined} />
           </>
         )}
-        <TodayTile icon={Coins} tone="bg-amber-50 text-amber-600 ring-amber-600/10" label={t('This month')} value={s.month_revenue != null ? money(s.month_revenue) : '—'} foot={s.low_stock_count ? t('{n} items running low', { n: s.low_stock_count }) : t('Sales this month')} to={can('reports.view') ? '/reports' : undefined} />
+        <TodayTile icon={Coins} tone="bg-brand-50 text-brand-600 ring-brand-600/10" label={t('This month')} value={s.month_revenue != null ? money(s.month_revenue) : '—'} foot={s.low_stock_count ? t('{n} items running low', { n: s.low_stock_count }) : t('Sales this month')} to={can('reports.view') ? '/reports' : undefined} />
       </div>
 
       {/* ------------------------------------------------ analytics */}
@@ -385,7 +385,7 @@ function DeliveriesNow({ className }) {
   const riders = (q.data?.riders || []).filter((r) => r.out > 0);
   const tiles = st ? [
     { label: t('Waiting for a rider'), value: st.pending, tone: 'bg-amber-50 text-amber-700' },
-    { label: t('Out for delivery'), value: st.out, tone: 'bg-blue-50 text-blue-700' },
+    { label: t('Out for delivery'), value: st.out, tone: 'bg-brand-50 text-brand-700' },
     { label: t('Delivered today'), value: st.delivered_today, tone: 'bg-emerald-50 text-emerald-700' },
   ] : [];
   return (
@@ -402,7 +402,7 @@ function DeliveriesNow({ className }) {
         <div className="mt-3 space-y-2">
           {riders.map((r) => (
             <div key={r.id} className="flex items-center gap-3 text-sm">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-[11px] font-bold text-white">{initials(r.name)}</span>
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-bold text-brand-ink">{initials(r.name)}</span>
               <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{r.name}</span>
               <span className="text-xs text-slate-500">{t('{n} out', { n: r.out })}</span>
               {r.cash_to_collect > 0 && <span className="num font-semibold text-slate-900">{money(r.cash_to_collect)}</span>}
