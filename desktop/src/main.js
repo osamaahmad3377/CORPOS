@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage, powerMonitor, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, powerMonitor, shell } = require('electron');
 
 const config = require('../app.config.json');
 const { LicenseManager } = require('./license');
@@ -62,26 +62,18 @@ let win = null;
 let launcher = { state: 'starting', message: '' };
 
 // ---------------------------------------------------------------- shop branding
-// White-label: once a shop is open, the window title, the taskbar / dock icon
-// and the start screen show that shop (its name, colour and logo). Saved here
-// so the next start opens in the shop's brand before the POS has loaded.
+// The app icon is always CorePOS. Once a shop is open, the window title and
+// the start screen use that shop's name and colour — saved here so the next
+// start shows them before the POS has loaded.
 const brandFile = path.join(dataDir, 'brand.json');
-const brandIconFile = path.join(dataDir, 'brand-icon.png');
 
 function savedBrand() {
   try {
     const b = JSON.parse(fs.readFileSync(brandFile, 'utf8'));
-    const icon = fs.existsSync(brandIconFile) ? `data:image/png;base64,${fs.readFileSync(brandIconFile).toString('base64')}` : null;
-    return { name: String(b.name || '').slice(0, 80), color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null, icon };
+    return { name: String(b.name || '').slice(0, 80), color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null };
   } catch {
     return null;
   }
-}
-
-function applyBrandIcon(image) {
-  if (!image || image.isEmpty()) return;
-  if (process.platform === 'darwin') app.dock?.setIcon(image);
-  else if (win) win.setIcon(image);
 }
 let revalidateTimer = null;
 let lastLeaseWarning = 0;
@@ -107,8 +99,6 @@ function createWindow() {
       sandbox: true,
     },
   });
-
-  if (fs.existsSync(brandIconFile)) applyBrandIcon(nativeImage.createFromPath(brandIconFile));
 
   win.once('ready-to-show', () => {
     win.maximize();
@@ -499,22 +489,14 @@ app.on('child-process-gone', (_e, details) => {
   }
 });
 
-// The POS pages send the open shop's name, brand colour and icon (256 px PNG).
+// The POS pages send the open shop's name and brand colour.
 ipcMain.handle('brand', (event, brand = {}) => {
   if (!fromPos(event)) throw new Error('Not allowed');
   const name = typeof brand.name === 'string' ? brand.name.trim().slice(0, 80) : '';
   const color = /^#[0-9a-f]{6}$/i.test(brand.color || '') ? brand.color : null;
-  const icon = typeof brand.icon === 'string' && brand.icon.startsWith('data:image/png;base64,') && brand.icon.length < 2_000_000 ? brand.icon : null;
   if (!name) return false;
   try {
     fs.writeFileSync(brandFile, JSON.stringify({ name, color }));
-    if (icon) {
-      const image = nativeImage.createFromDataURL(icon);
-      if (!image.isEmpty()) {
-        fs.writeFileSync(brandIconFile, image.toPNG());
-        applyBrandIcon(image);
-      }
-    }
   } catch (err) {
     log('could not save shop brand:', err.message);
   }

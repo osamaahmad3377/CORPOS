@@ -39,8 +39,8 @@ export default function Login() {
   const logo = shop?.logo_url || null;
   useEffect(() => {
     applyBrand(color);
-    if (name) { setAppName(name); applyShopIdentity({ name, color, logoUrl: logo }); }
-  }, [name, color, logo, setAppName]);
+    if (name) { setAppName(name); applyShopIdentity({ name, color }); }
+  }, [name, color, setAppName]);
   const now = useClock();
 
   if (user) return <Navigate to="/" replace />;

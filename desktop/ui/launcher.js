@@ -7,12 +7,9 @@ function render(s) {
   $('#version').textContent = `Version ${s.version}`;
   $('#machine-id').textContent = s.machineId;
   document.querySelectorAll('#support-email, .support-email').forEach((el) => { el.textContent = s.supportEmail || 'info@nextcore.com.pk'; });
-  // White-label: while starting, the screen shows the shop (its icon, name
-  // and colour) once it has been opened before; other screens show CorePOS.
+  // While starting, the CorePOS logo with the shop's name and colour under
+  // it (once the shop has been opened before).
   const shop = (s.state === 'starting' || s.state === 'checking') && s.brand?.name ? s.brand : null;
-  $('#product-logo').hidden = !!shop;
-  $('#shop-icon').hidden = !shop?.icon;
-  if (shop?.icon) $('#shop-icon').src = shop.icon;
   $('#shop-name').hidden = !shop;
   $('#shop-name').textContent = shop?.name || '';
   document.title = shop?.name || 'CorePOS';

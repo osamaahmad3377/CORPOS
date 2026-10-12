@@ -30,12 +30,11 @@ export function ShopProvider({ children }) {
   // the shop's name and logo on the window, tab, taskbar and in messages
   const { setAppName } = useLang();
   const shopName = settings.data?.shop?.name;
-  const logoPath = settings.data?.brand?.logo;
   useEffect(() => {
     if (!shopName) return;
     setAppName(shopName);
-    applyShopIdentity({ name: shopName, color: brandColor, logoUrl: logoPath ? `/storage/${logoPath}` : null });
-  }, [shopName, brandColor, logoPath, setAppName]);
+    applyShopIdentity({ name: shopName, color: brandColor });
+  }, [shopName, brandColor, setAppName]);
 
   const value = useMemo(() => {
     const s = settings.data || {};

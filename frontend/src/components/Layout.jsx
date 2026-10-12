@@ -11,8 +11,8 @@ import { useShop } from '../lib/shop';
 import { useLang } from '../lib/i18n';
 import { LANGUAGES, fontVar } from '../lib/languages';
 import { cx } from './ui';
-import { ShopLogo } from './Brand';
-import BusinessSwitcher, { useBusinesses } from './BusinessSwitcher';
+import { NextcoreLogo } from './Brand';
+import BusinessSwitcher from './BusinessSwitcher';
 
 // Menu. Labels are plain words a first-time shopkeeper understands.
 export function navSections(shop) {
@@ -241,11 +241,7 @@ export function ThemeSwitch({ className }) {
 }
 
 export default function Layout() {
-  const { user, logout, can } = useAuth();
-  const shop = useShop();
-  // the business switch already shows the shop's name when it is there
-  const businesses = useBusinesses().data?.data || [];
-  const switcherShown = businesses.length > 1 || (businesses.length === 1 && can('settings.manage'));
+  const { user, logout } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -278,11 +274,10 @@ export default function Layout() {
             <BusinessSwitcher />
           </div>
 
-          {/* centre: the shop itself (the sidebar shows it on wide screens) */}
-          <button type="button" onClick={() => navigate('/')} className={cx('flex min-w-0 items-center gap-2.5 rounded-2xl px-2 py-1 text-slate-900 xl:invisible', switcherShown && 'invisible')} title={shop.shopName}>
-            <ShopLogo className="size-9 text-base" rounded="rounded-xl" />
-            <span className="hidden max-w-[16rem] truncate text-[17px] font-bold tracking-tight sm:block">{shop.shopName}</span>
-          </button>
+          {/* centre: the CorePOS logo (the shop's own logo is in the sidebar) */}
+          <a href="https://nextcore.com.pk" target="_blank" rel="noreferrer" className="flex items-center text-slate-900" title="CorePOS by NextCore — nextcore.com.pk" dir="ltr">
+            <NextcoreLogo className="h-7 sm:h-8" />
+          </a>
 
           {/* end: language, theme, user */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2">
