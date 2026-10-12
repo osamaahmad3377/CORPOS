@@ -18,15 +18,15 @@ function Row({ label, value, strong, big }) {
   );
 }
 
+// Developer credit at the bottom of every printed slip, one item per line:
+// Software by NextCore / logo / website / email.
 export function ReceiptCredit() {
   return (
-    <div className="mt-2 border-t border-dashed border-black pt-2 text-center" dir="ltr" style={{ fontFamily: 'Inter Variable, Arial, sans-serif' }}>
-      <div className="flex items-center justify-center gap-1.5" style={{ color: '#000' }}>
-        <span className="text-[9px]">Software by</span>
-        <NextcoreLogo className="h-4" mono />
-      </div>
-      <div className="text-[9px] leading-tight">{NEXTCORE.product} · {NEXTCORE.website}</div>
-      <div className="text-[9px] leading-tight">{NEXTCORE.email}</div>
+    <div className="mt-2 border-t border-dashed border-black pt-2 text-center leading-tight" dir="ltr" style={{ fontFamily: 'Inter Variable, Arial, sans-serif', color: '#000' }}>
+      <div className="text-[10px]">Software by <span className="font-bold">{NEXTCORE.company}</span></div>
+      <NextcoreLogo className="mx-auto my-1 h-5 brightness-0" mono /> {/* solid black: sharp on thermal paper */}
+      <div className="text-[10px]">{NEXTCORE.website}</div>
+      <div className="text-[10px]">{NEXTCORE.email}</div>
     </div>
   );
 }
