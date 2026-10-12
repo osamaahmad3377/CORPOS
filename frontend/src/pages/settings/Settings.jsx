@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Bike, Briefcase, Building2, CalendarClock, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
 import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_SWATCH, SIDEBAR_PRESETS, isSidebarValue, sidebarTheme } from '../../lib/theme';
 import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
-import { isDesktop, listPrinters, printNow, printerPrefs, savePrinterPrefs } from '../../lib/printer';
+import { TEXT_SIZES, isDesktop, listPrinters, printNow, printerPrefs, receiptLayout, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
 import { api, switchBusiness } from '../../lib/api';
 import { BusinessBadge, useBusinesses } from '../../components/BusinessSwitcher';
@@ -23,7 +23,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 const DEFAULTS = {
   brand: { primary_color: '#1bd173', sidebar_color: 'glass', sidebar_logo_size: '96', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
-  receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm' },
+  receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm', paper_mm: '', print_width_mm: '', margin_mm: '0', text_size: 'normal' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },
   barcode: { default_format: 'code128', default_label_size: 'small', show_shop_name: '1' },
   business: { type: 'general' },
@@ -590,15 +590,23 @@ function ReceiptForm({ d, set, err }) {
       <CardHeader title={t('Receipt')} subtitle={t('What customers see on their printed bill.')} />
       <div className="space-y-5 p-5">
         <Field label={t('Paper size')} hint={t('Pick the width of the paper roll in your receipt printer.')} error={err('receipt', 'paper_width')}>
-          <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
-            {[['58mm', '58 mm (small)'], ['80mm', '80 mm (standard)']].map(([v, l]) => (
-              <button key={v} type="button" onClick={() => set('receipt', 'paper_width')(v)}
+          <div className="grid grid-cols-3 gap-2 sm:max-w-lg">
+            {[['58mm', '58 mm (small)'], ['80mm', '80 mm (standard)'], ['custom', 'Other size']].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => { set('receipt', 'paper_width')(v); set('receipt', 'print_width_mm')(''); }}
                 className={cx('min-h-12 rounded-lg border px-3 py-2 text-[15px] font-medium transition-colors', d.receipt.paper_width === v ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
                 {t(l)}
               </button>
             ))}
           </div>
+          {d.receipt.paper_width === 'custom' && (
+            <label className="mt-3 flex items-center gap-3 text-sm font-semibold text-slate-700">
+              {t('Roll width (mm)')}
+              <Input type="number" min="40" max="120" step="1" className="num w-28" value={d.receipt.paper_mm} placeholder="80"
+                onChange={(e) => { set('receipt', 'paper_mm')(e.target.value); set('receipt', 'print_width_mm')(''); }} />
+            </label>
+          )}
         </Field>
+        <PrintTuning d={d} set={set} err={err} />
         <Field label={t('Message at the top')} hint={t('Shown under the shop name, e.g. “Thank you for shopping with us!”')} error={err('receipt', 'header')}>
           <Textarea rows={2} maxLength={500} value={d.receipt.header} onChange={set('receipt', 'header')} />
         </Field>
@@ -608,6 +616,57 @@ function ReceiptForm({ d, set, err }) {
         <Toggle checked={d.receipt.show_tax_line === '1'} onChange={(v) => set('receipt', 'show_tax_line')(v ? '1' : '0')} label={t('Show tax on the receipt')} hint={t('Prints the tax amount on its own line when a sale has tax.')} />
       </div>
     </>
+  );
+}
+
+// Fine-tuning for printers that print the bill too narrow, cut it off, or
+// print it off-centre. The preview beside it changes as the sliders move.
+function PrintTuning({ d, set, err }) {
+  const t = useT();
+  const lay = receiptLayout(d.receipt);
+  const r = d.receipt;
+  const slider = (label, hint, key, value, min, max, step, suffix, onReset) => (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-700">{label}</span>
+        <span className="flex items-center gap-2">
+          <span className="num rounded-lg bg-slate-500/10 px-2 py-0.5 text-sm font-semibold text-slate-700">{value} {suffix}</span>
+          {onReset && <button type="button" onClick={onReset} className="text-xs font-semibold text-brand-700 hover:underline">{t('Reset')}</button>}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button type="button" aria-label="−" onClick={() => set('receipt', key)(String(Math.max(min, Math.round((value - step) * 10) / 10)))} className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-500/10 text-lg font-bold text-slate-700 hover:bg-slate-500/15">−</button>
+        <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set('receipt', key)(e.target.value)}
+          className="w-full cursor-pointer accent-[var(--color-brand-600)]" aria-label={label} />
+        <button type="button" aria-label="+" onClick={() => set('receipt', key)(String(Math.min(max, Math.round((value + step) * 10) / 10)))} className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-500/10 text-lg font-bold text-slate-700 hover:bg-slate-500/15">+</button>
+      </div>
+      <p className="mt-1 text-xs text-slate-500">{hint}</p>
+      {err('receipt', key) && <p className="mt-1 text-xs text-red-600">{err('receipt', key)}</p>}
+    </div>
+  );
+  return (
+    <div className="space-y-5 rounded-2xl border border-slate-900/10 bg-white/50 p-4">
+      <div>
+        <div className="text-[15px] font-semibold text-slate-900">{t('Fine-tune the printing')}</div>
+        <p className="mt-0.5 text-sm text-slate-500">{t('Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.')}</p>
+      </div>
+      {slider(t('Printed width'), t('Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.'), 'print_width_mm', lay.width, 30, lay.paper, 1, 'mm',
+        lay.width !== lay.defaultWidth ? () => set('receipt', 'print_width_mm')('') : null)}
+      {slider(t('Left margin'), t('Moves the whole bill to the right.'), 'margin_mm', lay.margin, 0, 10, 0.5, 'mm',
+        lay.margin ? () => set('receipt', 'margin_mm')('0') : null)}
+      <div>
+        <div className="mb-1.5 text-sm font-semibold text-slate-700">{t('Text size')}</div>
+        <div className="flex flex-wrap gap-2">
+          {Object.keys(TEXT_SIZES).map((k) => (
+            <button key={k} type="button" onClick={() => set('receipt', 'text_size')(k)}
+              className={cx('rounded-lg px-3.5 py-1.5 text-sm font-semibold transition', (r.text_size || 'normal') === k ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/15')}>
+              {t({ small: 'Small', normal: 'Normal', large: 'Large', xlarge: 'Extra large' }[k])}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{t('Press “Print this sample” under the preview to check it on paper, then save.')}</p>
+    </div>
   );
 }
 
@@ -875,6 +934,7 @@ function LanguageCard() {
 function ReceiptPreview({ d }) {
   const { user } = useAuth();
   const t = useT();
+  const [printing, setPrinting] = useState(false);
   const sale = useMemo(() => {
     const items = [
       { id: 1, product_name: t('Sample item'), color: null, size: null, quantity: 2, unit: 'pcs', unit_price: 150, discount_per_item: 0, total_price: 300 },
@@ -893,13 +953,17 @@ function ReceiptPreview({ d }) {
 
   return (
     <div className="xl:sticky xl:top-6">
-      <div className="mb-2 text-sm font-medium text-slate-500">{t('Receipt preview · {n} mm', { n: d.receipt.paper_width === '58mm' ? '58' : '80' })}</div>
+      <div className="mb-2 text-sm font-medium text-slate-500">{t('Receipt preview · {n} mm', { n: receiptLayout(d.receipt).paper })}</div>
       <div className="overflow-x-auto rounded-xl bg-slate-200/70 p-4">
-        <div className="mx-auto w-fit shadow-md">
-          <Receipt sale={sale} />
+        {/* the roll itself, with the printed part on it */}
+        <div className="mx-auto w-fit bg-white shadow-md" style={{ width: `${receiptLayout(d.receipt).paper}mm` }}>
+          <div style={{ paddingInlineStart: `${receiptLayout(d.receipt).margin}mm` }}>
+            <Receipt sale={sale} settings={d} />
+          </div>
         </div>
       </div>
       <p className="mt-2 text-sm text-slate-500">{t('A sample bill — it changes as you type.')}</p>
+      <Button variant="secondary" icon={Printer} className="mt-3" loading={printing} onClick={async () => { setPrinting(true); try { await printNow('receipt'); } finally { setPrinting(false); } }}>{t('Print this sample')}</Button>
     </div>
   );
 }

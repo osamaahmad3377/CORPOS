@@ -23,6 +23,10 @@ class SettingSeeder extends Seeder
                 'footer' => 'All sales are final after 7 days.',
                 'show_tax_line' => '1',
                 'paper_width' => '80mm',
+                'paper_mm' => '',
+                'print_width_mm' => '',
+                'margin_mm' => '0',
+                'text_size' => 'normal',
             ],
             'barcode' => [
                 'default_format' => 'code128',

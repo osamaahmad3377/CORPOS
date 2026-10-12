@@ -4,6 +4,7 @@ import { useShop } from '../../lib/shop';
 import { useLang } from '../../lib/i18n';
 import { date, money, qty, variantLabel } from '../../lib/format';
 import { ReceiptCredit } from '../../components/Receipt';
+import { slipProps } from '../../lib/printer';
 
 export function QuotePrint({ quote: q, paper = 'a4' }) {
   return paper === '80mm' ? <SlipQuote q={q} /> : <PageQuote q={q} />;
@@ -99,14 +100,14 @@ function SlipQuote({ q }) {
   const { t, isUrdu } = useLang();
   const unit = useUnit();
   const s = shop.settings.shop || {};
-  const width = shop.settings.receipt?.paper_width === '58mm' ? '48mm' : '72mm'; // printable width of the roll
+  const slip = slipProps(shop.settings.receipt); // the roll's printed width
   const Line = () => <div className="my-2 border-t border-dashed border-black" />;
   const Row = ({ label, value, bold }) => (
     <div className={`flex justify-between gap-2 ${bold ? 'text-[14px] font-bold' : ''}`}><span>{label}</span><span className="num">{value}</span></div>
   );
 
   return (
-    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug shadow-sm print:shadow-none`} style={{ width, padding: '2mm', color: '#000', background: '#fff' }}>
+    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug shadow-sm print:shadow-none`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff' }}>
       <div className="text-center">
         {shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}
         <div className="text-[16px] font-bold leading-tight">{shop.shopName}</div>

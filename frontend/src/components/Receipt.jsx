@@ -1,5 +1,6 @@
-// Printable receipt for a sale (SaleResource with items). Width follows the
-// receipt.paper_width setting (58mm / 80mm thermal printers). Shop branding
+// Printable receipt for a sale (SaleResource with items). Size follows the
+// receipt settings: roll width (58 / 80 mm / custom), printed width, left
+// margin and text size (lib/printer.js). Shop branding
 // at the top is white-label; the CorePOS/NextCore credit at the bottom is
 // always printed (developer promotion) and is not a setting.
 import { useShop } from '../lib/shop';
@@ -7,7 +8,7 @@ import { useLang } from '../lib/i18n';
 import { dateTime, money, qty, variantLabel } from '../lib/format';
 import { orderTypeLabel } from './KitchenSlip';
 import { NEXTCORE, NextcoreLogo } from './Brand';
-import { receiptWidth } from '../lib/printer';
+import { slipProps } from '../lib/printer';
 
 function Row({ label, value, strong, big }) {
   return (
@@ -31,18 +32,19 @@ export function ReceiptCredit() {
 }
 
 // preBill: the guest bill printed before payment (restaurants) — no paid lines.
-export default function Receipt({ sale, preBill = false }) {
+// settings: unsaved settings for the live preview in Settings.
+export default function Receipt({ sale, preBill = false, settings }) {
   const shop = useShop();
   const { t, isUrdu } = useLang();
-  const s = shop.settings;
-  const width = receiptWidth(s.receipt?.paper_width);
+  const s = settings || shop.settings;
+  const slip = slipProps(s.receipt);
   const showTax = s.receipt?.show_tax_line === '1' && Number(sale.tax_amount) > 0;
   const due = Number(sale.due_amount || 0);
   const pointsEarned = Number(sale.points_earned || 0);
   const pointsUsed = Number(sale.points_redeemed || 0);
 
   return (
-    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug`} style={{ width, padding: '2mm', color: '#000', background: '#fff', lineHeight: isUrdu ? 2.1 : undefined }}>
+    <div data-paper={slip['data-paper']} className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug`} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff', lineHeight: isUrdu ? 2.1 : undefined }}>
       <div className="text-center">
         {shop.logoOnReceipt && shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}
         <div className="text-[16px] font-bold leading-tight">{shop.shopName}</div>

@@ -254,11 +254,22 @@ html.lite .app-canvas { background-attachment: scroll; }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* Printing: only the element marked .print-area is printed. */
+/* Printing: only the element marked .print-area is printed. Everything else
+   is taken out of the layout, not just hidden: hidden menus and pages still
+   took up width, the page came out wider than the paper and the printer
+   shrank the whole bill (a 72 mm bill printed ~45 mm wide on 80 mm rolls).
+   The boxes that hold the slip lose their size and position too. */
 @media print {
+  html, body, #root { width: auto !important; min-width: 0 !important; height: auto !important; overflow: visible !important; background: #fff !important; }
   body * { visibility: hidden; }
+  body *:not(.print-area):not(.print-area *):not(:has(.print-area)) { display: none !important; }
+  body *:has(.print-area) {
+    display: block !important; position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
+    height: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: visible !important;
+    transform: none !important; box-shadow: none !important; background: none !important; zoom: 1 !important;
+  }
   .print-area, .print-area * { visibility: visible; }
-  .print-area { position: absolute; left: 0; top: 0; }
+  .print-area { position: absolute !important; left: var(--print-left, 0) !important; top: 0 !important; margin: 0 !important; box-shadow: none !important; }
   @page { margin: 6mm; }
 }
 

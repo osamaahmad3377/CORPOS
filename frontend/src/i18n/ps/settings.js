@@ -223,4 +223,18 @@ export default {
   'Now using: Full effects': 'اوس په کار: بشپړ اغېزې',
   'chosen because this computer is on the slower side': 'وټاکل شو ځکه چې دا کمپیوټر یو څه ورو دی',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'په دې کمپیوټر کې ګرافیکي چټکتیا بنده ده. که سکرین ښه کار کوي، له Help مینو یې بیا فعاله کړئ.',
+  // receipt printing fine-tune
+  'Other size': 'بل اندازه',
+  'Roll width (mm)': 'د رول پلنوالی (ملي متر)',
+  'Fine-tune the printing': 'چاپ سم کړئ',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'که بل ډېر نری چاپ شي، پرې شي، یا د کاغذ په منځ کې نه وي، دا وکاروئ.',
+  'Printed width': 'د چاپ پلنوالی',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'په کاغذ ډېر نری دی؟ پلن یې کړئ. له ښي اړخه پرې کېږي؟ نری یې کړئ.',
+  'Left margin': 'کیڼه څنډه',
+  'Moves the whole bill to the right.': 'ټول بل ښي لور ته خوځوي.',
+  'Text size': 'د لیک اندازه',
+  'Normal': 'عادي',
+  'Reset': 'لومړني حالت ته',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'د نمونې لاندې "دا نمونه چاپ کړئ" کېکاږئ او په کاغذ یې وګورئ، بیا یې خوندي کړئ.',
+  'Print this sample': 'دا نمونه چاپ کړئ',
 };

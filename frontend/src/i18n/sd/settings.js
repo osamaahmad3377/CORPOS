@@ -223,4 +223,18 @@ export default {
   'Now using: Full effects': 'هاڻي استعمال ۾: مڪمل ايفيڪٽس',
   'chosen because this computer is on the slower side': 'ان ڪري چونڊيو ويو ته هي ڪمپيوٽر ڪجهه سست آهي',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'هن ڪمپيوٽر تي گرافڪس ايڪسيليريشن بند آهي. جيڪڏهن اسڪرين ٺيڪ هلي ته Help مينيو مان ٻيهر آن ڪريو.',
+  // receipt printing fine-tune
+  'Other size': 'ٻي ماپ',
+  'Roll width (mm)': 'رول جي ويڪر (ملي ميٽر)',
+  'Fine-tune the printing': 'ڇپائي ٺيڪ ڪريو',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'جيڪڏهن بل تمام سنهو ڇپجي، ڪٽجي وڃي، يا ڪاغذ جي وچ ۾ نه هجي ته هي استعمال ڪريو.',
+  'Printed width': 'ڇپائي جي ويڪر',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'ڪاغذ تي تمام سنهو آهي؟ ويڪرو ڪريو. ساڄي پاسي کان ڪٽجي ٿو؟ سنهو ڪريو.',
+  'Left margin': 'کاٻو حاشيو',
+  'Moves the whole bill to the right.': 'سڄي بل کي ساڄي پاسي سرڪائي ٿو.',
+  'Text size': 'لکت جي ماپ',
+  'Normal': 'عام',
+  'Reset': 'اڳ جهڙو',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'نموني هيٺان "هي نمونو ڇاپيو" دٻائي ڪاغذ تي ڏسو، پوءِ محفوظ ڪريو.',
+  'Print this sample': 'هي نمونو ڇاپيو',
 };

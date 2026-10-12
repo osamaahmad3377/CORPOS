@@ -333,9 +333,15 @@ ipcMain.handle('print', async (event, options = {}) => {
   const deviceName = typeof options.deviceName === 'string' ? options.deviceName : '';
   const silent = !!options.silent && !!deviceName;
   const copies = Math.min(Math.max(parseInt(options.copies, 10) || 1, 1), 5);
+  // Receipt rolls send their real size (microns: the roll width × the slip's
+  // length) so the driver's default paper size can't shrink the bill.
+  const ps = options.pageSize || {};
+  const pageSize = Number.isInteger(ps.width) && Number.isInteger(ps.height)
+    && ps.width >= 30000 && ps.width <= 130000 && ps.height >= 30000 && ps.height <= 3000000
+    ? { width: ps.width, height: ps.height } : undefined;
   return new Promise((resolve) => {
     event.sender.print(
-      { silent, deviceName: deviceName || undefined, copies, printBackground: true, margins: { marginType: 'none' } },
+      { silent, deviceName: deviceName || undefined, copies, printBackground: true, margins: { marginType: 'none' }, pageSize, scaleFactor: 100 },
       (success, failureReason) => resolve({ success, failureReason: failureReason || null }),
     );
   });

@@ -253,4 +253,18 @@ export default {
   'Now using: Full effects': 'ابھی استعمال میں: مکمل ایفیکٹس',
   'chosen because this computer is on the slower side': 'اس لیے چنا گیا کہ یہ کمپیوٹر کچھ سست ہے',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'اس کمپیوٹر پر گرافکس ایکسلریشن بند ہے۔ اگر اسکرین ٹھیک چلے تو Help مینو سے دوبارہ آن کریں۔',
+  // receipt printing fine-tune
+  'Other size': 'دوسرا سائز',
+  'Roll width (mm)': 'رول کی چوڑائی (ملی میٹر)',
+  'Fine-tune the printing': 'پرنٹ کو ٹھیک کریں',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'اگر بل بہت پتلا چھپے، کٹ جائے، یا کاغذ کے بیچ میں نہ ہو تو یہ استعمال کریں۔',
+  'Printed width': 'چھپائی کی چوڑائی',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'کاغذ پر بہت پتلا ہے؟ چوڑا کریں۔ دائیں طرف سے کٹ رہا ہے؟ پتلا کریں۔',
+  'Left margin': 'بائیں حاشیہ',
+  'Moves the whole bill to the right.': 'پورے بل کو دائیں طرف کھسکاتا ہے۔',
+  'Text size': 'لکھائی کا سائز',
+  'Normal': 'عام',
+  'Reset': 'پہلے جیسا',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'نمونے کے نیچے "یہ نمونہ پرنٹ کریں" دبا کر کاغذ پر دیکھیں، پھر محفوظ کریں۔',
+  'Print this sample': 'یہ نمونہ پرنٹ کریں',
 };

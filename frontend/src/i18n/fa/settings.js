@@ -223,4 +223,18 @@ export default {
   'Now using: Full effects': 'در حال استفاده: همه جلوه‌ها',
   'chosen because this computer is on the slower side': 'انتخاب شد چون این رایانه نسبتاً کند است',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'شتاب گرافیکی روی این رایانه خاموش است. اگر صفحه خوب کار می‌کند از منوی Help دوباره روشنش کنید.',
+  // receipt printing fine-tune
+  'Other size': 'اندازهٔ دیگر',
+  'Roll width (mm)': 'عرض رول (میلی‌متر)',
+  'Fine-tune the printing': 'تنظیم دقیق چاپ',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'اگر فاکتور خیلی باریک چاپ می‌شود، بریده می‌شود یا وسط کاغذ نیست، از این‌ها استفاده کنید.',
+  'Printed width': 'عرض چاپ',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'روی کاغذ خیلی باریک است؟ پهن‌ترش کنید. از سمت راست بریده می‌شود؟ باریک‌ترش کنید.',
+  'Left margin': 'حاشیهٔ چپ',
+  'Moves the whole bill to the right.': 'کل فاکتور را به سمت راست می‌برد.',
+  'Text size': 'اندازهٔ نوشته',
+  'Normal': 'معمولی',
+  'Reset': 'بازنشانی',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'زیر پیش‌نمایش «چاپ این نمونه» را بزنید تا روی کاغذ ببینید، سپس ذخیره کنید.',
+  'Print this sample': 'چاپ این نمونه',
 };

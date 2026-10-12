@@ -10,6 +10,7 @@ import { useLang, useT } from '../../lib/i18n';
 import { dateTime, money } from '../../lib/format';
 import Keypad from '../../components/Keypad';
 import { ReceiptCredit } from '../../components/Receipt';
+import { slipProps } from '../../lib/printer';
 import { Button, ErrorBox, Field, Modal, Textarea, cx, useToast } from '../../components/ui';
 
 // "Today's drawer" / "Past days" switch at the top of every cash screen.
@@ -239,7 +240,7 @@ export function ZReport({ session, paper = 'receipt' }) {
   const { t, isUrdu } = useLang();
   const s = session.summary || {};
   const closed = session.status === 'closed';
-  const receiptWidth = shop.settings?.receipt?.paper_width === '58mm' ? '48mm' : '72mm'; // printable width of the roll
+  const slip = slipProps(shop.settings?.receipt); // the roll's printed width
   const a4 = paper === 'a4';
   const diff = Number(session.difference || 0);
   const state = diffState(diff);
@@ -250,7 +251,8 @@ export function ZReport({ session, paper = 'receipt' }) {
   return (
     <div
       className={cx('print-area mx-auto bg-white leading-snug', a4 ? 'text-[13px]' : 'text-[12px]')}
-      style={{ width: a4 ? '190mm' : receiptWidth, maxWidth: '100%', padding: a4 ? '8mm' : '2mm', color: '#000', background: '#fff', ...(isUrdu ? { lineHeight: 2.1 } : {}) }}
+      data-paper={a4 ? undefined : slip['data-paper']}
+      style={{ ...(a4 ? { width: '190mm' } : slip.style), maxWidth: '100%', padding: a4 ? '8mm' : '2mm', color: '#000', background: '#fff', ...(isUrdu ? { lineHeight: 2.1 } : {}) }}
     >
       <div className="text-center">
         {shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}

@@ -223,4 +223,18 @@ export default {
   'Now using: Full effects': 'انوں کارمرزا: پورہیں ایفیکٹس',
   'chosen because this computer is on the slower side': 'پمیشکا گچین بوت کہ اے کمپیوٹر لہتے آہستگ انت',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'اے کمپیوٹرا گرافکس ایکسلریشن بند انت۔ اگاں اسکرین جوان کار کنت، چہ Help مینوا پدا چالو کن۔',
+  // receipt printing fine-tune
+  'Other size': 'دگہ ناپ',
+  'Roll width (mm)': 'رولءِ پراہی (ملی میٹر)',
+  'Fine-tune the printing': 'چاپءَ راست کن',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'اگں بل باز باریک چاپ بیت، بُرّگ بیت، یا کاگدءِ نیاما مہ بیت گُڑا اے کارمرز کن۔',
+  'Printed width': 'چاپءِ پراہی',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'کاگدءَ سرا باز باریک انت؟ پراہ کن۔ راستیں نیمگا بُرّگ بیت؟ باریک کن۔',
+  'Left margin': 'چپّیں کنار',
+  'Moves the whole bill to the right.': 'سجّہیں بلءَ راستیں نیمگا جاہ بدل کنت۔',
+  'Text size': 'نبشتہءِ ناپ',
+  'Normal': 'آدینک',
+  'Reset': 'پیسریگیں وڑا',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'نمونہءِ جہلا "اے نمونہءَ چاپ کن" بجن و کاگدءَ سرا بچار، رندا سمبھال کن۔',
+  'Print this sample': 'اے نمونہءَ چاپ کن',
 };

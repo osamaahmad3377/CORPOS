@@ -223,4 +223,18 @@ export default {
   'Now using: Full effects': 'المستخدم الآن: كل التأثيرات',
   'chosen because this computer is on the slower side': 'اختير لأن هذا الحاسوب بطيء نسبياً',
   'Graphics acceleration is off on this computer. Turn it back on from the Help menu if the screen works well.': 'تسريع الرسوميات متوقف على هذا الحاسوب. أعد تشغيله من قائمة المساعدة إن كانت الشاشة تعمل جيداً.',
+  // receipt printing fine-tune
+  'Other size': 'مقاس آخر',
+  'Roll width (mm)': 'عرض اللفة (مم)',
+  'Fine-tune the printing': 'ضبط الطباعة',
+  'Use these if the bill prints too narrow, gets cut off, or is not in the middle of the paper.': 'استخدمها إذا طُبعت الفاتورة ضيقة جداً، أو قُصّت، أو لم تكن في منتصف الورقة.',
+  'Printed width': 'عرض الطباعة',
+  'Too narrow on the paper? Make it wider. Cut off on the right? Make it narrower.': 'ضيقة جداً على الورق؟ اجعلها أعرض. مقصوصة من اليمين؟ اجعلها أضيق.',
+  'Left margin': 'الهامش الأيسر',
+  'Moves the whole bill to the right.': 'يحرّك الفاتورة كلها إلى اليمين.',
+  'Text size': 'حجم الخط',
+  'Normal': 'عادي',
+  'Reset': 'إعادة',
+  'Press “Print this sample” under the preview to check it on paper, then save.': 'اضغط "اطبع هذا النموذج" تحت المعاينة لتراها على الورق، ثم احفظ.',
+  'Print this sample': 'اطبع هذا النموذج',
 };

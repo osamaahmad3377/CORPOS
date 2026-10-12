@@ -30,7 +30,12 @@ class SettingController extends Controller
             'header' => ['nullable', 'string', 'max:500'],
             'footer' => ['nullable', 'string', 'max:500'],
             'show_tax_line' => ['nullable', 'in:0,1'],
-            'paper_width' => ['nullable', 'in:58mm,80mm'],
+            'paper_width' => ['nullable', 'in:58mm,80mm,custom'],
+            // fine-tuning for printers that print narrow, cut off or off-centre (mm)
+            'paper_mm' => ['nullable', 'numeric', 'min:40', 'max:120'],
+            'print_width_mm' => ['nullable', 'numeric', 'min:30', 'max:120'],
+            'margin_mm' => ['nullable', 'numeric', 'min:0', 'max:15'],
+            'text_size' => ['nullable', 'in:small,normal,large,xlarge'],
         ],
         'barcode' => [
             'default_format' => ['nullable', 'in:code128,ean13'],
