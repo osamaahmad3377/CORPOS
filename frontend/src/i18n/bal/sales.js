@@ -141,4 +141,18 @@ export default {
   'No bills': 'ہچ بل نیست',
   'Amount still owed': 'پشت کپتگیں وام',
   'Thank you for shopping with us.': 'زورگءِ منت وار۔',
+  // delete a bill
+  'Delete bill': 'بلءَ گار کن',
+  'Delete bill {inv}?': 'بل {inv} گار بکنئے؟',
+  'Delete for ever': 'پہ ہمیشگی گار کن',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'اے بلءِ واپسی بوتگ، پمیشکا اے گار کنگ نہ بیت۔ واپسیءِ زر پیسرا دیگ بوتگ انت۔',
+  'This removes the bill completely. It cannot be undone.': 'اے بل سجّہیں گار بیت۔ اے پدا نیئیت۔',
+  'Items on this bill go back into stock.': 'اے بلءِ چیز پدا اسٹاکا کاینت۔',
+  'The customer’s purchases, udhaar and points are corrected.': 'گراہکءِ گِرّگ، ادھار و پوائنٹ راست بنت۔',
+  'It disappears from bills, reports and the cash drawer.': 'اے چہ بلاں، رپورٹاں و کیش درازا گار بیت۔',
+  'Reason (optional)': 'سبب (اگں لوٹئے)',
+  'e.g. Made by mistake': 'درور: گلتیا جوڑ بوتگ',
+  'Type {word} to confirm': 'راستیءِ ہاترا {word} بنبیس',
+  'Bill {inv} deleted': 'بل {inv} گار بوت',
+  'Type DELETE in capital letters to confirm.': 'راستیءِ ہاترا مزنیں ہرپاں DELETE بنبیس۔',
 };

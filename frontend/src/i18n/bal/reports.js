@@ -256,4 +256,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'شما ادا لاگ اِن مانئے۔ دگہ کمپیوٹراں لاگ آؤٹ بنئے۔',
   'Password changed. You are signed out on other computers.': 'پاس ورڈ بدل بوت۔ دگہ کمپیوٹراں شما لاگ آؤٹ بوتئے۔',
   'Choose a new password, not the same as the old one.': 'نوکیں پاس ورڈے گچین کن، کوہنیءِ وڑا مہ بیت۔',
+  // permission
+  'Delete Bills': 'بل گار کنگ',
 };

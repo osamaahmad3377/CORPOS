@@ -141,4 +141,18 @@ export default {
   'No bills': 'بل نشته',
   'Amount still owed': 'پاتې پور',
   'Thank you for shopping with us.': 'زموږ سره د پېرلو مننه.',
+  // delete a bill
+  'Delete bill': 'بل ړنګ کړئ',
+  'Delete bill {inv}?': 'بل {inv} ړنګ کړئ؟',
+  'Delete for ever': 'د تل لپاره ړنګ کړئ',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'دا بل بېرته ورکړل شوی، نو نه شي ړنګېدای. د بېرته ورکړې پیسې مخکې ورکړل شوې دي.',
+  'This removes the bill completely. It cannot be undone.': 'دا بل بشپړ له منځه ځي. بېرته نه راګرځي.',
+  'Items on this bill go back into stock.': 'د دې بل توکي بېرته سټاک ته راځي.',
+  'The customer’s purchases, udhaar and points are corrected.': 'د پیرودونکي پېر، پور او ټکي سمېږي.',
+  'It disappears from bills, reports and the cash drawer.': 'دا له بلونو، راپورونو او د پیسو دراز څخه لرې کېږي.',
+  'Reason (optional)': 'لامل (که غواړئ)',
+  'e.g. Made by mistake': 'لکه په تېروتنه جوړ شوی',
+  'Type {word} to confirm': 'د تایید لپاره {word} ولیکئ',
+  'Bill {inv} deleted': 'بل {inv} ړنګ شو',
+  'Type DELETE in capital letters to confirm.': 'د تایید لپاره په لویو تورو DELETE ولیکئ.',
 };

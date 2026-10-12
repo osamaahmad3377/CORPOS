@@ -256,4 +256,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'اینجا وارد می‌مانید. از رایانه‌های دیگر خارج می‌شوید.',
   'Password changed. You are signed out on other computers.': 'رمز عوض شد. از رایانه‌های دیگر خارج شدید.',
   'Choose a new password, not the same as the old one.': 'رمز جدیدی انتخاب کنید که با قبلی یکی نباشد.',
+  // permission
+  'Delete Bills': 'حذف فاکتورها',
 };

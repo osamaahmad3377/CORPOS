@@ -66,7 +66,8 @@ class ReportController extends Controller
             ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin($returnsAgg, 'returns_agg.sale_item_id', '=', 'sale_items.id')
-            ->where('sales.status', 'completed');
+            ->where('sales.status', 'completed')
+            ->whereNull('sales.deleted_at'); // deleted bills
 
         if ($request->filled('start')) {
             $query->whereDate('sales.sale_date', '>=', $request->date('start'));

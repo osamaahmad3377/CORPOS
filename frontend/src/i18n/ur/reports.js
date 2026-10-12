@@ -290,4 +290,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'آپ یہاں لاگ اِن رہیں گے۔ باقی کمپیوٹرز سے لاگ آؤٹ ہو جائیں گے۔',
   'Password changed. You are signed out on other computers.': 'پاس ورڈ بدل گیا۔ باقی کمپیوٹرز سے آپ لاگ آؤٹ ہو گئے۔',
   'Choose a new password, not the same as the old one.': 'نیا پاس ورڈ چُنیں، پرانے جیسا نہیں۔',
+  // permission
+  'Delete Bills': 'بل مٹانا',
 };

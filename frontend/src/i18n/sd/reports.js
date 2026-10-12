@@ -256,4 +256,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'توهان هتي لاگ ان رهندا. ٻين ڪمپيوٽرن مان لاگ آئوٽ ٿي ويندا.',
   'Password changed. You are signed out on other computers.': 'پاس ورڊ بدلجي ويو. ٻين ڪمپيوٽرن مان توهان لاگ آئوٽ ٿي ويا.',
   'Choose a new password, not the same as the old one.': 'نئون پاس ورڊ چونڊيو، پراڻي جهڙو نه.',
+  // permission
+  'Delete Bills': 'بل ڊاهڻ',
 };

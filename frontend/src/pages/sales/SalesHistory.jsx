@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Banknote, ChevronRight, MessageCircle, PauseCircle, Printer, ReceiptText, RotateCcw, Search, ShoppingCart, User, X,
+  ArrowLeft, Banknote, ChevronRight, MessageCircle, PauseCircle, Printer, ReceiptText, RotateCcw, Search, ShoppingCart, Trash2, TriangleAlert, User, X,
 } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -214,6 +214,7 @@ function SaleDetail() {
   const [printing, setPrinting] = useState(false);
   const [paying, setPaying] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const q = useQuery({ queryKey: ['sales', 'detail', invoice], queryFn: () => api.get(`/sales/${invoice}`), select: (r) => r.data });
   const sale = q.data;
@@ -261,6 +262,7 @@ function SaleDetail() {
           {canReturn && <Button size="lg" variant="secondary" icon={RotateCcw} className="border-2 border-red-200 text-red-700 hover:bg-red-50" onClick={() => setReturning(true)}>{t('Return items')}</Button>}
           <Button size="lg" variant="secondary" icon={Printer} onClick={() => setPrinting(true)}>{t('Print receipt')}</Button>
           <Button size="lg" variant="secondary" icon={MessageCircle} className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={sendWhatsApp}>{t('Send bill on WhatsApp')}</Button>
+          {can('sales.delete') && <Button size="lg" variant="ghost" icon={Trash2} className="text-red-600 hover:bg-red-50 hover:text-red-700 sm:ms-auto" onClick={() => setDeleting(true)}>{t('Delete bill')}</Button>}
         </div>
       )}
 
@@ -384,7 +386,66 @@ function SaleDetail() {
       </Modal>
       {paying && <ReceivePaymentModal sale={sale} onClose={() => setPaying(false)} />}
       {returning && <ReturnModal sale={sale} returned={returned} onClose={() => setReturning(false)} />}
+      {deleting && <DeleteBillModal sale={sale} hasReturn={sale.status === 'returned' || (sale.returns || []).length > 0} onClose={() => setDeleting(false)} />}
     </Page>
+  );
+}
+
+// Deleting a finished bill undoes it completely, so the owner has to type
+// DELETE (always the English word, in every language) to confirm.
+const CONFIRM_WORD = 'DELETE';
+function DeleteBillModal({ sale, hasReturn, onClose }) {
+  const t = useT();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const invalidate = useInvalidateSales();
+  const [word, setWord] = useState('');
+  const [reason, setReason] = useState('');
+  const del = useMutation({
+    mutationFn: () => api.post(`/sales/${sale.invoice_number}/delete`, { confirm: word.trim(), reason: reason.trim() || null }),
+    onSuccess: () => {
+      toast(t('Bill {inv} deleted', { inv: sale.invoice_number }));
+      invalidate();
+      onClose();
+      navigate('/sales', { replace: true });
+    },
+  });
+  const ok = word.trim() === CONFIRM_WORD;
+  return (
+    <Modal open onClose={onClose} size="sm" title={t('Delete bill {inv}?', { inv: sale.invoice_number })}
+      footer={hasReturn ? <Button variant="secondary" size="lg" onClick={onClose}>{t('Close')}</Button> : (
+        <>
+          <Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button>
+          <Button variant="danger" size="lg" icon={Trash2} disabled={!ok} loading={del.isPending} onClick={() => del.mutate()}>{t('Delete for ever')}</Button>
+        </>
+      )}>
+      {hasReturn ? (
+        <p className="text-base text-slate-700">{t('This bill has a return, so it cannot be deleted. The returned money was already given back.')}</p>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl bg-red-50 px-4 py-3 text-red-800 ring-1 ring-inset ring-red-600/15">
+            <TriangleAlert className="mt-0.5 size-5 shrink-0" />
+            <div>
+              <p className="font-semibold">{t('This removes the bill completely. It cannot be undone.')}</p>
+              <p className="num mt-0.5 text-sm">{sale.invoice_number} · {money(sale.grand_total)}{sale.customer ? ` · ${sale.customer}` : ''}</p>
+            </div>
+          </div>
+          <ul className="list-disc space-y-1 ps-5 text-[15px] text-slate-600">
+            <li>{t('Items on this bill go back into stock.')}</li>
+            <li>{t('The customer’s purchases, udhaar and points are corrected.')}</li>
+            <li>{t('It disappears from bills, reports and the cash drawer.')}</li>
+          </ul>
+          <Field label={t('Reason (optional)')}>
+            <Input maxLength={255} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('e.g. Made by mistake')} />
+          </Field>
+          <Field label={rich(t('Type {word} to confirm'), { word: <b className="font-mono text-red-700" dir="ltr">{CONFIRM_WORD}</b> })}>
+            <Input autoFocus dir="ltr" autoComplete="off" spellCheck={false} className="h-12 font-mono text-lg tracking-widest" value={word}
+              onChange={(e) => setWord(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && ok) del.mutate(); }} placeholder={CONFIRM_WORD} />
+          </Field>
+          <ErrorBox error={del.error} />
+        </div>
+      )}
+    </Modal>
   );
 }
 

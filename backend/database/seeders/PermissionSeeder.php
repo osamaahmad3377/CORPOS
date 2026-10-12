@@ -43,6 +43,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'View Own Sales', 'slug' => 'sales.view_own', 'module' => 'sales'],
             ['name' => 'View All Sales', 'slug' => 'sales.view_all', 'module' => 'sales'],
             ['name' => 'Process Sale Returns', 'slug' => 'sales.return', 'module' => 'sales'],
+            ['name' => 'Delete Bills', 'slug' => 'sales.delete', 'module' => 'sales'],
 
             ['name' => 'View Reports', 'slug' => 'reports.view', 'module' => 'reports'],
             ['name' => 'View Activity Logs', 'slug' => 'activity_logs.view', 'module' => 'activity_logs'],

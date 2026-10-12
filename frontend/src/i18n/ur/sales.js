@@ -164,4 +164,18 @@ export default {
   'No bills': 'کوئی بل نہیں',
   'Amount still owed': 'باقی اُدھار',
   'Thank you for shopping with us.': 'خریداری کا شکریہ۔',
+  // delete a bill
+  'Delete bill': 'بل مٹائیں',
+  'Delete bill {inv}?': 'بل {inv} مٹا دیں؟',
+  'Delete for ever': 'ہمیشہ کے لیے مٹائیں',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'اس بل کی واپسی ہو چکی ہے، اس لیے یہ مٹایا نہیں جا سکتا۔ واپسی کے پیسے پہلے ہی دیے جا چکے ہیں۔',
+  'This removes the bill completely. It cannot be undone.': 'یہ بل مکمل طور پر ختم ہو جائے گا۔ یہ واپس نہیں ہو سکتا۔',
+  'Items on this bill go back into stock.': 'اس بل کی چیزیں واپس اسٹاک میں آ جائیں گی۔',
+  'The customer’s purchases, udhaar and points are corrected.': 'گاہک کی خریداری، ادھار اور پوائنٹس درست ہو جائیں گے۔',
+  'It disappears from bills, reports and the cash drawer.': 'یہ بلوں، رپورٹس اور کیش دراز سے ہٹ جائے گا۔',
+  'Reason (optional)': 'وجہ (اختیاری)',
+  'e.g. Made by mistake': 'مثلاً غلطی سے بنا',
+  'Type {word} to confirm': 'تصدیق کے لیے {word} لکھیں',
+  'Bill {inv} deleted': 'بل {inv} مٹا دیا گیا',
+  'Type DELETE in capital letters to confirm.': 'تصدیق کے لیے بڑے حروف میں DELETE لکھیں۔',
 };

@@ -256,4 +256,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'تاسو دلته ننوتي پاتې کېږئ. له نورو کمپیوټرونو وځئ.',
   'Password changed. You are signed out on other computers.': 'پټنوم بدل شو. له نورو کمپیوټرونو ووتئ.',
   'Choose a new password, not the same as the old one.': 'نوی پټنوم وټاکئ چې له زاړه سره یو شان نه وي.',
+  // permission
+  'Delete Bills': 'بلونه ړنګول',
 };

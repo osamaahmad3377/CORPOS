@@ -256,4 +256,6 @@ export default {
   'You stay signed in here. Other computers are signed out.': 'تبقى مسجّلاً هنا. يُسجّل الخروج من الحواسيب الأخرى.',
   'Password changed. You are signed out on other computers.': 'تم تغيير كلمة المرور. سُجّل خروجك من الحواسيب الأخرى.',
   'Choose a new password, not the same as the old one.': 'اختر كلمة مرور جديدة مختلفة عن القديمة.',
+  // permission
+  'Delete Bills': 'حذف الفواتير',
 };

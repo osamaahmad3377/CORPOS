@@ -286,6 +286,76 @@ class SaleController extends Controller
         return response()->json(['message' => 'Held bill discarded.']);
     }
 
+    /**
+     * Delete a finished bill for good (owner only, typed "DELETE" to confirm).
+     * Everything the bill did is undone: stock, serial numbers and batches
+     * come back, kitchen ingredients are put back, the customer's purchases
+     * and loyalty points are corrected and its udhaar payments removed. The
+     * bill then disappears from bills, reports and the cash drawer. A bill
+     * with a return is refused — that money was already given back.
+     */
+    public function deleteBill(Request $request, Sale $sale)
+    {
+        $request->validate([
+            'confirm' => ['required', 'in:DELETE'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ], ['confirm.in' => 'Type DELETE in capital letters to confirm.', 'confirm.required' => 'Type DELETE in capital letters to confirm.']);
+        $user = $request->user();
+
+        DB::transaction(function () use ($sale, $user, $request) {
+            $sale = Sale::whereKey($sale->id)->lockForUpdate()->firstOrFail();
+            if ($sale->status === 'held') {
+                $sale->items()->delete();
+                $sale->delete();
+
+                return;
+            }
+            if ($sale->status === 'returned' || $sale->returns()->exists()) {
+                throw ValidationException::withMessages([
+                    'confirm' => ['This bill has a return, so it cannot be deleted. The returned money was already given back.'],
+                ]);
+            }
+
+            $note = 'Deleted bill '.$sale->invoice_number;
+            foreach ($sale->items()->get() as $item) {
+                $variant = ProductVariant::withTrashed()->lockForUpdate()->find($item->variant_id);
+                if (! $variant) {
+                    continue;
+                }
+                \App\Models\ProductSerial::where('sale_item_id', $item->id)->where('status', 'sold')
+                    ->update(['status' => 'in_stock', 'sale_item_id' => null, 'sold_at' => null]);
+                BatchService::returnForSale($item, (float) $item->quantity);
+                StockService::increment($variant, (float) $item->quantity, 'in', $user, $sale, $note);
+            }
+
+            // kitchen ingredients the bill used go back
+            if (\Illuminate\Support\Facades\Schema::hasTable('ingredient_movements')) {
+                foreach (\App\Models\IngredientMovement::where('sale_id', $sale->id)->where('type', 'sale')->get() as $m) {
+                    $ingredient = \App\Models\Ingredient::lockForUpdate()->find($m->ingredient_id);
+                    if ($ingredient) {
+                        \App\Services\IngredientService::move($ingredient, -(float) $m->quantity_change, 'correction', $user, null, $sale->id, $note);
+                    }
+                }
+            }
+
+            if ($sale->customer_id) {
+                Customer::whereKey($sale->customer_id)->update([
+                    'total_purchases' => DB::raw('MAX(0, total_purchases - '.(float) $sale->grand_total.')'),
+                    // points earned on this bill come off, points spent on it come back
+                    'loyalty_points' => DB::raw('MAX(0, loyalty_points - '.(int) $sale->points_earned.' + '.(int) $sale->points_redeemed.')'),
+                ]);
+            }
+
+            \App\Models\SalePayment::where('sale_id', $sale->id)->delete();
+            $sale->delete();
+
+            $reason = trim((string) $request->input('reason'));
+            ActivityLogger::log($user, 'delete', 'sales', "Deleted bill {$sale->invoice_number} (Rs ".number_format((float) $sale->grand_total, 2).')'.($reason !== '' ? ": {$reason}" : '.'));
+        });
+
+        return response()->json(['message' => 'Bill deleted.']);
+    }
+
     public function recordPayment(RecordSalePaymentRequest $request, Sale $sale)
     {
         if (! $request->user()->hasPermission('sales.view_all') && $sale->cashier_id !== $request->user()->id) {

@@ -141,4 +141,18 @@ export default {
   'No bills': 'ڪو بل ناهي',
   'Amount still owed': 'باقي اڌار',
   'Thank you for shopping with us.': 'خريداري جي مهرباني.',
+  // delete a bill
+  'Delete bill': 'بل ڊاهيو',
+  'Delete bill {inv}?': 'بل {inv} ڊاهيو؟',
+  'Delete for ever': 'هميشه لاءِ ڊاهيو',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'هن بل جي واپسي ٿي چڪي آهي، تنهن ڪري اهو ڊاهي نٿو سگهجي. واپسي جا پئسا اڳ ۾ ئي ڏنا ويا آهن.',
+  'This removes the bill completely. It cannot be undone.': 'هي بل مڪمل طور ختم ٿي ويندو. اهو واپس نٿو ٿي سگهي.',
+  'Items on this bill go back into stock.': 'هن بل جون شيون واپس اسٽاڪ ۾ اينديون.',
+  'The customer’s purchases, udhaar and points are corrected.': 'گراهڪ جي خريداري، اڌار ۽ پوائنٽس درست ٿي ويندا.',
+  'It disappears from bills, reports and the cash drawer.': 'اهو بلن، رپورٽن ۽ ڪيش دراز مان هٽي ويندو.',
+  'Reason (optional)': 'سبب (اختياري)',
+  'e.g. Made by mistake': 'مثال طور غلطي سان ٺهيو',
+  'Type {word} to confirm': 'تصديق لاءِ {word} لکو',
+  'Bill {inv} deleted': 'بل {inv} ڊاهيو ويو',
+  'Type DELETE in capital letters to confirm.': 'تصديق لاءِ وڏن اکرن ۾ DELETE لکو.',
 };

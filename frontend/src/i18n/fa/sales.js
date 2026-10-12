@@ -141,4 +141,18 @@ export default {
   'No bills': 'بدون فاکتور',
   'Amount still owed': 'مانده بدهی',
   'Thank you for shopping with us.': 'از خرید شما سپاسگزاریم.',
+  // delete a bill
+  'Delete bill': 'حذف فاکتور',
+  'Delete bill {inv}?': 'فاکتور {inv} حذف شود؟',
+  'Delete for ever': 'حذف برای همیشه',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'این فاکتور مرجوعی دارد، پس نمی‌شود حذفش کرد. پول مرجوعی قبلاً پس داده شده است.',
+  'This removes the bill completely. It cannot be undone.': 'این فاکتور کاملاً حذف می‌شود. قابل برگشت نیست.',
+  'Items on this bill go back into stock.': 'کالاهای این فاکتور به موجودی برمی‌گردند.',
+  'The customer’s purchases, udhaar and points are corrected.': 'خرید، نسیه و امتیاز مشتری اصلاح می‌شود.',
+  'It disappears from bills, reports and the cash drawer.': 'از فاکتورها، گزارش‌ها و صندوق پول حذف می‌شود.',
+  'Reason (optional)': 'دلیل (اختیاری)',
+  'e.g. Made by mistake': 'مثلاً اشتباهی صادر شد',
+  'Type {word} to confirm': 'برای تأیید {word} را بنویسید',
+  'Bill {inv} deleted': 'فاکتور {inv} حذف شد',
+  'Type DELETE in capital letters to confirm.': 'برای تأیید DELETE را با حروف بزرگ بنویسید.',
 };

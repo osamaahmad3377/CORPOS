@@ -120,6 +120,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
         Route::post('sales/{sale}/resume', [SaleController::class, 'resume']);
         Route::post('sales/{sale}/payments', [SaleController::class, 'recordPayment']);
         Route::delete('sales/{sale}', [SaleController::class, 'destroy']);
+        Route::post('sales/{sale}/delete', [SaleController::class, 'deleteBill'])->middleware('permission:sales.delete');
     });
     Route::middleware('permission:sales.return')->post('sales/{sale}/returns', [SaleReturnController::class, 'store']);
 

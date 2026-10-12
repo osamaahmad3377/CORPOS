@@ -89,6 +89,7 @@ class DashboardController extends Controller
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin($returnsAgg, 'returns_agg.sale_item_id', '=', 'sale_items.id')
             ->where('sales.status', 'completed')
+            ->whereNull('sales.deleted_at') // deleted bills
             ->groupBy('products.id', 'products.name')
             ->selectRaw('products.id, products.name,
                 SUM(sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) as quantity_sold,

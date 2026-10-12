@@ -141,4 +141,18 @@ export default {
   'No bills': 'لا فواتير',
   'Amount still owed': 'المبلغ المتبقي',
   'Thank you for shopping with us.': 'شكراً لتسوقكم معنا.',
+  // delete a bill
+  'Delete bill': 'حذف الفاتورة',
+  'Delete bill {inv}?': 'حذف الفاتورة {inv}؟',
+  'Delete for ever': 'حذف نهائي',
+  'This bill has a return, so it cannot be deleted. The returned money was already given back.': 'هذه الفاتورة عليها مرتجع، لذلك لا يمكن حذفها. لقد أُعيد مبلغ المرتجع بالفعل.',
+  'This removes the bill completely. It cannot be undone.': 'سيتم حذف الفاتورة بالكامل. لا يمكن التراجع عن ذلك.',
+  'Items on this bill go back into stock.': 'تعود أصناف هذه الفاتورة إلى المخزون.',
+  'The customer’s purchases, udhaar and points are corrected.': 'تُصحَّح مشتريات العميل والآجل والنقاط.',
+  'It disappears from bills, reports and the cash drawer.': 'تختفي من الفواتير والتقارير ودرج النقود.',
+  'Reason (optional)': 'السبب (اختياري)',
+  'e.g. Made by mistake': 'مثلاً أُنشئت بالخطأ',
+  'Type {word} to confirm': 'اكتب {word} للتأكيد',
+  'Bill {inv} deleted': 'تم حذف الفاتورة {inv}',
+  'Type DELETE in capital letters to confirm.': 'اكتب DELETE بأحرف كبيرة للتأكيد.',
 };

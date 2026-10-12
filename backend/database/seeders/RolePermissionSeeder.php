@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
         $manager = array_values(array_diff($all, [
             'settings.manage',
             'users.manage',
+            'sales.delete', // owner only; can be given to others under Staff
         ]));
 
         $cashier = [
