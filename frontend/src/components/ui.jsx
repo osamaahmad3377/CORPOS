@@ -219,10 +219,10 @@ export function ToastProvider({ children }) {
   const push = useCallback((message, type = 'success') => {
     const id = Math.random();
     setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), type === 'error' ? 6000 : 3000);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), type === 'error' || type === 'warning' ? 6000 : 3000);
   }, []);
-  const icons = { success: CheckCircle2, error: AlertTriangle, info: Info };
-  const colors = { success: 'text-emerald-600', error: 'text-red-600', info: 'text-brand-700' };
+  const icons = { success: CheckCircle2, error: AlertTriangle, info: Info, warning: AlertTriangle };
+  const colors = { success: 'text-emerald-600', error: 'text-red-600', info: 'text-brand-700', warning: 'text-amber-600' };
   return (
     <ToastContext.Provider value={push}>
       {children}

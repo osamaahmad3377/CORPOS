@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'اڃا انهن کان ڪجهه خريد ناهي ڪيو',
   'Choose "All" to see every purchase.': 'سموري خريداري ڏسڻ لاءِ "سڀ" چونڊيو.',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'جڏهن هن سپلائر کان سامان اچي ته لکڻ لاءِ "نئون سامان آيو" دٻايو.',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} شيون گهٽ آهن يا ختم ٿي ويون — ڏسڻ لاءِ اسٽاڪ ڳڻپ کوليو',
+  '{n} items are running low or finished': '{n} شيون گهٽ آهن يا ختم آهن',
+  'Stock is fine': 'اسٽاڪ ٺيڪ آهي',
+  'Low stock alerts': 'گهٽ اسٽاڪ جي اطلاع',
+  '{low} running low · {out} finished': '{low} گهٽ · {out} ختم',
+  'Every item has enough stock.': 'هر شيءِ جو اسٽاڪ ڪافي آهي.',
+  'left': 'بچيل',
+  'See all low stock': 'سڀ گهٽ اسٽاڪ ڏسو',
+  '{n} items on this bill are running low — buy more soon': 'هن بل جون {n} شيون گهٽ ٿي رهيون آهن — جلد وڌيڪ گهرايو',
+  '{name} is now finished — buy more soon': '{name} ختم ٿي ويو — جلد وڌيڪ گهرايو',
+  '{name} is running low — only {n} left': '{name} گهٽ ٿي رهيو آهي — رڳو {n} بچيل',
 };

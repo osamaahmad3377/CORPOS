@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'انگت چہ آیاں ہچ زورگ نہ بوتگ',
   'Choose "All" to see every purchase.': 'سجّیں زورگءِ دیستگءِ ہاترا "سجّیں" گچین کن۔',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'وہدے چہ اے سپلائرا مال کئیت، نبشتہ کنگءِ ہاترا "نوکیں مال آتک" بجن۔',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} چیز کم انت یا هلاس بوتگ — چارگءِ هاترا اسٹاکءِ هساب پچ کن',
+  '{n} items are running low or finished': '{n} چیز کم انت یا هلاس انت',
+  'Stock is fine': 'اسٹاک شر انت',
+  'Low stock alerts': 'کمیں اسٹاکءِ هال',
+  '{low} running low · {out} finished': '{low} کم · {out} هلاس',
+  'Every item has enough stock.': 'هر چیزءِ اسٹاک بس انت۔',
+  'left': 'پشت',
+  'See all low stock': 'سجهیں کمیں اسٹاکءَ بچار',
+  '{n} items on this bill are running low — buy more soon': 'اے بلءِ {n} چیز کم بیگا انت — زوت گیشتر بیار',
+  '{name} is now finished — buy more soon': '{name} هلاس بوت — زوت گیشتر بیار',
+  '{name} is running low — only {n} left': '{name} کم بیگا انت — بس {n} پشت',
 };

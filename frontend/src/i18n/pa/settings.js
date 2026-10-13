@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'سمندری نیلا شیشہ',
   'Sunset glass': 'نارنجی شیشہ',
   'Any other glass colour': 'کوئی ہور شیشہ رنگ',
+  // low stock alerts / colour wheel
+  'Ready colours': 'تیار رنگ',
+  'Your own colour': 'اپنا رنگ',
+  'Hex colour code': 'ہیکس رنگ کوڈ',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'پہیے اُتے کوئی وی رنگ چُنو یا اوہدا کوڈ لکھو (جیویں #1e3a8a)۔ سائیڈبار ایسے رنگ دا آر پار شیشہ رہوے گا۔',
+  'Colour wheel': 'رنگاں دا پہیہ',
+  'Brightness': 'چمک',
 };

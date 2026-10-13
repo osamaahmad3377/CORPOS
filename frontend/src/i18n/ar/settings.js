@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'زجاج أزرق محيطي',
   'Sunset glass': 'زجاج برتقالي',
   'Any other glass colour': 'لون زجاجي آخر',
+  // low stock alerts / colour wheel
+  'Ready colours': 'ألوان جاهزة',
+  'Your own colour': 'لونك الخاص',
+  'Hex colour code': 'رمز اللون (Hex)',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'اختر أي لون من العجلة أو اكتب رمزه (مثل #1e3a8a). يبقى الشريط الجانبي زجاجاً شفافاً بهذا اللون.',
+  'Colour wheel': 'عجلة الألوان',
+  'Brightness': 'السطوع',
 };

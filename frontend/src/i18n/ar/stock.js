@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'لم يُشترَ منهم شيء بعد',
   'Choose "All" to see every purchase.': 'اختر "الكل" لرؤية كل المشتريات.',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'عندما تصل بضاعة من هذا المورد، اضغط "وصلت بضاعة" لتسجيلها.',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} أصناف أوشكت على النفاد أو نفدت — افتح جرد المخزون لرؤيتها',
+  '{n} items are running low or finished': '{n} أصناف أوشكت على النفاد أو نفدت',
+  'Stock is fine': 'المخزون جيد',
+  'Low stock alerts': 'تنبيهات المخزون المنخفض',
+  '{low} running low · {out} finished': '{low} منخفض · {out} نفد',
+  'Every item has enough stock.': 'كل الأصناف لديها مخزون كافٍ.',
+  'left': 'متبقٍ',
+  'See all low stock': 'عرض كل المخزون المنخفض',
+  '{n} items on this bill are running low — buy more soon': '{n} أصناف في هذه الفاتورة توشك على النفاد — اشترِ المزيد قريباً',
+  '{name} is now finished — buy more soon': 'نفد {name} — اشترِ المزيد قريباً',
+  '{name} is running low — only {n} left': '{name} يوشك على النفاد — بقي {n} فقط',
 };

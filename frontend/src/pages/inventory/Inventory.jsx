@@ -97,7 +97,9 @@ function StockList({ onAdjust }) {
   const unitText = useUnitText();
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
-  const [stock, setStock] = useState('');
+  const [sp] = useSearchParams();
+  const [stock, setStock] = useState(() => (['low', 'out'].includes(sp.get('stock')) ? sp.get('stock') : ''));
+  useEffect(() => { const v = sp.get('stock'); if (['low', 'out'].includes(v)) setStock(v); }, [sp]);
   const [page, setPage] = useState(1);
   const showCost = can('purchases.view');
 

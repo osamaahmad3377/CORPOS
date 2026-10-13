@@ -210,7 +210,8 @@ export function glassTint(value, brandHex = DEFAULT_BRAND) {
 export function sidebarTheme(value, brandHex) {
   const v = isSidebarValue(value) ? value : DEFAULT_SIDEBAR;
   if (v === 'glass') return GLASS_THEME;
-  const tint = glassTint(v, brandHex);
+  // the sidebar is always glass: an old solid colour shows as glass in that colour
+  const tint = glassTint(v, brandHex) || (HEX.test(v) ? v : null);
   const bg = tint || v;
   const light = luminance(bg) > (tint ? 0.45 : 0.35);
   const ink = light ? '15 23 42' : '255 255 255';

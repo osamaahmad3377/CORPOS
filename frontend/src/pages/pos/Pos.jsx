@@ -414,6 +414,25 @@ export default function Pos() {
     }
   };
 
+  // After a sale: warn if an item on the bill has now reached its alert level
+  // or run out, so the shop can buy more in time.
+  const warnLowStock = async (sale) => {
+    const ids = new Set((sale.items || []).map((it) => it.variant_id));
+    if (!ids.size) return;
+    try {
+      const res = await api.get('/inventory', { stock: 'low', per_page: 100 });
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+      const hit = (res.data || []).filter((v) => ids.has(v.id));
+      if (!hit.length) return;
+      const v = hit[0];
+      const left = Number(v.stock_qty);
+      toast(hit.length > 1
+        ? t('{n} items on this bill are running low — buy more soon', { n: hit.length })
+        : left <= 0 ? t('{name} is now finished — buy more soon', { name: v.product_name })
+          : t('{name} is running low — only {n} left', { name: v.product_name, n: left }), 'warning');
+    } catch { /* no stock access */ }
+  };
+
   const completed = async (sale) => {
     setPaying(false);
     setResuming(false);
@@ -426,6 +445,7 @@ export default function Pos() {
     qc.invalidateQueries({ queryKey: ['customers'] });
     const full = sale.items?.length && sale.items[0].product_name ? sale : (await api.get(`/sales/${sale.invoice_number}`)).data;
     setReceipt(full);
+    warnLowStock(full);
     if (restaurant) setView('tables');
     if (printerPrefs().receipt?.auto) setTimeout(() => printNow('receipt'), 350);
     clearSale();

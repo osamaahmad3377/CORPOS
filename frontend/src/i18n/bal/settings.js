@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'زِری شیشه',
   'Sunset glass': 'نارنجی شیشه',
   'Any other glass colour': 'دگہ شیشهءِ رنگ',
+  // low stock alerts / colour wheel
+  'Ready colours': 'تیاریں رنگ',
+  'Your own colour': 'وتی رنگ',
+  'Hex colour code': 'هیکس رنگءِ کوڈ',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'چرکءِ سرا هر رنگءَ گچین کن یا آییءِ کوڈءَ بنبیس (درور #1e3a8a)۔ سائیڈبار همے رنگءِ پاریں شیشه بیت۔',
+  'Colour wheel': 'رنگانی چرک',
+  'Brightness': 'روژنی',
 };

@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'سمندري ښیښه',
   'Sunset glass': 'نارنجي ښیښه',
   'Any other glass colour': 'بل ښیښه یي رنګ',
+  // low stock alerts / colour wheel
+  'Ready colours': 'چمتو رنګونه',
+  'Your own colour': 'خپل رنګ',
+  'Hex colour code': 'هیکس رنګ کوډ',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'په څرخ کې هر رنګ وټاکئ یا یې کوډ ولیکئ (لکه #1e3a8a). سایډبار به په همدې رنګ روڼه ښیښه وي.',
+  'Colour wheel': 'د رنګونو څرخ',
+  'Brightness': 'روښانتیا',
 };

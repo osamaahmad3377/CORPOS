@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'سمنڊ نيرو شيشو',
   'Sunset glass': 'نارنگي شيشو',
   'Any other glass colour': 'ڪو ٻيو شيشي رنگ',
+  // low stock alerts / colour wheel
+  'Ready colours': 'تيار رنگ',
+  'Your own colour': 'پنهنجو رنگ',
+  'Hex colour code': 'هيڪس رنگ ڪوڊ',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'ڦيٿي تي ڪو به رنگ چونڊيو يا ان جو ڪوڊ لکو (جهڙوڪ #1e3a8a). سائيڊبار ان رنگ جو آرپار شيشو رهندو.',
+  'Colour wheel': 'رنگن جو ڦيٿو',
+  'Brightness': 'چمڪ',
 };

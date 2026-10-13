@@ -256,4 +256,11 @@ export default {
   'Ocean glass': 'شیشهٔ آبی اقیانوسی',
   'Sunset glass': 'شیشهٔ نارنجی',
   'Any other glass colour': 'رنگ شیشه‌ای دیگر',
+  // low stock alerts / colour wheel
+  'Ready colours': 'رنگ‌های آماده',
+  'Your own colour': 'رنگ دلخواه',
+  'Hex colour code': 'کد رنگ (Hex)',
+  'Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.': 'هر رنگی را روی چرخ انتخاب کنید یا کدش را بنویسید (مثل #1e3a8a). نوار کناری شیشهٔ شفاف به همان رنگ می‌ماند.',
+  'Colour wheel': 'چرخ رنگ',
+  'Brightness': 'روشنایی',
 };

@@ -156,6 +156,88 @@ function Sidebar({ onNavigate }) {
   );
 }
 
+// Shops: bell in the top bar with the number of items running low or
+// finished, a short list, and a link to Stock count showing just those. Once
+// a day the computer also shows a notification. (Restaurants have the
+// kitchen-stock bell; they get this one only when tracked items run low.)
+const NOTIFIED_KEY = 'corepos_stock_notified';
+export function StockAlerts() {
+  const shop = useShop();
+  const { can } = useAuth();
+  const { t } = useLang();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const on = can('inventory.view');
+  const q = useQuery({ queryKey: ['inventory', 'alerts'], queryFn: () => api.get('/inventory', { stock: 'low', per_page: 8 }), enabled: on, refetchInterval: 60_000, staleTime: 30_000 });
+  const low = q.data?.summary?.low_stock || 0;
+  const out = q.data?.summary?.out_of_stock || 0;
+  const n = low + out;
+  const rows = q.data?.data || [];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  // one computer notification a day while something is low
+  useEffect(() => {
+    if (!n || typeof Notification === 'undefined') return;
+    const day = new Date().toDateString();
+    let last = null;
+    try { last = localStorage.getItem(NOTIFIED_KEY); } catch { /* none */ }
+    if (last === day) return;
+    const show = () => {
+      try {
+        new Notification(shop.shopName || 'CorePOS', { body: t('{n} items are running low or finished — open Stock count to see them', { n }), tag: 'corepos-low-stock' });
+        localStorage.setItem(NOTIFIED_KEY, day);
+      } catch { /* not allowed */ }
+    };
+    if (Notification.permission === 'granted') show();
+    else if (Notification.permission === 'default') Notification.requestPermission().then((p) => { if (p === 'granted') show(); }).catch(() => {});
+  }, [n, shop.shopName, t]);
+
+  if (!on || (shop.isRestaurant && !n)) return null;
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} title={n ? t('{n} items are running low or finished', { n }) : t('Stock is fine')} aria-label={t('Low stock alerts')}
+        className="glass-btn relative grid size-10 place-items-center rounded-xl">
+        <Bell className={cx('size-5', n && 'text-amber-600')} />
+        {n > 0 && <span className={cx('num absolute -end-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold leading-5 text-white ring-2 ring-white', out ? 'bg-red-600' : 'bg-amber-500')}>{n > 99 ? '99+' : n}</span>}
+      </button>
+      {open && (
+        <div className="glass-strong absolute end-0 top-12 z-50 w-80 animate-pop-in overflow-hidden rounded-3xl p-2">
+          <div className="px-3 pb-2 pt-1.5">
+            <div className="text-[15px] font-semibold text-slate-900">{t('Low stock')}</div>
+            <div className="text-xs text-slate-500">{n ? t('{low} running low · {out} finished', { low, out }) : t('Every item has enough stock.')}</div>
+          </div>
+          {rows.map((v) => {
+            const qtyLeft = Number(v.stock_qty);
+            return (
+              <button key={v.id} type="button" onClick={() => { setOpen(false); navigate('/inventory?stock=low'); }}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start transition hover:bg-slate-500/10">
+                <span className={cx('size-2.5 shrink-0 rounded-full', qtyLeft <= 0 ? 'bg-red-500' : 'bg-amber-500')} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-slate-900">{v.product_name}{v.size || v.color ? ` · ${[v.color, v.size].filter(Boolean).join(' / ')}` : ''}</span>
+                  <span className="block text-xs text-slate-500">{t('Alert at {n}', { n: Number(v.low_stock_threshold) })}</span>
+                </span>
+                <span className={cx('num shrink-0 text-sm font-bold', qtyLeft <= 0 ? 'text-red-600' : 'text-amber-600')}>{qtyLeft <= 0 ? t('Finished') : `${qtyLeft} ${t('left')}`}</span>
+              </button>
+            );
+          })}
+          {n > 0 && (
+            <button type="button" onClick={() => { setOpen(false); navigate('/inventory?stock=low'); }} className="mt-1 w-full rounded-2xl px-3 py-2.5 text-center text-sm font-semibold text-brand-700 transition hover:bg-brand-50">
+              {t('See all low stock')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Restaurants: bell in the top bar with the number of kitchen items that are
 // low or finished; opens Kitchen stock filtered to those.
 function KitchenAlerts() {
@@ -282,6 +364,7 @@ export default function Layout() {
           {/* end: language, theme, user */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-2">
             <KitchenAlerts />
+            <StockAlerts />
             <LanguageSwitch />
             <ThemeSwitch />
             <button type="button" onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-2xl px-1.5 py-1 text-start transition hover:bg-white/50">

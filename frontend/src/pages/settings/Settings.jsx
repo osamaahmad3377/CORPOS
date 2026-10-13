@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bike, Briefcase, Building2, CalendarClock, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
-import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_PRESETS, GLASS_SWATCH, SIDEBAR_PRESETS, glassTint, isGlassSidebar, isSidebarValue, sidebarTheme } from '../../lib/theme';
+import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_PRESETS, GLASS_SWATCH, glassTint, isSidebarValue, sidebarTheme } from '../../lib/theme';
+import ColorWheel from '../../components/ColorWheel';
 import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
 import { TEXT_SIZES, isDesktop, listPrinters, printNow, printerPrefs, receiptLayout, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
@@ -288,7 +289,6 @@ function BrandForm({ d, set }) {
   const fileRef = useRef(null);
   const color = d.brand.primary_color;
   const sidebar = isSidebarValue(d.brand.sidebar_color) ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
-  const sidebarGlass = isGlassSidebar(sidebar);
   // the colour behind the picker: the glass tint, the solid colour, or white for clear glass
   const sidebarHex = sidebar === 'glass' ? '#ffffff' : (glassTint(sidebar, color) || sidebar);
   const logoSize = clampLogo(d.brand.sidebar_logo_size);
@@ -367,7 +367,7 @@ function BrandForm({ d, set }) {
           <div className="mb-2 text-sm font-semibold text-slate-700">{t('Sidebar colour')}</div>
           <div className="flex flex-wrap items-start gap-5">
             <div className="min-w-0 flex-1">
-              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Glass (see-through)')}</div>
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Ready colours')}</div>
               <div className="flex flex-wrap gap-2.5">
                 {GLASS_PRESETS.map((p) => {
                   const on = sidebar.toLowerCase() === p.hex;
@@ -382,26 +382,17 @@ function BrandForm({ d, set }) {
                   );
                 })}
               </div>
-              <div className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Solid')}</div>
-              <div className="flex flex-wrap gap-2.5">
-                {SIDEBAR_PRESETS.map((p) => {
-                  const on = sidebar.toLowerCase() === p.hex;
-                  return (
-                    <button key={p.hex} type="button" title={t(p.name)} aria-label={t(p.name)} onClick={() => set('brand', 'sidebar_color')(p.hex)}
-                      className={cx('grid size-11 place-items-center rounded-xl border border-slate-900/10 ring-offset-2 transition hover:scale-105', on && 'ring-2 ring-slate-900')}
-                      style={{ background: p.hex }}>
-                      {on && <Check className="size-5" style={{ color: sidebarTheme(p.hex).text }} />}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input type="color" value={sidebarHex} onChange={(e) => set('brand', 'sidebar_color')(sidebarGlass ? `glass:${e.target.value}` : e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
-                  {sidebarGlass ? t('Any other glass colour') : t('Any other colour')}
-                </label>
-                <Input className="num w-32 font-mono" value={sidebar === 'glass' || sidebar === 'glass:brand' ? '' : sidebarHex} placeholder={sidebar === 'glass' ? t('Clear glass') : sidebar === 'glass:brand' ? t('Brand glass') : ''} maxLength={7}
-                  onChange={(e) => { const v = e.target.value; set('brand', 'sidebar_color')(!v ? 'glass' : sidebarGlass ? `glass:${v}` : v); }} />
+              <div className="mb-1.5 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Your own colour')}</div>
+              <div className="flex flex-wrap items-start gap-5">
+                <ColorWheel value={sidebarHex === '#ffffff' ? '#7c8cff' : sidebarHex} onChange={(hex) => set('brand', 'sidebar_color')(`glass:${hex}`)} size={168} />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">{t('Hex colour code')}</span>
+                    <HexInput value={sidebar === 'glass' || sidebar === 'glass:brand' ? '' : sidebarHex} placeholder={sidebar === 'glass' ? t('Clear glass') : sidebar === 'glass:brand' ? t('Brand glass') : '#1e3a8a'}
+                      onCommit={(hex) => set('brand', 'sidebar_color')(hex ? `glass:${hex}` : 'glass')} />
+                  </label>
+                  <p className="text-xs text-slate-500">{t('Pick any colour on the wheel or type its code (like #1e3a8a). The sidebar stays see-through glass in that colour.')}</p>
+                </div>
               </div>
               <p className="mt-2 text-xs text-slate-500">{t('Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.')}</p>
 
@@ -636,6 +627,22 @@ function ReceiptForm({ d, set, err }) {
         <Toggle checked={d.receipt.show_tax_line === '1'} onChange={(v) => set('receipt', 'show_tax_line')(v ? '1' : '0')} label={t('Show tax on the receipt')} hint={t('Prints the tax amount on its own line when a sale has tax.')} />
       </div>
     </>
+  );
+}
+
+// A hex colour box: type freely, the colour applies once it is a full code
+// (#rrggbb or rrggbb); empty means "none".
+function HexInput({ value, placeholder, onCommit }) {
+  const [text, setText] = useState(value || '');
+  useEffect(() => { setText(value || ''); }, [value]);
+  const norm = (v) => { const m = /^#?([0-9a-f]{6})$/i.exec(v.trim()); return m ? `#${m[1].toLowerCase()}` : null; };
+  const ok = !text || norm(text);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="size-11 shrink-0 rounded-xl border border-slate-900/10" style={{ background: norm(text) || 'transparent' }} />
+      <Input className={cx('num w-36 font-mono uppercase', !ok && 'border-red-400 focus:border-red-500')} dir="ltr" maxLength={7} value={text} placeholder={placeholder}
+        onChange={(e) => { const v = e.target.value; setText(v); if (!v) onCommit(''); else if (norm(v)) onCommit(norm(v)); }} />
+    </div>
   );
 }
 

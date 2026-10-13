@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'لا ترې هېڅ نه دي اخیستل شوي',
   'Choose "All" to see every purchase.': 'د ټولو پېرلونو د لیدو لپاره "ټول" وټاکئ.',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'کله چې له دې سپلایر مال راشي، د لیکلو لپاره "نوی مال راغی" ټک کړئ.',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} توکي لږ دي یا خلاص شوي — د لیدو لپاره د سټاک شمېرنه پرانیزئ',
+  '{n} items are running low or finished': '{n} توکي لږ یا خلاص دي',
+  'Stock is fine': 'سټاک سم دی',
+  'Low stock alerts': 'د لږ سټاک خبرتیا',
+  '{low} running low · {out} finished': '{low} لږ · {out} خلاص',
+  'Every item has enough stock.': 'د هر توکي سټاک بس دی.',
+  'left': 'پاتې',
+  'See all low stock': 'ټول لږ سټاک وګورئ',
+  '{n} items on this bill are running low — buy more soon': 'د دې بل {n} توکي لږېږي — ژر نور راوړئ',
+  '{name} is now finished — buy more soon': '{name} خلاص شو — ژر نور راوړئ',
+  '{name} is running low — only {n} left': '{name} لږېږي — یوازې {n} پاتې',
 };

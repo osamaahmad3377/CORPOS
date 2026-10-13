@@ -202,4 +202,16 @@ export default {
   'Nothing bought from them yet': 'ابھی ان سے کچھ نہیں خریدا',
   'Choose "All" to see every purchase.': 'ساری خریداری دیکھنے کے لیے "سب" چُنیں۔',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'جب اس سپلائر سے مال آئے تو لکھنے کے لیے "نیا مال آیا" دبائیں۔',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} چیزیں کم ہیں یا ختم ہو گئی ہیں — دیکھنے کے لیے اسٹاک گنتی کھولیں',
+  '{n} items are running low or finished': '{n} چیزیں کم ہیں یا ختم ہیں',
+  'Stock is fine': 'اسٹاک ٹھیک ہے',
+  'Low stock alerts': 'کم اسٹاک کی اطلاع',
+  '{low} running low · {out} finished': '{low} کم · {out} ختم',
+  'Every item has enough stock.': 'ہر چیز کا اسٹاک کافی ہے۔',
+  'left': 'باقی',
+  'See all low stock': 'سارا کم اسٹاک دیکھیں',
+  '{n} items on this bill are running low — buy more soon': 'اس بل کی {n} چیزیں کم ہو رہی ہیں — جلد مزید منگوائیں',
+  '{name} is now finished — buy more soon': '{name} ختم ہو گیا — جلد مزید منگوائیں',
+  '{name} is running low — only {n} left': '{name} کم ہو رہا ہے — صرف {n} باقی',
 };

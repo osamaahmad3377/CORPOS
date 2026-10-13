@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'هنوز از آن‌ها چیزی خریده نشده',
   'Choose "All" to see every purchase.': 'برای دیدن همه خریدها «همه» را انتخاب کنید.',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'وقتی کالا از این تأمین‌کننده رسید، «کالا رسید» را بزنید تا ثبت شود.',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} کالا رو به اتمام یا تمام شده — برای دیدن، شمارش موجودی را باز کنید',
+  '{n} items are running low or finished': '{n} کالا رو به اتمام یا تمام شده',
+  'Stock is fine': 'موجودی خوب است',
+  'Low stock alerts': 'هشدار موجودی کم',
+  '{low} running low · {out} finished': '{low} رو به اتمام · {out} تمام شده',
+  'Every item has enough stock.': 'موجودی همه کالاها کافی است.',
+  'left': 'مانده',
+  'See all low stock': 'دیدن همه موجودی کم',
+  '{n} items on this bill are running low — buy more soon': '{n} کالای این فاکتور رو به اتمام است — زود بیشتر بخرید',
+  '{name} is now finished — buy more soon': '{name} تمام شد — زود بیشتر بخرید',
+  '{name} is running low — only {n} left': '{name} رو به اتمام است — فقط {n} مانده',
 };

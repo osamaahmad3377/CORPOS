@@ -183,4 +183,16 @@ export default {
   'Nothing bought from them yet': 'حالے اوہناں توں کجھ نئیں خریدیا',
   'Choose "All" to see every purchase.': 'ساری خریداری ویکھن لئی "سارے" چُنو۔',
   'When stock arrives from this supplier, tap "Stock arrived" to write it down.': 'جدوں ایس سپلائر توں مال آوے تاں لکھن لئی "نواں مال آیا" دباؤ۔',
+  // low stock alerts / colour wheel
+  '{n} items are running low or finished — open Stock count to see them': '{n} چیزاں گھٹ نیں یا مُک گئیاں — ویکھن لئی اسٹاک گنتی کھولو',
+  '{n} items are running low or finished': '{n} چیزاں گھٹ نیں یا مُک گئیاں',
+  'Stock is fine': 'اسٹاک ٹھیک اے',
+  'Low stock alerts': 'گھٹ اسٹاک دی اطلاع',
+  '{low} running low · {out} finished': '{low} گھٹ · {out} مُکے',
+  'Every item has enough stock.': 'ہر چیز دا اسٹاک کافی اے۔',
+  'left': 'باقی',
+  'See all low stock': 'سارا گھٹ اسٹاک ویکھو',
+  '{n} items on this bill are running low — buy more soon': 'ایس بل دیاں {n} چیزاں گھٹ ہو رہیاں نیں — چھیتی ہور منگواؤ',
+  '{name} is now finished — buy more soon': '{name} مُک گیا — چھیتی ہور منگواؤ',
+  '{name} is running low — only {n} left': '{name} گھٹ ہو رہیا اے — صرف {n} باقی',
 };
