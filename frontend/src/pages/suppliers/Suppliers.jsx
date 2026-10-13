@@ -11,6 +11,8 @@ import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, StatCard,
   Table, Td, Textarea, Th, useConfirm, useToast,
 } from '../../components/ui';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 
 // Labels are English keys — show them with t(st.label).
 export const PAY_STATUS = {
@@ -56,7 +58,22 @@ function SupplierList() {
       <PageHeader
         title={t('Suppliers')}
         subtitle={t('People and companies you buy stock from, and how much you still owe them.')}
-        actions={<Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add supplier')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName="suppliers" sheet="Suppliers" rows={rows} columns={[
+              { en: 'Name', value: (s) => s.name },
+              { en: 'Company', value: (s) => s.company },
+              { en: 'Phone', value: (s) => s.phone },
+              { en: 'Email', value: (s) => s.email },
+              { en: 'City', value: (s) => s.city },
+              { en: 'Address', value: (s) => s.address },
+              { en: 'You owe (Rs)', value: (s) => toNumber(s.outstanding_balance) },
+              { en: 'Active', value: (s) => (s.is_active ? 'Yes' : 'No') },
+              { en: 'Notes', value: (s) => s.notes },
+            ]} />
+            <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add supplier')}</Button>
+          </>
+        )}
       />
 
       {!!list.data?.length && (
@@ -265,6 +282,19 @@ function SupplierDetail() {
         subtitle={s.company || t('Supplier')}
         actions={(
           <>
+            {can('purchases.view') && (
+              <DownloadMenu fileName={`${s.name}-purchases`} sheet="Stock bought" load={() => fetchAll('/purchases', { supplier_id: id, payment_status: status })} columns={[
+                { en: 'Purchase #', value: (p) => p.po_number },
+                { en: 'Supplier bill #', value: (p) => p.invoice_number },
+                { en: 'Date', value: (p) => String(p.purchase_date || '').slice(0, 10) },
+                { en: 'Items', value: (p) => toNumber(p.items_count) },
+                { en: 'Total (Rs)', value: (p) => toNumber(p.grand_total) },
+                { en: 'Paid (Rs)', value: (p) => toNumber(p.paid_amount) },
+                { en: 'Still owed (Rs)', value: (p) => toNumber(p.due_amount) },
+                { en: 'Sent back (Rs)', value: (p) => toNumber(p.refunded_amount) },
+                { en: 'Payment', value: (p) => p.payment_status },
+              ]} />
+            )}
             <Button variant="secondary" icon={Pencil} onClick={() => setEditing(true)}>{t('Edit')}</Button>
             <Button variant="ghost" icon={Trash2} onClick={remove} className="text-red-600 hover:bg-red-50">{t('Delete')}</Button>
             {can('purchases.manage') && s.is_active && <Button size="lg" icon={Plus} onClick={() => navigate(`/purchases/new?supplier_id=${s.id}`)}>{t('Stock arrived')}</Button>}

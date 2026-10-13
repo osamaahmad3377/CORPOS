@@ -258,4 +258,12 @@ export default {
   'Choose a new password, not the same as the old one.': 'نئون پاس ورڊ چونڊيو، پراڻي جهڙو نه.',
   // permission
   'Delete Bills': 'بل ڊاهڻ',
+  // downloads (Excel / CSV)
+  'Download': 'ڊائونلوڊ',
+  'Opens in Excel, with filters': 'ايڪسل ۾ فلٽر سان کلي ٿي',
+  'For Google Sheets and other programs': 'گوگل شيٽس ۽ ٻين پروگرامن لاءِ',
+  'Nothing to download': 'ڊائونلوڊ ڪرڻ لاءِ ڪجهه ناهي',
+  'Downloaded {n} rows': '{n} قطارون ڊائونلوڊ ٿيون',
+  'Download categories': 'ڪيٽيگريون ڊائونلوڊ ڪريو',
+  'Download brands': 'برانڊ ڊائونلوڊ ڪريو',
 };

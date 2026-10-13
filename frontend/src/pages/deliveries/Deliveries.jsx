@@ -11,6 +11,8 @@ import { useT } from '../../lib/i18n';
 import { money } from '../../lib/format';
 import { printNow } from '../../lib/printer';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import Receipt from '../../components/Receipt';
 import { initials } from '../../components/WaiterPicker';
 import { Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, StatCard, cx, useConfirm, useToast } from '../../components/ui';
@@ -58,6 +60,19 @@ export default function Deliveries() {
         subtitle={t('From the kitchen to the customer’s door. Send each order with a rider, then mark it delivered when the cash comes back.')}
         actions={(
           <>
+            <DownloadMenu size="lg" fileName="deliveries" sheet="Deliveries" rows={[...active, ...done]} columns={[
+              { en: 'Bill #', value: (o) => o.invoice_number },
+              { en: 'Ordered', value: (o) => String(o.sale_date || '').replace('T', ' ').slice(0, 16) },
+              { en: 'Customer', value: (o) => o.delivery_name || o.customer },
+              { en: 'Phone', value: (o) => o.delivery_phone },
+              { en: 'Address', value: (o) => o.delivery_address },
+              { en: 'Area', value: (o) => o.delivery_area },
+              { en: 'Rider', value: (o) => o.rider },
+              { en: 'Status', value: (o) => ({ pending: 'Waiting for a rider', out: 'Out for delivery', delivered: 'Delivered' }[o.delivery_status] || o.delivery_status) },
+              { en: 'Delivery charge (Rs)', value: (o) => toNumber(o.delivery_fee) },
+              { en: 'Total (Rs)', value: (o) => toNumber(o.grand_total) },
+              { en: 'Cash to collect (Rs)', value: (o) => toNumber(o.due_amount) },
+            ]} />
             <Link to="/riders"><Button variant="secondary" size="lg" icon={Users}>{t('Riders')}</Button></Link>
             <Button size="lg" icon={Plus} onClick={() => navigate('/pos?new=delivery')}>{t('New delivery')}</Button>
           </>

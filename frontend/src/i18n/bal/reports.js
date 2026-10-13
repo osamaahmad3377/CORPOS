@@ -258,4 +258,12 @@ export default {
   'Choose a new password, not the same as the old one.': 'نوکیں پاس ورڈے گچین کن، کوہنیءِ وڑا مہ بیت۔',
   // permission
   'Delete Bills': 'بل گار کنگ',
+  // downloads (Excel / CSV)
+  'Download': 'ڈاؤن لوڈ',
+  'Opens in Excel, with filters': 'ایکسلءَ فلٹرءِ گوں پچ بیت',
+  'For Google Sheets and other programs': 'گوگل شیٹس و دگہ پروگرامانی ہاترا',
+  'Nothing to download': 'ڈاؤن لوڈ کنگءَ ہچ نیست',
+  'Downloaded {n} rows': '{n} رد ڈاؤن لوڈ بوتنت',
+  'Download categories': 'کیٹیگریاں ڈاؤن لوڈ کن',
+  'Download brands': 'برانڈاں ڈاؤن لوڈ کن',
 };

@@ -9,6 +9,8 @@ import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { money } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import { initials, matchWaiters } from '../../components/WaiterPicker';
 import { Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, StatCard, Switch, cx, useConfirm, useToast } from '../../components/ui';
 
@@ -55,7 +57,22 @@ export default function Riders() {
       <PageHeader
         title={t('Riders')}
         subtitle={t('The people who deliver orders. Choose the rider when an order leaves — the rider brings the cash back.')}
-        actions={canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add rider')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName={`riders-${period}`} sheet="Riders" rows={rows} columns={[
+              { en: 'Rider', value: (r) => r.name },
+              { en: 'Phone', value: (r) => r.phone },
+              { en: 'Deliveries', value: (r) => toNumber(r.deliveries) },
+              { en: 'Order value (Rs)', value: (r) => toNumber(r.sales) },
+              { en: 'Delivery charges (Rs)', value: (r) => toNumber(r.fees) },
+              { en: 'Average minutes', value: (r) => (r.avg_minutes == null ? '' : toNumber(r.avg_minutes)) },
+              { en: 'Out now', value: (r) => toNumber(r.out_now) },
+              { en: 'Cash to collect (Rs)', value: (r) => toNumber(r.cash_to_collect) },
+              { en: 'Active', value: (r) => (r.is_active ? 'Yes' : 'No') },
+            ]} />
+            {canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add rider')}</Button>}
+          </>
+        )}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

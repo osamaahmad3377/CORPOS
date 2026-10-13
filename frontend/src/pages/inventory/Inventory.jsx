@@ -10,6 +10,8 @@ import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { dateTime, money, num, qty, round3, variantLabel } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, StatCard, Table, Td, Textarea, Th,
   cx, useToast,
@@ -90,6 +92,7 @@ export default function Inventory() {
 
 function StockList({ onAdjust }) {
   const { can } = useAuth();
+  const shop = useShop();
   const t = useT();
   const unitText = useUnitText();
   const [search, setSearch] = useState('');
@@ -147,6 +150,22 @@ function StockList({ onAdjust }) {
               <option value="out">{t('Out of stock only')}</option>
             </Select>
           </div>
+          <DownloadMenu fileName={stock ? `stock-${stock}` : 'stock'} sheet="Stock" load={() => fetchAll('/inventory', { search: term, stock })} columns={[
+            { en: 'Item', value: (v) => v.product_name },
+            { en: 'Type', value: (v) => [v.color, v.size].filter(Boolean).join(' / ') },
+            { en: 'SKU', value: (v) => v.sku },
+            { en: 'Barcode', value: (v) => v.barcode },
+            { en: 'Unit', value: (v) => shop.unitLabel(v.unit) },
+            { en: 'In stock', value: (v) => (v.track_stock === false ? 'Not counted' : toNumber(v.stock_qty)) },
+            { en: 'Alert below', value: (v) => toNumber(v.low_stock_threshold) },
+            { en: 'Status', value: (v) => (v.track_stock === false ? '' : Number(v.stock_qty) <= 0 ? 'Out of stock' : v.is_low_stock ? 'Running low' : 'OK') },
+            ...(showCost ? [
+              { en: 'Buying price (Rs)', value: (v) => toNumber(v.purchase_price) },
+              { en: 'Stock value (Rs)', value: (v) => (v.track_stock === false ? '' : Math.round(Number(v.stock_qty) * Number(v.purchase_price || 0) * 100) / 100) },
+            ] : []),
+            { en: 'Selling price (Rs)', value: (v) => toNumber(v.selling_price) },
+            { en: 'Active', value: (v) => (v.is_active ? 'Yes' : 'No') },
+          ]} />
         </div>
 
         {list.isLoading ? <Loading /> : list.error ? <div className="p-4"><ErrorBox error={list.error} /></div> : !rows.length ? (
@@ -432,6 +451,19 @@ function Movements() {
           <span className="text-sm text-slate-400">{t('to')}</span>
           <Input type="date" className="sm:w-40" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} aria-label={t('To date')} />
         </div>
+        <DownloadMenu fileName="stock-history" sheet="Stock history"
+          load={() => fetchAll('/inventory/adjustments', { variant_id: variantId, search: term, type, start_date: from, end_date: to })} columns={[
+            { en: 'Date', value: (a) => dateTime(a.created_at) },
+            { en: 'Item', value: (a) => a.product_name },
+            { en: 'Type', value: (a) => [a.color, a.size].filter(Boolean).join(' / ') },
+            { en: 'SKU', value: (a) => a.sku },
+            { en: 'Change', value: (a) => MOVE_TYPES[a.adjustment_type]?.label || a.adjustment_type },
+            { en: 'Before', value: (a) => toNumber(a.quantity_before) },
+            { en: 'Quantity', value: (a) => toNumber(a.quantity_change) },
+            { en: 'After', value: (a) => toNumber(a.quantity_after) },
+            { en: 'Reason', value: (a) => a.reason },
+            { en: 'By', value: (a) => a.adjusted_by },
+          ]} />
       </div>
 
       {list.isLoading ? <Loading /> : list.error ? <div className="p-4"><ErrorBox error={list.error} /></div> : !rows.length ? (

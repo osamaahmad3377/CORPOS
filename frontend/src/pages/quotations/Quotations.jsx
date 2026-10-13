@@ -13,6 +13,8 @@ import { useT } from '../../lib/i18n';
 import { date, dateTime, money, qty, round3, today } from '../../lib/format';
 import { buildQuoteText, openWhatsApp } from '../../lib/whatsapp';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, Table, Td, Textarea, Th,
   cx, useConfirm, useToast,
@@ -99,7 +101,26 @@ function QuoteList() {
       <PageHeader
         title={t('Quotations')}
         subtitle={t('Give a customer a price list before they buy. Stock does not change. Later, turn it into a sale with one tap.')}
-        actions={newBtn}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName="quotations" sheet="Quotations" load={() => { const { page: _p, per_page: _n, ...rest } = q; return fetchAll('/quotations', rest); }} columns={[
+              { en: 'Quotation #', value: (x) => x.quote_number },
+              { en: 'Date', value: (x) => date(x.created_at) },
+              { en: 'Customer', value: (x) => x.customer_name },
+              { en: 'Phone', value: (x) => x.customer_phone },
+              { en: 'Valid until', value: (x) => (x.valid_until ? date(x.valid_until) : '') },
+              { en: 'Items', value: (x) => toNumber(x.items_count) },
+              { en: 'Subtotal (Rs)', value: (x) => toNumber(x.subtotal) },
+              { en: 'Discount (Rs)', value: (x) => toNumber(x.discount_amount) },
+              { en: 'Tax (Rs)', value: (x) => toNumber(x.tax_amount) },
+              { en: 'Total (Rs)', value: (x) => toNumber(x.grand_total) },
+              { en: 'Status', value: (x) => (x.status === 'open' && x.is_expired ? 'expired' : x.status) },
+              { en: 'Sold on bill', value: (x) => x.converted_invoice_number },
+              { en: 'Made by', value: (x) => x.creator },
+            ]} />
+            {newBtn}
+          </>
+        )}
       />
       <Card>
         <div className="flex flex-wrap gap-3 border-b border-slate-100 p-4">

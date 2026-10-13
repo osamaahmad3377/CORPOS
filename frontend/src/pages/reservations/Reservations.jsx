@@ -9,6 +9,8 @@ import { api } from '../../lib/api';
 import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import { Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, StatCard, Textarea, cx, useConfirm, useToast } from '../../components/ui';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -79,7 +81,21 @@ export default function Reservations() {
       <PageHeader
         title={t('Reservations')}
         subtitle={t('Book tables ahead. Booked tables show as “Reserved” on the Orders & tables screen before the guests arrive.')}
-        actions={<Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('New reservation')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName={`reservations-${date}`} dated={false} sheet="Reservations" rows={list} columns={[
+              { en: 'Time', value: (r) => String(r.reserved_for || '').replace('T', ' ').slice(0, 16) },
+              { en: 'Name', value: (r) => r.name },
+              { en: 'Phone', value: (r) => r.phone },
+              { en: 'Guests', value: (r) => toNumber(r.guests) },
+              { en: 'Table', value: (r) => r.table_no },
+              { en: 'Minutes', value: (r) => toNumber(r.duration_minutes) },
+              { en: 'Status', value: (r) => r.status },
+              { en: 'Notes', value: (r) => r.notes },
+            ]} />
+            <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('New reservation')}</Button>
+          </>
+        )}
       />
 
       {/* day picker: arrows, today, and the next 7 days with their booking counts */}

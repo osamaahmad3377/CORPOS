@@ -126,7 +126,7 @@ function DailySales() {
       loading={q.isLoading}
       error={q.error}
       filters={<FilterBox label={t('Date')}><Input type="date" value={day} max={today()} onChange={(e) => setDay(e.target.value)} /></FilterBox>}
-      csv={() => downloadCsv(`daily-sales-${day}.csv`, columns, sales)}
+      csv={(fmt) => downloadCsv(`daily-sales-${day}.csv`, columns, sales, fmt)}
     >
       <Stats>
         <StatCard icon={Banknote} label={t('Sale (after returns)')} value={<Num>{money(q.data?.total_revenue)}</Num>} />
@@ -227,7 +227,7 @@ function MonthlySales() {
       loading={q.isLoading}
       error={q.error}
       filters={<FilterBox label={t('Month')}><Input type="month" value={month} max={thisMonth()} onChange={(e) => setMonth(e.target.value)} /></FilterBox>}
-      csv={() => downloadCsv(`monthly-sales-${month}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`monthly-sales-${month}.csv`, columns, rows, fmt)}
     >
       <Stats>
         <StatCard icon={Banknote} label={t('Sale (after returns)')} value={<Num>{money(total)}</Num>} />
@@ -329,7 +329,7 @@ function ProductSales() {
           </FilterBox>
         </>
       )}
-      csv={() => downloadCsv(`product-sales-${start || 'start'}-to-${end || 'today'}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`product-sales-${start || 'start'}-to-${end || 'today'}.csv`, columns, rows, fmt)}
     >
       <Stats>
         <StatCard icon={Banknote} label={t('Sale (after returns)')} value={<Num>{money(total)}</Num>} />
@@ -421,7 +421,7 @@ function InventoryReport() {
           </FilterBox>
         </>
       )}
-      csv={() => downloadCsv(`inventory-${today()}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`inventory-${today()}.csv`, columns, rows, fmt)}
     >
       <Stats>
         <StatCard icon={Boxes} label={t('Items (each type counted)')} value={<Num>{q.data?.total_variants ?? 0}</Num>} />
@@ -471,7 +471,7 @@ function LowStock() {
       period={t('On {date}', { date: d.prettyDate(today()) })}
       loading={q.isLoading}
       error={q.error}
-      csv={() => downloadCsv(`low-stock-${today()}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`low-stock-${today()}.csv`, columns, rows, fmt)}
     >
       <Stats>
         <StatCard icon={AlertTriangle} label={t('Need to buy')} value={<Num>{rows.length}</Num>} tone={rows.length ? 'amber' : 'green'} />
@@ -540,7 +540,7 @@ function PurchasesReport() {
           )}
         </>
       )}
-      csv={() => downloadCsv(`purchases-${start || 'start'}-to-${end || 'today'}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`purchases-${start || 'start'}-to-${end || 'today'}.csv`, columns, rows, fmt)}
     >
       <Stats>
         <StatCard icon={ReceiptText} label={t('Purchases')} value={<Num>{q.data?.total_purchases ?? 0}</Num>} />
@@ -604,7 +604,7 @@ function CustomersReport() {
           )}
         </>
       )}
-      csv={() => downloadCsv(`customers-${today()}.csv`, columns, rows)}
+      csv={(fmt) => downloadCsv(`customers-${today()}.csv`, columns, rows, fmt)}
     >
       <Stats>
         {hasDue && <StatCard icon={Wallet} label={t('Total udhaar')} value={<Num>{money(totalDue)}</Num>} tone={totalDue ? 'amber' : 'green'} />}

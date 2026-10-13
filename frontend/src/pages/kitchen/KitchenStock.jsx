@@ -10,6 +10,8 @@ import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { dateTime, money, qty } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, StatCard, Switch, Table, Td, Th, cx, useConfirm, useToast,
 } from '../../components/ui';
@@ -69,7 +71,22 @@ export default function KitchenStock() {
       <PageHeader
         title={t('Kitchen stock')}
         subtitle={t('Raw materials like chicken, flour and buns. Selling a dish takes its recipe off automatically — set each dish\'s recipe in Menu items.')}
-        actions={canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add kitchen item')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName="kitchen-stock" sheet="Kitchen stock" rows={rows} columns={[
+              { en: 'Kitchen item', value: (i) => i.name },
+              { en: 'Unit', value: (i) => i.unit },
+              { en: 'In stock', value: (i) => toNumber(i.stock_qty) },
+              { en: 'Alert below', value: (i) => toNumber(i.alert_qty) },
+              { en: 'Status', value: (i) => ({ ok: 'OK', low: 'Running low', out: 'Finished' }[i.level] || i.level) },
+              { en: 'Cost per unit (Rs)', value: (i) => toNumber(i.cost_per_unit) },
+              { en: 'Stock value (Rs)', value: (i) => toNumber(i.stock_value) },
+              { en: 'Used in dishes', value: (i) => toNumber(i.used_in) },
+              { en: 'Active', value: (i) => (i.is_active ? 'Yes' : 'No') },
+            ]} />
+            {canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add kitchen item')}</Button>}
+          </>
+        )}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

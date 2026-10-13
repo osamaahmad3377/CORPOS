@@ -12,6 +12,8 @@ import { useT } from '../../lib/i18n';
 import { useCategories } from '../../lib/catalog';
 import { date, money, today } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, cx, useConfirm, useToast,
 } from '../../components/ui';
@@ -113,7 +115,20 @@ function OfferList() {
         <p className="text-base text-slate-600">
           {running > 0 ? t('{n} offer(s) running now. The Sell screen takes them off the bill by itself.', { n: running }) : t('No offer is running right now.')}
         </p>
-        <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add offer')}</Button>
+        <div className="flex flex-wrap gap-2">
+          <DownloadMenu size="lg" fileName="offers" sheet="Offers" rows={rows} columns={[
+            { en: 'Offer', value: (o) => o.name },
+            { en: 'Kind', value: (o) => o.type },
+            { en: 'Value', value: (o) => toNumber(o.value) },
+            { en: 'Buy', value: (o) => (o.buy_qty ? toNumber(o.buy_qty) : '') },
+            { en: 'Get free', value: (o) => (o.get_qty ? toNumber(o.get_qty) : '') },
+            { en: 'On', value: (o) => (o.applies_to === 'category' ? `Category: ${o.category || ''}` : o.applies_to === 'product' ? `Item: ${o.product || ''}` : 'Whole bill') },
+            { en: 'Starts', value: (o) => (o.starts_at ? String(o.starts_at).slice(0, 10) : '') },
+            { en: 'Ends', value: (o) => (o.ends_at ? String(o.ends_at).slice(0, 10) : '') },
+            { en: 'Status', value: (o) => o.status },
+          ]} />
+          <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add offer')}</Button>
+        </div>
       </div>
 
       <Card>

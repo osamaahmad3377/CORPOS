@@ -5,6 +5,8 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, cx, useConfirm, useToast,
 } from '../../components/ui';
@@ -23,7 +25,22 @@ export default function Categories() {
 
   return (
     <Page>
-      <PageHeader title={t('Categories & brands')} subtitle={t('Put your items into groups, so they are easy to find when selling and in reports.')} />
+      <PageHeader title={t('Categories & brands')} subtitle={t('Put your items into groups, so they are easy to find when selling and in reports.')}
+        actions={(
+          <>
+            <DownloadMenu size="lg" label={t('Download categories')} fileName="categories" sheet="Categories" load={() => api.get('/categories').then((r) => r?.data || [])} columns={[
+              { en: 'Category', value: (c) => c.name },
+              { en: 'Inside', value: (c) => c.parent?.name || c.parent || '' },
+              { en: 'Items', value: (c) => toNumber(c.products_count) },
+              { en: 'Active', value: (c) => (c.is_active ? 'Yes' : 'No') },
+            ]} />
+            <DownloadMenu size="lg" label={t('Download brands')} fileName="brands" sheet="Brands" load={() => api.get('/brands').then((r) => r?.data || [])} columns={[
+              { en: 'Brand', value: (b) => b.name },
+              { en: 'Items', value: (b) => toNumber(b.products_count) },
+              { en: 'Active', value: (b) => (b.is_active ? 'Yes' : 'No') },
+            ]} />
+          </>
+        )} />
       {tabs.length > 1 && (
         <div className="mb-4 flex gap-1 rounded-lg bg-slate-200/60 p-1 sm:w-fit">
           {tabs.map(({ key, label, icon: Icon }) => (

@@ -258,4 +258,12 @@ export default {
   'Choose a new password, not the same as the old one.': 'رمز جدیدی انتخاب کنید که با قبلی یکی نباشد.',
   // permission
   'Delete Bills': 'حذف فاکتورها',
+  // downloads (Excel / CSV)
+  'Download': 'دانلود',
+  'Opens in Excel, with filters': 'در اکسل با فیلترها باز می‌شود',
+  'For Google Sheets and other programs': 'برای Google Sheets و برنامه‌های دیگر',
+  'Nothing to download': 'چیزی برای دانلود نیست',
+  'Downloaded {n} rows': '{n} ردیف دانلود شد',
+  'Download categories': 'دانلود دسته‌ها',
+  'Download brands': 'دانلود برندها',
 };

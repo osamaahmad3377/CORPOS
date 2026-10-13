@@ -8,6 +8,8 @@ import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { money } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import { initials, matchWaiters } from '../../components/WaiterPicker';
 import { Button, Card, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, StatCard, Switch, cx, useConfirm, useToast } from '../../components/ui';
 
@@ -53,7 +55,19 @@ export default function Waiters() {
       <PageHeader
         title={t('Waiters')}
         subtitle={t('The people who take orders. Pick the waiter on each order — their tables, kitchen slips and bills show the name.')}
-        actions={canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add waiter')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName={`waiters-${period}`} sheet="Waiters" rows={rows} columns={[
+              { en: 'Waiter', value: (w) => w.name },
+              { en: 'Phone', value: (w) => w.phone },
+              { en: 'Orders', value: (w) => toNumber(w.orders) },
+              { en: 'Sales (Rs)', value: (w) => toNumber(w.sales) },
+              { en: 'Open orders now', value: (w) => toNumber(w.open_orders) },
+              { en: 'Active', value: (w) => (w.is_active ? 'Yes' : 'No') },
+            ]} />
+            {canEdit && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add waiter')}</Button>}
+          </>
+        )}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

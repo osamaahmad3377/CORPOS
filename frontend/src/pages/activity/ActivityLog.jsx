@@ -7,6 +7,8 @@ import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { money } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import { Badge, Button, Card, EmptyState, ErrorBox, Input, Loading, PageHeader, Pagination, Select, Table, Td, Th } from '../../components/ui';
 import { useDates } from '../reports/reportKit';
 
@@ -99,7 +101,17 @@ export default function ActivityLog() {
   const label = 'mb-1.5 block text-sm font-medium text-slate-600';
   return (
     <Page>
-      <PageHeader title={t('Activity log')} subtitle={t('A record of who did what, and when: sign-ins, bills, returns, stock bought and stock changes.')} />
+      <PageHeader title={t('Activity log')} subtitle={t('A record of who did what, and when: sign-ins, bills, returns, stock bought and stock changes.')}
+        actions={(
+          <DownloadMenu size="lg" fileName="activity-log" sheet="Activity log" load={() => fetchAll('/activity-logs', filters)} columns={[
+            { en: 'Date & time', value: (l) => (l.created_at ? new Date(l.created_at).toLocaleString('en-GB') : '') },
+            { en: 'Who', value: (l) => l.user },
+            { en: 'Action', value: (l) => l.action },
+            { en: 'Area', value: (l) => l.module },
+            { en: 'What happened', value: (l) => l.description },
+            { en: 'Computer (IP)', value: (l) => l.ip_address },
+          ]} />
+        )} />
 
       <Card className="mb-4 p-4">
         <div className="flex flex-wrap items-end gap-3">

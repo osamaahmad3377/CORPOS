@@ -258,4 +258,12 @@ export default {
   'Choose a new password, not the same as the old one.': 'اختر كلمة مرور جديدة مختلفة عن القديمة.',
   // permission
   'Delete Bills': 'حذف الفواتير',
+  // downloads (Excel / CSV)
+  'Download': 'تنزيل',
+  'Opens in Excel, with filters': 'يُفتح في إكسل مع عوامل التصفية',
+  'For Google Sheets and other programs': 'لجداول Google والبرامج الأخرى',
+  'Nothing to download': 'لا يوجد ما يُنزَّل',
+  'Downloaded {n} rows': 'تم تنزيل {n} صفوف',
+  'Download categories': 'تنزيل الفئات',
+  'Download brands': 'تنزيل العلامات التجارية',
 };

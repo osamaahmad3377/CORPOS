@@ -21,6 +21,8 @@ import {
   PaymentMethodSelect, ReceivePaymentModal, StatusBadges, isHeld, rich, saleDue, saleNet, salePaid, useInvalidateSales,
 } from '../sales/salesShared';
 import { printNow } from '../../lib/printer';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 
 export default function Customers() {
   return (
@@ -70,7 +72,24 @@ function CustomerList() {
       <PageHeader
         title={t('Customers & udhaar')}
         subtitle={t('Your regular customers, what they bought, and how much udhaar they still owe you.')}
-        actions={can('customers.create') && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add customer')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName={filter === 'due' ? 'customers-udhaar' : 'customers'} sheet="Customers" rows={rows} columns={[
+              { en: 'Name', value: (c) => c.name },
+              { en: 'Phone', value: (c) => c.phone },
+              { en: 'Email', value: (c) => c.email },
+              { en: 'City', value: (c) => c.city },
+              { en: 'Address', value: (c) => c.address },
+              { en: 'Bills', value: (c) => toNumber(c.sales_count) },
+              { en: 'Total bought (Rs)', value: (c) => toNumber(c.total_purchases) },
+              { en: 'Udhaar due (Rs)', value: (c) => toNumber(c.total_due) },
+              { en: 'Loyalty points', value: (c) => toNumber(c.loyalty_points) },
+              { en: 'Last bill', value: (c) => (c.last_sale_date ? String(c.last_sale_date).slice(0, 10) : '') },
+              { en: 'Notes', value: (c) => c.notes },
+            ]} />
+            {can('customers.create') && <Button size="lg" icon={Plus} onClick={() => setEditing({})}>{t('Add customer')}</Button>}
+          </>
+        )}
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
@@ -272,6 +291,19 @@ function CustomerDetail() {
         actions={(
           <>
             {canSales && <Button variant="secondary" icon={FileText} onClick={() => setStatement(true)} disabled={!sales.length}>{t('Print statement')}</Button>}
+            {canSales && (
+              <DownloadMenu fileName={`${c.name}-bills`} sheet="Bills" rows={sales} disabled={!sales.length} columns={[
+                { en: 'Bill #', value: (s) => s.invoice_number },
+                { en: 'Date', value: (s) => date(s.sale_date) },
+                { en: 'Items', value: (s) => toNumber(s.items_count) },
+                { en: 'Total (Rs)', value: (s) => toNumber(s.grand_total) },
+                { en: 'Paid (Rs)', value: (s) => toNumber(s.paid_amount) },
+                { en: 'Returned (Rs)', value: (s) => toNumber(s.refunded_amount) },
+                { en: 'Udhaar due (Rs)', value: (s) => toNumber(s.due_amount) },
+                { en: 'Paid by', value: (s) => shop.paymentLabel(s.payment_method) },
+                { en: 'Status', value: (s) => s.payment_status },
+              ]} />
+            )}
             {canSales && (
               <Button variant="secondary" icon={MessageCircle} className="text-emerald-700" disabled={!sales.length} onClick={() => openWhatsApp(c.phone, buildStatementText(c, sales, shop, t))}>
                 {t('Send statement')}

@@ -10,6 +10,8 @@ import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { money, today } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import {
   Button, Card, CardHeader, cx, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, StatCard, Table, Td, Textarea, Th,
   useConfirm, useToast,
@@ -90,6 +92,14 @@ export default function Expenses() {
         actions={(
           <>
             {can('reports.view') && <Link to="/reports/profit" className="inline-flex h-14 items-center gap-2 rounded-lg px-4 text-base font-medium text-brand-700 hover:bg-brand-50"><BarChart3 className="size-5" />{t('See profit')}</Link>}
+            <DownloadMenu size="lg" fileName={`expenses-${range.start || 'all'}-to-${range.end || 'today'}`} sheet="Expenses" load={() => fetchAll('/expenses', { start: range.start, end: range.end, category, payment_method: method })} columns={[
+              { en: 'Date', value: (e) => String(e.expense_date || '').slice(0, 10) },
+              { en: 'Paid for', value: (e) => e.category },
+              { en: 'Amount (Rs)', value: (e) => toNumber(e.amount) },
+              { en: 'Paid by', value: (e) => shop.paymentLabel(e.payment_method) },
+              { en: 'Note', value: (e) => e.note },
+              { en: 'Entered by', value: (e) => e.user?.name || e.user },
+            ]} />
             <Button size="lg" icon={Plus} onClick={() => setForm({})}>{t('Add expense')}</Button>
           </>
         )}

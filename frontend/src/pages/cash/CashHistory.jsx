@@ -7,6 +7,8 @@ import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { dateTime, money } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, EmptyState, ErrorBox, Input, Loading, PageHeader, Pagination, Select, Table, Td, Th, cx,
 } from '../../components/ui';
@@ -48,6 +50,21 @@ export default function CashHistory() {
       <PageHeader
         title={t('Cash drawer')}
         subtitle={viewAll ? t('Every day each cashier opened and closed, and whether the cash was correct.') : t('Your past days: opening cash, counted cash and whether it was correct.')}
+        actions={(
+          <DownloadMenu size="lg" fileName="cash-drawer" sheet="Cash drawer" load={() => { const { page: _p, per_page: _n, ...rest } = params; return fetchAll('/cash/sessions', rest); }} columns={[
+            { en: 'Opened', value: (s) => dateTime(s.opened_at) },
+            { en: 'Cashier', value: (s) => s.user?.name },
+            { en: 'Opening cash (Rs)', value: (s) => toNumber(s.opening_cash) },
+            { en: 'Bills', value: (s) => toNumber(s.bills) },
+            { en: 'Sales (Rs)', value: (s) => toNumber(s.sales_total) },
+            { en: 'Cash expected (Rs)', value: (s) => toNumber(s.expected_cash) },
+            { en: 'Cash counted (Rs)', value: (s) => (s.counted_cash == null ? '' : toNumber(s.counted_cash)) },
+            { en: 'Short / extra (Rs)', value: (s) => (s.difference == null ? '' : toNumber(s.difference)) },
+            { en: 'Closed', value: (s) => (s.closed_at ? dateTime(s.closed_at) : 'Still open') },
+            { en: 'Closed by', value: (s) => s.closed_by?.name },
+            { en: 'Notes', value: (s) => [s.opening_note, s.closing_note].filter(Boolean).join(' · ') },
+          ]} />
+        )}
       />
       <CashTabs />
       <Card>

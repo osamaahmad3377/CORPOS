@@ -258,4 +258,12 @@ export default {
   'Choose a new password, not the same as the old one.': 'نوی پټنوم وټاکئ چې له زاړه سره یو شان نه وي.',
   // permission
   'Delete Bills': 'بلونه ړنګول',
+  // downloads (Excel / CSV)
+  'Download': 'ښکته کول',
+  'Opens in Excel, with filters': 'په اېکسل کې له فلټرونو سره پرانیستل کېږي',
+  'For Google Sheets and other programs': 'د ګوګل شیټس او نورو پروګرامونو لپاره',
+  'Nothing to download': 'د ښکته کولو لپاره هېڅ نشته',
+  'Downloaded {n} rows': '{n} کرښې ښکته شوې',
+  'Download categories': 'کټګورۍ ښکته کړئ',
+  'Download brands': 'برانډونه ښکته کړئ',
 };

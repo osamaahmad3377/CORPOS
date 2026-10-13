@@ -6,6 +6,8 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { toNumber } from '../../lib/download';
 import {
   Badge, Button, Card, CardHeader, cx, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Th,
   useConfirm, useToast,
@@ -40,7 +42,17 @@ export default function Users() {
   const tabs = [{ to: '/users', label: 'Staff members', end: true }, { to: '/users/roles', label: 'What each role can do' }];
   return (
     <Page>
-      <PageHeader title={t('Staff')} subtitle={t('People who can sign in to this shop\'s computer, and what each one is allowed to do.')} />
+      <PageHeader title={t('Staff')} subtitle={t('People who can sign in to this shop\'s computer, and what each one is allowed to do.')}
+        actions={(
+          <DownloadMenu size="lg" fileName="staff" sheet="Staff" load={() => api.get('/users').then((r) => r?.data || [])} columns={[
+            { en: 'Name', value: (u) => u.name },
+            { en: 'Email (login)', value: (u) => u.email },
+            { en: 'Role', value: (u) => u.role },
+            { en: 'Active', value: (u) => (u.is_active ? 'Yes' : 'No') },
+            { en: 'Last sign-in', value: (u) => (u.last_login_at ? new Date(u.last_login_at).toLocaleString('en-GB') : 'Never') },
+            { en: 'Added on', value: (u) => String(u.created_at || '').slice(0, 10) },
+          ]} />
+        )} />
       <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
         {tabs.map((tab) => (
           <NavLink

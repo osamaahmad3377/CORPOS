@@ -1,6 +1,8 @@
 // Shared building blocks for the report tabs: a report frame with Print and
 // Export CSV, a generic column-driven table, and small date helpers.
-import { Download, FileBarChart, Printer } from 'lucide-react';
+import { FileBarChart, Printer } from 'lucide-react';
+import DownloadMenu from '../../components/DownloadMenu';
+import { downloadTable } from '../../lib/download';
 import { useShop } from '../../lib/shop';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, cx, EmptyState, ErrorBox, Loading, Table, Td, Th } from '../../components/ui';
@@ -48,31 +50,19 @@ export function useDates() {
   return { prettyDate, shortDate, prettyMonth, dateTime, time, rangeLabel };
 }
 
-// ---------------------------------------------------------------- CSV
+// ---------------------------------------------------------------- download
 
-function csvCell(v) {
-  if (v === null || v === undefined) return '';
-  const s = String(v);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-// Column titles stay in English (spreadsheets): each column's csvLabel / en.
-export function downloadCsv(filename, columns, rows) {
+// Excel (.xlsx) or CSV. Column titles stay in English (spreadsheets): each
+// column's csvLabel / en; values from csv(row) or row[key].
+export function downloadCsv(filename, columns, rows, format = 'xlsx') {
   const cols = columns.filter((c) => c.csv !== false);
-  const lines = [
-    cols.map((c) => csvCell(c.csvLabel || c.en || c.label)).join(','),
-    ...rows.map((r) => cols.map((c) => csvCell(typeof c.csv === 'function' ? c.csv(r) : r[c.key])).join(',')),
-  ];
-  // BOM so Excel opens UTF-8 (Urdu names) correctly.
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadTable({
+    fileName: filename.replace(/\.csv$/i, ''),
+    dated: false,
+    format,
+    rows,
+    columns: cols.map((c) => ({ en: c.csvLabel || c.en || c.label, value: (r) => (typeof c.csv === 'function' ? c.csv(r) : r[c.key]) })),
+  });
 }
 
 // ---------------------------------------------------------------- UI
@@ -99,7 +89,7 @@ export function ReportFrame({ title, hint, period, filters, csv, loading, error,
           <div className="flex flex-wrap items-end gap-3">{filters}</div>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" icon={Printer} onClick={() => printNow('document')} disabled={loading || !!error}>{t('Print')}</Button>
-            <Button variant="secondary" icon={Download} onClick={csv} disabled={loading || !!error || !csv}>{t('Save as Excel (CSV)')}</Button>
+            <DownloadMenu onDownload={csv} disabled={loading || !!error || !csv} />
           </div>
         </div>
       </Card>

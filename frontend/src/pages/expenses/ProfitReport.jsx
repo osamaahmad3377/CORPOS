@@ -91,7 +91,7 @@ export default function ProfitReport() {
           )}
         </>
       )}
-      csv={() => downloadCsv(`profit-${range.start}-to-${range.end}.csv`, [{ key: 'line', en: 'Line' }, { key: 'amount', en: 'Amount (Rs)' }], csvRows)}
+      csv={(fmt) => downloadCsv(`profit-${range.start}-to-${range.end}.csv`, [{ key: 'line', en: 'Line' }, { key: 'amount', en: 'Amount (Rs)' }], csvRows, fmt)}
     >
       <Stats>
         <StatCard icon={Banknote} label={t('Sale (after returns)')} value={<Num>{money(r.revenue)}</Num>} />

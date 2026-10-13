@@ -11,6 +11,8 @@ import { useT } from '../../lib/i18n';
 import { date, dateTime, money, qty, round3, today, variantLabel } from '../../lib/format';
 import { buildReceiptText, openWhatsApp } from '../../lib/whatsapp';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import Receipt from '../../components/Receipt';
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select,
@@ -78,7 +80,30 @@ function SalesList() {
       <PageHeader
         title={t('Old bills')}
         subtitle={t('Every bill made at the counter. Open a bill to print it again, take money still owed, or return items.')}
-        actions={can('sales.create') && <Button size="lg" icon={ShoppingCart} onClick={() => navigate('/pos')}>{t('New bill')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName="bills" sheet="Bills" load={() => { const { page, per_page, ...rest } = params; return fetchAll('/sales', rest); }} columns={[
+              { en: 'Bill #', value: (s) => s.invoice_number },
+              { en: 'Date', value: (s) => dateTime(s.sale_date) },
+              { en: 'Customer', value: (s) => s.customer || 'Walk-in' },
+              { en: 'Cashier', value: (s) => s.cashier },
+              { en: 'Order', value: (s) => [s.order_type, s.table_no ? `Table ${s.table_no}` : ''].filter(Boolean).join(' · ') },
+              { en: 'Items', value: (s) => toNumber(s.items_count) },
+              { en: 'Subtotal (Rs)', value: (s) => toNumber(s.subtotal) },
+              { en: 'Discount (Rs)', value: (s) => toNumber(s.discount_amount) },
+              { en: 'Tax (Rs)', value: (s) => toNumber(s.tax_amount) },
+              { en: 'Delivery (Rs)', value: (s) => toNumber(s.delivery_fee) },
+              { en: 'Total (Rs)', value: (s) => toNumber(s.grand_total) },
+              { en: 'Paid (Rs)', value: (s) => toNumber(s.paid_amount) },
+              { en: 'Udhaar due (Rs)', value: (s) => toNumber(s.due_amount) },
+              { en: 'Returned (Rs)', value: (s) => toNumber(s.refunded_amount) },
+              { en: 'Paid by', value: (s) => shop.paymentLabel(s.payment_method) },
+              { en: 'Status', value: (s) => s.status },
+              { en: 'Payment', value: (s) => s.payment_status },
+            ]} />
+            {can('sales.create') && <Button size="lg" icon={ShoppingCart} onClick={() => navigate('/pos')}>{t('New bill')}</Button>}
+          </>
+        )}
       />
 
       {held.data > 0 && f.status !== 'held' && (

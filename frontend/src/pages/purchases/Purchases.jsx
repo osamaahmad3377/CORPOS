@@ -10,6 +10,8 @@ import { useShop } from '../../lib/shop';
 import { useT } from '../../lib/i18n';
 import { date, dateTime, money, qty, round3, today, variantLabel } from '../../lib/format';
 import { Page } from '../../components/Layout';
+import DownloadMenu from '../../components/DownloadMenu';
+import { fetchAll, toNumber } from '../../lib/download';
 import ProductForm from '../../components/ProductForm';
 import {
   Badge, Button, Card, CardHeader, EmptyState, ErrorBox, Field, Input, Loading, Modal, PageHeader, Pagination, Select, Table, Td, Textarea, Th,
@@ -92,7 +94,27 @@ function PurchaseList() {
       <PageHeader
         title={t('Stock bought')}
         subtitle={t('Every time you buy stock from a supplier — what came in, what you paid and what you still owe.')}
-        actions={can('purchases.manage') && <Button size="lg" icon={PackagePlus} onClick={() => navigate('/purchases/new')}>{t('Stock arrived')}</Button>}
+        actions={(
+          <>
+            <DownloadMenu size="lg" fileName="stock-bought" sheet="Stock bought" load={() => { const { page: _p, per_page: _n, ...rest } = q; return fetchAll('/purchases', rest); }} columns={[
+              { en: 'Purchase #', value: (p) => p.po_number },
+              { en: 'Supplier bill #', value: (p) => p.invoice_number },
+              { en: 'Date', value: (p) => date(p.purchase_date) },
+              { en: 'Supplier', value: (p) => p.supplier?.name || p.supplier },
+              { en: 'Items', value: (p) => toNumber(p.items_count) },
+              { en: 'Amount (Rs)', value: (p) => toNumber(p.total_amount) },
+              { en: 'Discount (Rs)', value: (p) => toNumber(p.discount) },
+              { en: 'Total (Rs)', value: (p) => toNumber(p.grand_total) },
+              { en: 'Paid (Rs)', value: (p) => toNumber(p.paid_amount) },
+              { en: 'Still owed (Rs)', value: (p) => toNumber(p.due_amount) },
+              { en: 'Sent back (Rs)', value: (p) => toNumber(p.refunded_amount) },
+              { en: 'Payment', value: (p) => p.payment_status },
+              { en: 'Entered by', value: (p) => p.creator?.name || p.creator },
+              { en: 'Notes', value: (p) => p.notes },
+            ]} />
+            {can('purchases.manage') && <Button size="lg" icon={PackagePlus} onClick={() => navigate('/purchases/new')}>{t('Stock arrived')}</Button>}
+          </>
+        )}
       />
 
       <Card>
