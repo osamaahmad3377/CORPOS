@@ -86,7 +86,7 @@ export default function Receipt({ sale, preBill = false, settings }) {
     >
       {/* shop */}
       <div className="text-center">
-        {showLogo && <img src={shop.logoUrl} alt="" className="mx-auto object-contain" style={{ height: `${logoMm}mm`, width: 'auto', maxWidth: '92%', marginBottom: '1.5mm', filter: 'grayscale(1) contrast(1.3)' }} />}
+        {showLogo && <img data-shop-logo src={shop.logoUrl} alt="" className="mx-auto object-contain" style={{ height: `${logoMm}mm`, width: 'auto', maxWidth: '92%', marginBottom: '1.5mm', filter: 'grayscale(1) contrast(1.3)' }} />}
         <div dir="auto" style={{ fontSize: '19px', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.01em' }}>{shop.shopName}</div>
         {s.shop?.address && <div dir="auto" style={{ fontSize: '11px', marginTop: '0.8mm' }}>{s.shop.address}</div>}
         {s.shop?.phone && <div style={{ fontSize: '11px' }}>{t('Phone')}: <span className="num">{s.shop.phone}</span></div>}

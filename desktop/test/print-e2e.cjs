@@ -44,7 +44,9 @@ async function printedContent(wc) {
       returnByValue: true,
       expression: `(() => {
         const shown = [...document.querySelectorAll('.print-area')].filter((e) => getComputedStyle(e).display !== 'none');
-        return { slips: shown.length, kinds: shown.map((e) => e.dataset.print || '?'), text: document.body.innerText };
+        const logo = shown[0]?.querySelector('img[data-shop-logo]');
+        const logoMm = logo ? Math.round((logo.getBoundingClientRect().height * 25.4 / 96) * 10) / 10 : null;
+        return { slips: shown.length, kinds: shown.map((e) => e.dataset.print || '?'), text: document.body.innerText, logoMm };
       })()`,
     });
     await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { media: '' });
@@ -346,6 +348,32 @@ app.whenReady().then(async () => {
       expect(job.slips === 1 && job.kinds[0] === 'kitchen', `printed ${job.kinds} instead of only the kitchen slip`);
       for (const c of ['KITCHEN ORDER', 'Test Soap', 'Table 1']) expect(job.text.includes(c), `"${c}" is not on the kitchen slip`);
       if (job.inkMm !== null) expect(job.inkMm >= 55, `kitchen slip printed only ${job.inkMm} mm wide`);
+    });
+
+    await check('Shop logo on the bill at the size chosen in Settings → Receipt', async () => {
+      await api('PUT', '/settings', { features: { restaurant: '0' } }, token);
+      const form = new FormData();
+      form.append('logo', new Blob([fs.readFileSync(path.join(__dirname, '..', 'build', 'icon.png'))], { type: 'image/png' }), 'logo.png');
+      const up = await fetch(base + '/api/v1/settings/logo', { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, body: form });
+      expect(up.ok, `logo upload failed (${up.status})`);
+      for (const mm of [10, 30]) {
+        await api('PUT', '/settings', { receipt: { logo_size: String(mm) } }, token);
+        await go('/settings', base);
+        await click('Printers');
+        const before = jobs.length;
+        await click('Test print');
+        const job = await nextJob(before, `test print with a ${mm} mm logo`);
+        expectBill(job, { contains: ['TEST-0001'] });
+        expect(job.logoMm !== null, 'the logo is not on the printed bill');
+        expect(Math.abs(job.logoMm - mm) <= 0.5, `logo printed ${job.logoMm} mm high, expected ${mm} mm`);
+      }
+      await api('PUT', '/settings', { brand: { show_logo_on_receipt: '0' } }, token);
+      await go('/settings', base);
+      await click('Printers');
+      const before = jobs.length;
+      await click('Test print');
+      const off = await nextJob(before, 'test print with the logo switched off');
+      expect(off.logoMm === null, 'the logo still printed after switching it off');
     });
 
     const failed = results.filter((r) => !r.ok).length;
