@@ -70,7 +70,7 @@ export default function BusinessSwitcher() {
   if (list.length === 2) {
     return (
       <>
-        <div className="flex h-11 items-center gap-1 rounded-xl bg-slate-500/[0.08] p-1 ring-1 ring-inset ring-slate-900/[0.05]" role="radiogroup" aria-label={t('Business')}>
+        <div className="glass-capsule flex h-11 items-center gap-1 p-1" role="radiogroup" aria-label={t('Business')}>
           {list.map((b) => (
             <button
               key={b.id}
@@ -80,8 +80,8 @@ export default function BusinessSwitcher() {
               onClick={() => open(b)}
               title={b.name}
               className={cx(
-                'flex h-9 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold transition sm:px-2',
-                b.current ? 'glass-tile text-slate-900' : 'text-slate-500 hover:bg-slate-500/10 hover:text-slate-800',
+                'flex h-9 items-center gap-2 rounded-full px-1.5 text-sm font-semibold transition sm:pe-3 sm:ps-1',
+                b.current ? 'bg-white text-slate-900 shadow-[0_1px_3px_rgb(15_23_42/0.12)] dark:bg-white/15' : 'text-slate-500 hover:bg-slate-500/10 hover:text-slate-800',
               )}
             >
               <BusinessBadge b={b} className={cx('size-7', !b.current && 'opacity-70')} />

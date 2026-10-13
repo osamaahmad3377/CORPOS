@@ -10,12 +10,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Plus Jakarta Sans Variable", "Inter Variable", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   /* Inter first: it has no Urdu letters, so Urdu falls through to Nastaliq
      while English words / product names keep the clean Latin font. */
-  --font-urdu: "Plus Jakarta Sans Variable", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", sans-serif;
+  --font-urdu: "Inter Variable", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", sans-serif;
   /* Arabic, Persian, Sindhi, Pashto: Naskh (Nastaliq has no Sindhi ڪ) */
-  --font-naskh: "Plus Jakarta Sans Variable", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+  --font-naskh: "Inter Variable", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
   --color-brand-50: #edfcf4;
   --color-brand-100: #d4f8e5;
   --color-brand-500: #34dc85;
@@ -92,10 +92,13 @@ body { @apply bg-canvas text-slate-900 antialiased; }
    big surfaces (cards, bars, panels, dialogs); repeated items (tiles, rows)
    use .glass-tile — translucent without blur — so slow shop PCs stay fast. */
 :root {
-  --glass-bg: rgb(255 255 255 / 0.56);
-  --glass-bg-strong: rgb(255 255 255 / 0.82);
-  --glass-tile: rgb(255 255 255 / 0.72);
-  --glass-edge: rgb(255 255 255 / 0.8);
+  --glass-bg: rgb(255 255 255 / 0.5);
+  --glass-bg-strong: rgb(255 255 255 / 0.78);
+  --glass-tile: rgb(255 255 255 / 0.64);
+  --glass-edge: rgb(255 255 255 / 0.88);
+  /* Liquid-glass sheen: light catching the top edge and the bottom rim */
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.1) 38%, rgb(255 255 255 / 0) 60%, rgb(255 255 255 / 0.14) 100%);
+  --glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.4), inset 1px 0 0 rgb(255 255 255 / 0.25), inset -1px 0 0 rgb(255 255 255 / 0.25);
   /* brand tints as "r g b" — applyBrand() replaces these with the shop's
      colour; these are CorePOS green */
   --bt-glow-1: 134 234 182;
@@ -114,9 +117,9 @@ body { @apply bg-canvas text-slate-900 antialiased; }
   --bt-dk-panel: 23 48 35;
   --bt-dk-ink: 241 248 245;
   --glass-ring: rgb(var(--bt-tint) / 0.08);
-  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 22px 48px -26px rgb(var(--bt-tint) / 0.34), 0 3px 10px -5px rgb(var(--bt-tint) / 0.08);
-  --glass-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 28px 56px -24px rgb(var(--bt-tint) / 0.4), 0 5px 14px -6px rgb(var(--bt-tint) / 0.12);
-  --glass-btn-shadow: 0 8px 18px -12px rgb(var(--bt-tint) / 0.42);
+  --glass-shadow: var(--glass-rim), 0 1px 2px rgb(var(--bt-tint) / 0.05), 0 20px 44px -22px rgb(var(--bt-tint) / 0.36);
+  --glass-shadow-lift: var(--glass-rim), 0 2px 4px rgb(var(--bt-tint) / 0.06), 0 28px 56px -22px rgb(var(--bt-tint) / 0.44);
+  --glass-btn-shadow: var(--glass-rim), 0 6px 16px -10px rgb(var(--bt-tint) / 0.42);
   --canvas-base: rgb(var(--bt-canvas-b));
   /* glass sidebar (Settings → Brand & look → Glass) */
   --sbg-bg: rgb(255 255 255 / 0.5);
@@ -131,14 +134,16 @@ body { @apply bg-canvas text-slate-900 antialiased; }
   --nav-pill-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 1px rgb(var(--bt-tint) / 0.06), 0 10px 20px -12px rgb(var(--bt-tint) / 0.48);
 }
 html.dark {
-  --glass-bg: rgb(20 29 48 / 0.58);
-  --glass-bg-strong: rgb(20 29 48 / 0.78);
-  --glass-tile: rgb(24 34 55 / 0.72);
-  --glass-edge: rgb(255 255 255 / 0.07);
+  --glass-bg: rgb(var(--bt-dk-panel) / 0.52);
+  --glass-bg-strong: rgb(var(--bt-dk-panel) / 0.8);
+  --glass-tile: rgb(var(--bt-dk-panel) / 0.66);
+  --glass-edge: rgb(255 255 255 / 0.12);
   --glass-ring: rgb(0 0 0 / 0.25);
-  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 14px 34px -14px rgb(0 0 0 / 0.6);
-  --glass-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 22px 44px -16px rgb(0 0 0 / 0.7);
-  --glass-btn-shadow: 0 8px 18px -12px rgb(0 0 0 / 0.6);
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.11) 0%, rgb(255 255 255 / 0.03) 40%, rgb(255 255 255 / 0) 60%, rgb(255 255 255 / 0.05) 100%);
+  --glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(255 255 255 / 0.05);
+  --glass-shadow: var(--glass-rim), 0 18px 40px -16px rgb(0 0 0 / 0.65);
+  --glass-shadow-lift: var(--glass-rim), 0 24px 48px -16px rgb(0 0 0 / 0.75);
+  --glass-btn-shadow: var(--glass-rim), 0 8px 18px -12px rgb(0 0 0 / 0.6);
   --nav-pill-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 10px 20px -12px rgb(0 0 0 / 0.6);
   --canvas-base: rgb(var(--bt-dk-canvas-b));
   --sbg-bg: rgb(var(--bt-dk-panel) / 0.55);
@@ -153,11 +158,11 @@ html.dark {
 }
 .glass, .glass-strong, .glass-tile {
   border: 1px solid var(--glass-edge);
-  box-shadow: 0 0 0 1px var(--glass-ring), var(--glass-shadow);
+  box-shadow: 0 0 0 0.5px var(--glass-ring), var(--glass-shadow);
 }
-.glass { background: var(--glass-bg); -webkit-backdrop-filter: blur(20px) saturate(1.7); backdrop-filter: blur(20px) saturate(1.7); }
-.glass-strong { background: var(--glass-bg-strong); -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8); }
-.glass-tile { background: var(--glass-tile); }
+.glass { background-color: var(--glass-bg); background-image: var(--glass-sheen); -webkit-backdrop-filter: blur(28px) saturate(1.9); backdrop-filter: blur(28px) saturate(1.9); }
+.glass-strong { background-color: var(--glass-bg-strong); background-image: var(--glass-sheen); -webkit-backdrop-filter: blur(32px) saturate(2); backdrop-filter: blur(32px) saturate(2); }
+.glass-tile { background-color: var(--glass-tile); background-image: var(--glass-sheen); }
 .glass-lift { transition: box-shadow 200ms, transform 200ms, border-color 200ms; }
 .glass-lift:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-brand-600) 28%, transparent), var(--glass-shadow-lift); transform: translateY(-1.5px); }
 .glass-lift:active { transform: translateY(0); }
@@ -184,38 +189,44 @@ html.dark .app-canvas {
 }
 
 /* round frosted buttons in the top bar */
-.glass-btn {
-  background: var(--glass-tile);
+/* floating capsules (top bar, secondary buttons) */
+.glass-btn, .glass-capsule {
+  border-radius: 9999px;
+  background-color: var(--glass-tile);
+  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
-  box-shadow: 0 0 0 1px var(--glass-ring), var(--glass-btn-shadow);
-  transition: background-color 150ms, box-shadow 150ms;
+  box-shadow: 0 0 0 0.5px var(--glass-ring), var(--glass-btn-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8); backdrop-filter: blur(16px) saturate(1.8);
+  transition: background-color 150ms, box-shadow 150ms, transform 150ms;
 }
-.glass-btn:hover { background: var(--glass-bg-strong); }
+.glass-btn:hover, .glass-capsule:hover { background-color: var(--glass-bg-strong); }
+.glass-btn:active, .glass-capsule:active { transform: scale(0.97); }
 
 /* Glass sidebar: a floating frosted panel; the open page is a white pill. */
 html[data-sidebar=glass] .app-sidebar {
   margin: 12px; margin-inline-end: 0; height: calc(100% - 24px);
-  border: 1px solid var(--glass-edge); border-radius: 28px;
-  background: var(--sbg-bg);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
-  box-shadow: 0 0 0 1px var(--glass-ring), var(--glass-shadow);
+  border: 1px solid var(--glass-edge); border-radius: 32px;
+  background-color: var(--sbg-bg); background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9); backdrop-filter: blur(32px) saturate(1.9);
+  box-shadow: 0 0 0 0.5px var(--glass-ring), var(--glass-shadow);
   overflow: hidden;
 }
 html[data-sidebar=glass] .app-drawer { background: var(--sbg-solid); }
 html[data-sidebar=glass] .sidebar-depth { background-image: none; }
 html[data-sidebar=glass] .nav-active {
-  background: var(--sbg-active);
+  background-color: var(--sbg-active);
+  background-image: var(--glass-sheen);
   box-shadow: var(--nav-pill-shadow);
 }
 html[data-sidebar=glass] .nav-glow { display: none; }
-html[data-sidebar=glass] .nav-item { border-radius: 14px; }
+html[data-sidebar=glass] .nav-item { border-radius: 9999px; }
 
 /* dialogs sit over a dimmed page: a brighter glass so they don't look grey */
-.glass-dialog { background: rgb(255 255 255 / 0.9); }
-html.dark .glass-dialog { background: rgb(20 29 48 / 0.9); }
+.glass-dialog { background-color: rgb(255 255 255 / 0.86); }
+html.dark .glass-dialog { background-color: rgb(var(--bt-dk-panel) / 0.92); }
 /* Lite mode (slow / old PCs, set per computer): solid surfaces, no blur,
    no animation — the same layout, just cheaper to draw. */
-html.lite .glass, html.lite .glass-strong, html.lite[data-sidebar=glass] .app-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }
+html.lite .glass, html.lite .glass-strong, html.lite .glass-btn, html.lite .glass-capsule, html.lite[data-sidebar=glass] .app-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }
 html.lite .glass-dialog { background: rgb(255 255 255 / 0.98); }
 html.dark.lite .glass-dialog { background: rgb(20 29 48 / 0.98); }
 html.lite [class*="backdrop-blur"], html.lite [class*="backdrop-saturate"] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
@@ -233,7 +244,7 @@ html.lite .app-canvas { background-attachment: scroll; }
    Jewel-like primary buttons, deeper sidebar, glowing active marker. */
 .btn-jewel {
   background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-brand-500) 92%, white) 0%, var(--color-brand-600) 55%, var(--color-brand-700) 100%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(16 24 40 / 0.14), 0 10px 22px -10px var(--color-brand-600);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -1px 0 rgb(0 0 0 / 0.08), 0 1px 2px rgb(16 24 40 / 0.14), 0 10px 22px -10px var(--color-brand-600);
 }
 .btn-jewel:hover { filter: brightness(1.04) saturate(1.05); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 1px 2px rgb(16 24 40 / 0.14), 0 14px 28px -10px var(--color-brand-600); }
 .sidebar-depth {

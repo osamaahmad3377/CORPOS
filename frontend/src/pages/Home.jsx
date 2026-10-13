@@ -224,9 +224,9 @@ export default function Home() {
       {/* ------------------------------------------------ analytics */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold tracking-tight text-slate-900">{t('Business overview')}</h2>
-        <div className="glass flex rounded-xl p-1 text-sm font-semibold" role="radiogroup" aria-label={t('Period')}>
+        <div className="glass-capsule flex p-1 text-sm font-semibold" role="radiogroup" aria-label={t('Period')}>
           {[7, 30].map((n) => (
-            <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => pickDays(n)} className={cx('rounded-lg px-3.5 py-1.5 transition', days === n ? 'bg-brand-600 text-brand-ink shadow-xs' : 'text-slate-500 hover:text-slate-800')}>
+            <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => pickDays(n)} className={cx('rounded-full px-4 py-1.5 transition', days === n ? 'bg-brand-600 text-brand-ink shadow-xs' : 'text-slate-500 hover:text-slate-800')}>
               {t('Last {n} days', { n })}
             </button>
           ))}
