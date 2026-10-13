@@ -26,7 +26,7 @@ function PageQuote({ q }) {
   const cell = 'border-b border-slate-300 px-2 py-2';
 
   return (
-    <div className="print-area mx-auto w-full max-w-[210mm] bg-white p-6 text-[13px] leading-normal shadow-sm sm:p-10 print:max-w-none print:p-0 print:shadow-none" style={{ color: '#000', background: '#fff' }}>
+    <div data-print="document" className="print-area mx-auto w-full max-w-[210mm] bg-white p-6 text-[13px] leading-normal shadow-sm sm:p-10 print:max-w-none print:p-0 print:shadow-none" style={{ color: '#000', background: '#fff' }}>
       <div className="flex flex-wrap items-start justify-between gap-6 border-b-2 border-black pb-4">
         <div className="flex min-w-0 items-start gap-3">
           {shop.logoUrl && <img src={shop.logoUrl} alt="" className="max-h-16 max-w-28 object-contain" />}
@@ -107,7 +107,7 @@ function SlipQuote({ q }) {
   );
 
   return (
-    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug shadow-sm print:shadow-none`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff' }}>
+    <div data-print="receipt" className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug shadow-sm print:shadow-none`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff' }}>
       <div className="text-center">
         {shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}
         <div className="text-[16px] font-bold leading-tight">{shop.shopName}</div>

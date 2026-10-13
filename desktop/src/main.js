@@ -7,6 +7,7 @@ const config = require('../app.config.json');
 const { LicenseManager } = require('./license');
 const { Backend } = require('./backend');
 const { Backups } = require('./backup');
+const { printPage } = require('./printing');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -317,24 +318,10 @@ ipcMain.handle('printers', async (event) => {
   return list.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault, status: p.status }));
 });
 
-// { deviceName?, silent?, copies? } — silent printing needs a deviceName.
+// { deviceName?, silent?, copies? } — silent printing needs a deviceName (see printing.js).
 ipcMain.handle('print', async (event, options = {}) => {
   if (!fromPos(event)) throw new Error('Not allowed');
-  const deviceName = typeof options.deviceName === 'string' ? options.deviceName : '';
-  const silent = !!options.silent && !!deviceName;
-  const copies = Math.min(Math.max(parseInt(options.copies, 10) || 1, 1), 5);
-  // Receipt rolls send their real size (microns: the roll width × the slip's
-  // length) so the driver's default paper size can't shrink the bill.
-  const ps = options.pageSize || {};
-  const pageSize = Number.isInteger(ps.width) && Number.isInteger(ps.height)
-    && ps.width >= 30000 && ps.width <= 130000 && ps.height >= 30000 && ps.height <= 3000000
-    ? { width: ps.width, height: ps.height } : undefined;
-  return new Promise((resolve) => {
-    event.sender.print(
-      { silent, deviceName: deviceName || undefined, copies, printBackground: true, margins: { marginType: 'none' }, pageSize, scaleFactor: 100 },
-      (success, failureReason) => resolve({ success, failureReason: failureReason || null }),
-    );
-  });
+  return printPage(event.sender, options, { log });
 });
 
 handle('retry', () => { boot(); return true; });

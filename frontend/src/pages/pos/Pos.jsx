@@ -964,6 +964,9 @@ function PayModal({ totals, customer, payload, onClose, onDone }) {
   const [method, setMethod] = useState('cash');
   const [received, setReceived] = useState(String(totals.total));
   const [touched, setTouched] = useState(false);
+  // Until the cashier types an amount, "money received" follows the bill total
+  // (the total can still change for a moment after the last item is added).
+  useEffect(() => { if (!touched) setReceived(String(totals.total)); }, [totals.total, touched]);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);

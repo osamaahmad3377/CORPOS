@@ -15,6 +15,8 @@ const appVersion = (() => {
 export default defineConfig({
   // compatColors: the CSS also has to work in Electron 22 (Windows 7/8 build)
   plugins: [react(), tailwindcss(), compatColors()],
+  // dev server: prepare these up front (they load lazily), so it never reloads mid-session
+  optimizeDeps: { include: ['jsbarcode', 'xlsx', 'react-dom/client', 'react-router-dom', '@tanstack/react-query', 'lucide-react'] },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_BUILD__: JSON.stringify(new Date().toISOString().slice(0, 10)),

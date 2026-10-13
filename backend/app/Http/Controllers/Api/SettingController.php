@@ -39,7 +39,7 @@ class SettingController extends Controller
         ],
         'barcode' => [
             'default_format' => ['nullable', 'in:code128,ean13'],
-            'default_label_size' => ['nullable', 'in:small,large'],
+            'default_label_size' => ['nullable', 'in:tiny,small,s40x30,s50x25,large,s60x40'], // sticker sizes (labels.jsx LABEL_SIZES)
             'show_shop_name' => ['nullable', 'in:0,1'],
         ],
         'business' => [

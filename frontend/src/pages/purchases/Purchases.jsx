@@ -641,7 +641,7 @@ function PrintSheet({ p, shopName, returned }) {
   const t = useT();
   const unitText = useUnitText();
   return (
-    <div className="print-area hidden w-full p-6 text-sm text-black print:block">
+    <div data-print="document" className="print-area hidden w-full p-6 text-sm text-black print:block">
       <div className="mb-4 flex justify-between">
         <div><div className="text-lg font-bold">{shopName}</div><div>{t('Purchase {no}', { no: p.po_number })}</div></div>
         <div className="text-end">

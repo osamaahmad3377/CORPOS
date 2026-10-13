@@ -17,7 +17,7 @@ export default function KitchenSlip({ order }) {
   const { t, isUrdu } = useLang();
   const slip = slipProps(shop.settings.receipt);
   return (
-    <div className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[13px] leading-snug text-black`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm' }}>
+    <div data-print="kitchen" className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[13px] leading-snug text-black`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm' }}>
       <div className="text-center text-[15px] font-bold">{t('KITCHEN ORDER')}</div>
       <div className="text-center">{t(orderTypeLabel(order.order_type))}{order.table_no ? ` — ${t('Table {n}', { n: order.table_no })}` : ''}</div>
       {order.waiter && <div className="text-center text-[13px] font-bold">{t('Waiter')}: {order.waiter}</div>}

@@ -589,7 +589,7 @@ function StatementModal({ customer, sales, onClose }) {
     >
       <div className="overflow-x-auto rounded-lg border border-slate-200 p-5"><Statement customer={customer} bills={bills} onlyDue={onlyDue} /></div>
       {/* Printed copy lives at the top of <body> so long statements flow over several pages. */}
-      {createPortal(<div className="print-area hidden w-full bg-white p-2 print:block"><Statement customer={customer} bills={bills} onlyDue={onlyDue} /></div>, document.body)}
+      {createPortal(<div data-print="document" className="print-area hidden w-full bg-white p-2 print:block"><Statement customer={customer} bills={bills} onlyDue={onlyDue} /></div>, document.body)}
     </Modal>
   );
 }

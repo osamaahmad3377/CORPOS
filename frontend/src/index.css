@@ -265,9 +265,11 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin
   body *:not(.print-area):not(.print-area *):not(:has(.print-area)) { display: none !important; }
   body *:has(.print-area) {
     display: block !important; position: static !important; width: auto !important; min-width: 0 !important; max-width: none !important;
-    height: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: visible !important;
+    height: auto !important; max-height: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: visible !important;
     transform: none !important; box-shadow: none !important; background: none !important; zoom: 1 !important;
   }
+  /* printNow() marks the one slip to print; any other slip on screen stays off the paper */
+  html[data-printing] .print-area:not(.print-now) { display: none !important; }
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute !important; left: var(--print-left, 0) !important; top: 0 !important; margin: 0 !important; box-shadow: none !important; }
   @page { margin: 6mm; }

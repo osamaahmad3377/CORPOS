@@ -44,7 +44,7 @@ export default function Receipt({ sale, preBill = false, settings }) {
   const pointsUsed = Number(sale.points_redeemed || 0);
 
   return (
-    <div data-paper={slip['data-paper']} className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug`} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff', lineHeight: isUrdu ? 2.1 : undefined }}>
+    <div data-print="receipt" data-paper={slip['data-paper']} className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[12px] leading-snug`} style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff', lineHeight: isUrdu ? 2.1 : undefined }}>
       <div className="text-center">
         {shop.logoOnReceipt && shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1 max-h-16 max-w-[70%] object-contain" style={{ filter: 'grayscale(1) contrast(1.2)' }} />}
         <div className="text-[16px] font-bold leading-tight">{shop.shopName}</div>

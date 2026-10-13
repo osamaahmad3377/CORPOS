@@ -95,7 +95,7 @@ export function ReportFrame({ title, hint, period, filters, csv, loading, error,
       </Card>
 
       {error ? <ErrorBox error={error} /> : loading ? <Loading /> : (
-        <div className="print-area w-full">
+        <div data-print="document" className="print-area w-full">
           <div className="mb-4 hidden print:block">
             <div className="text-lg font-semibold">{shop.shopName}</div>
             <div className="text-base">{title}</div>

@@ -64,56 +64,59 @@ export function receiptWidth(r) {
 // ---------------------------------------------------------------- printing
 
 const PAGE_CSS = {
+  // receipt rolls: no page margin; the roll width comes from the printer
+  receipt: '@page { margin: 0; }',
+  kitchen: '@page { margin: 0; }',
   document: '@page { size: A4; margin: 10mm; }',
+  // labels set their own @page (sticker size)
 };
 
-const isRoll = (kind) => kind === 'receipt' || kind === 'kitchen';
-
-// A roll page is exactly the roll width and as long as the slip, so the
-// printer driver's own paper size (often 58 mm or A4) can't shrink the bill.
-function rollPage() {
-  const el = document.querySelector('.print-area');
-  const paper = Number(el?.dataset.paper) || 80;
-  const px = el ? el.getBoundingClientRect().height : 0;
-  const height = Math.max(60, Math.ceil((px * 25.4) / 96) + 8);
-  return { paper, height };
+// Which slip to print. A screen can hold more than one printable slip (the
+// bill in the payment window, a kitchen slip, a pre-bill…): pick the one for
+// this kind of job — the one in an open window first — and print only that.
+export function pickPrintTarget(kind, root = document) {
+  const all = [...root.querySelectorAll('.print-area')];
+  const same = all.filter((el) => el.dataset.print === kind);
+  const pool = same.length ? same : all;
+  const inModal = pool.filter((el) => el.closest('[data-modal-open]'));
+  return (inModal.length ? inModal : pool).at(-1) || null;
 }
 
 export async function printNow(kind = 'receipt') {
-  let css = PAGE_CSS[kind]; // labels set their own @page
-  let pageSize;
-  if (isRoll(kind)) {
-    // let React paint the slip first so its height is known
-    await new Promise((r) => setTimeout(r, 80));
-    const { paper, height } = rollPage();
-    css = `@page { size: ${paper}mm ${height}mm; margin: 0; }`;
-    pageSize = { width: paper * 1000, height: height * 1000 }; // microns
-  }
+  const css = PAGE_CSS[kind];
   let style = null;
   if (css) {
     style = document.createElement('style');
     style.textContent = `@media print { ${css} }`;
     document.head.appendChild(style);
   }
+  // let React paint the slip first
+  await new Promise((r) => setTimeout(r, 80));
+  const target = pickPrintTarget(kind);
+  const root = document.documentElement;
+  target?.classList.add('print-now');
+  root.dataset.printing = kind;
   try {
-    return await doPrint(kind, pageSize);
+    return await doPrint(kind);
   } finally {
-    setTimeout(() => style?.remove(), 500);
+    setTimeout(() => {
+      style?.remove();
+      target?.classList.remove('print-now');
+      if (root.dataset.printing === kind) delete root.dataset.printing;
+    }, 500);
   }
 }
 
-async function doPrint(kind, pageSize) {
+async function doPrint(kind) {
   const prefs = printerPrefs();
   // kitchen slips use the receipt printer unless a kitchen printer is set
   const pref = (kind === 'kitchen' && !prefs.kitchen?.name ? prefs.receipt : prefs[kind]) || {};
   if (isDesktop()) {
-    // let React paint the print-area first
-    await new Promise((r) => setTimeout(r, 80));
     const silent = !!pref.name; // a chosen printer = print directly, no dialog
-    let res = await window.coreposDesktop.print({ deviceName: pref.name || '', silent, copies: kind === 'receipt' ? pref.copies || 1 : 1, pageSize });
+    let res = await window.coreposDesktop.print({ deviceName: pref.name || '', silent, copies: kind === 'receipt' ? pref.copies || 1 : 1 });
     if (silent && !res.success && !/cancel/i.test(res.failureReason || '')) {
-      // printer offline / renamed: fall back to the dialog so the bill still prints
-      res = await window.coreposDesktop.print({ silent: false, pageSize });
+      // printer offline / renamed: fall back to the print window so the bill still prints
+      res = await window.coreposDesktop.print({ silent: false });
     }
     return res;
   }

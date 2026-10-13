@@ -88,6 +88,18 @@ The Windows installer uses Electron 22 and PHP 8.2 because they are the last ver
 still run on Windows 7/8. Upload the files wherever shops download them
 (your website, Google Drive, and so on) and put that link in `DOWNLOAD_URL`.
 
+Before giving out a new version, run the printing tests (desktop folder):
+```bash
+npm run test:print          # print code: printer options, failures, time-outs
+npm run prepare:app && npm run test:print:e2e
+```
+`test:print:e2e` starts the bundled engine with a brand-new shop (like a fresh
+install), sells an item, takes payment and prints the bill, reprints an old
+bill, prints test pages on 80 mm and 58 mm rolls, recovers from an offline
+printer and prints barcode stickers on A4 sheets and on a sticker roll. Each
+printout is saved as a PDF and checked: right printer, only the bill on the
+paper, full roll width, sticker bars on whole printer dots.
+
 `npm run prepare` (part of `dist:*`) does the following:
 - downloads the official Windows PHP 8.4 and checks its SHA-256
 - downloads the VC++ runtime

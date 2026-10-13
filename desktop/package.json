@@ -20,6 +20,8 @@
     "dist:mac": "npm run prepare:php:mac && npm run prepare:app && electron-builder --mac dmg --universal",
     "dist:all": "npm run prepare:php:win7 && npm run prepare:php:mac && npm run prepare:php:linux && npm run dist:everything",
     "test:license": "node scripts/test-license.mjs",
+    "test:print": "node --test test/printing.test.cjs",
+    "test:print:e2e": "electron test/print-e2e.cjs",
     "prepare:php:win7": "node scripts/prepare-php.mjs legacy",
     "prepare:php:linux": "node scripts/prepare-php-linux.mjs",
     "dist:win7": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false",

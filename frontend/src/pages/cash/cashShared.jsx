@@ -250,6 +250,7 @@ export function ZReport({ session, paper = 'receipt' }) {
 
   return (
     <div
+      data-print={a4 ? 'document' : 'receipt'}
       className={cx('print-area mx-auto bg-white leading-snug', a4 ? 'text-[13px]' : 'text-[12px]')}
       data-paper={a4 ? undefined : slip['data-paper']}
       style={{ ...(a4 ? { width: '190mm' } : slip.style), maxWidth: '100%', padding: a4 ? '8mm' : '2mm', color: '#000', background: '#fff', ...(isUrdu ? { lineHeight: 2.1 } : {}) }}

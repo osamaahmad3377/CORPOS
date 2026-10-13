@@ -14,6 +14,8 @@ import {
 import { BarcodeLabel, FORMATS, LABEL_SIZES, needsBarcode } from './labels';
 import { printNow } from '../../lib/printer';
 
+const OPTS_KEY = 'corepos_label_opts';
+
 const MAX_LABELS = 2000;
 
 export default function BarcodeLabels() {
@@ -33,17 +35,25 @@ export default function BarcodeLabels() {
   const [generating, setGenerating] = useState(null);
   const inputRef = useRef(null);
 
-  // Defaults come from Settings → Barcode once settings have loaded.
+  // Defaults come from Settings → Barcode once settings have loaded; the
+  // choices made here (size, roll or sheet…) are remembered on this computer,
+  // because they belong to the sticker printer that is connected to it.
   useEffect(() => {
     if (opts || shop.loading) return;
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(OPTS_KEY) || '{}') || {}; } catch { /* none */ }
+    const size = LABEL_SIZES[saved.size] ? saved.size : LABEL_SIZES[s.barcode?.default_label_size] ? s.barcode.default_label_size : 'small';
     setOpts({
-      size: s.barcode?.default_label_size === 'large' ? 'large' : 'small',
-      showShop: s.barcode?.show_shop_name !== '0',
-      showPrice: true,
-      format: s.barcode?.default_format === 'ean13' ? 'ean13' : 'code128',
-      layout: 'sheet',
+      size,
+      showShop: typeof saved.showShop === 'boolean' ? saved.showShop : s.barcode?.show_shop_name !== '0',
+      showPrice: typeof saved.showPrice === 'boolean' ? saved.showPrice : true,
+      format: saved.format === 'ean13' || saved.format === 'code128' ? saved.format : s.barcode?.default_format === 'ean13' ? 'ean13' : 'code128',
+      layout: saved.layout === 'roll' ? 'roll' : 'sheet',
     });
   }, [opts, shop.loading, s]);
+  useEffect(() => {
+    if (opts) try { localStorage.setItem(OPTS_KEY, JSON.stringify(opts)); } catch { /* ignore */ }
+  }, [opts]);
 
   useEffect(() => {
     const h = setTimeout(() => setTerm(search.trim()), 250);
@@ -322,7 +332,7 @@ export default function BarcodeLabels() {
       </div>
 
       {printing && createPortal(
-        <div className="print-area hidden print:block">
+        <div data-print="label" className="print-area hidden print:block">
           <LabelSheet labels={labels} labelProps={labelProps} roll={opts.layout === 'roll'} />
         </div>,
         document.body,
