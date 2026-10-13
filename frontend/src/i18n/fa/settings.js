@@ -237,4 +237,10 @@ export default {
   'Reset': 'بازنشانی',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'زیر پیش‌نمایش «چاپ این نمونه» را بزنید تا روی کاغذ ببینید، سپس ذخیره کنید.',
   'Print this sample': 'چاپ این نمونه',
+  // logo on the bill
+  'Logo on the bill': 'لوگو روی فاکتور',
+  'Upload your logo in Brand & look to print it on the bill.': 'برای چاپ لوگو روی فاکتور، لوگوی خود را در برند و ظاهر بارگذاری کنید.',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'لوگو برای فاکتورها خاموش است — «چاپ لوگو روی فاکتور» را در برند و ظاهر روشن کنید.',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو را بزرگ‌تر یا کوچک‌تر کنید. پیش‌نمایش آن را روی فاکتور نشان می‌دهد.',
+  'Logo size': 'اندازهٔ لوگو',
 };

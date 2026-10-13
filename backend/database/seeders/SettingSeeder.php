@@ -27,6 +27,7 @@ class SettingSeeder extends Seeder
                 'print_width_mm' => '',
                 'margin_mm' => '0',
                 'text_size' => 'normal',
+                'logo_size' => '16',
             ],
             'barcode' => [
                 'default_format' => 'code128',

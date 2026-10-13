@@ -31,6 +31,13 @@ function Row({ label, value, strong, big, small }) {
 
 const ITEM_COLS = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 17% 22% 27%', columnGap: '1.5mm', alignItems: 'baseline' };
 
+// Height of the shop logo on the bill, mm (Settings → Receipt).
+export const LOGO_MM = { min: 6, max: 40, default: 16 };
+export function receiptLogoMm(r = {}) {
+  const n = Number(r?.logo_size);
+  return Number.isFinite(n) && n > 0 ? Math.min(LOGO_MM.max, Math.max(LOGO_MM.min, Math.round(n))) : LOGO_MM.default;
+}
+
 function clock(v) {
   if (!v) return '';
   const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
@@ -58,6 +65,9 @@ export default function Receipt({ sale, preBill = false, settings }) {
   const s = settings || shop.settings;
   const slip = slipProps(s.receipt);
   const items = sale.items || [];
+  // logo: on/off in Brand & look, height in Settings → Receipt (mm)
+  const showLogo = (s.brand?.show_logo_on_receipt ?? '1') !== '0' && shop.logoUrl;
+  const logoMm = receiptLogoMm(s.receipt);
   const showTax = s.receipt?.show_tax_line === '1' && Number(sale.tax_amount) > 0;
   const due = Number(sale.due_amount || 0);
   const pointsEarned = Number(sale.points_earned || 0);
@@ -76,7 +86,7 @@ export default function Receipt({ sale, preBill = false, settings }) {
     >
       {/* shop */}
       <div className="text-center">
-        {shop.logoOnReceipt && shop.logoUrl && <img src={shop.logoUrl} alt="" className="mx-auto mb-1.5 max-h-16 max-w-[65%] object-contain" style={{ filter: 'grayscale(1) contrast(1.3)' }} />}
+        {showLogo && <img src={shop.logoUrl} alt="" className="mx-auto object-contain" style={{ height: `${logoMm}mm`, width: 'auto', maxWidth: '92%', marginBottom: '1.5mm', filter: 'grayscale(1) contrast(1.3)' }} />}
         <div dir="auto" style={{ fontSize: '19px', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.01em' }}>{shop.shopName}</div>
         {s.shop?.address && <div dir="auto" style={{ fontSize: '11px', marginTop: '0.8mm' }}>{s.shop.address}</div>}
         {s.shop?.phone && <div style={{ fontSize: '11px' }}>{t('Phone')}: <span className="num">{s.shop.phone}</span></div>}

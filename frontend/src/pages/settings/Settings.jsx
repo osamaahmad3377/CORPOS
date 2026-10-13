@@ -13,7 +13,7 @@ import { LOGO_SIZE, clampLogo, deliveryAreas, tableAreas, useShop } from '../../
 import { LANGUAGES, fontVar } from '../../lib/languages';
 import { useLang, useT } from '../../lib/i18n';
 import { Page } from '../../components/Layout';
-import Receipt from '../../components/Receipt';
+import Receipt, { LOGO_MM, receiptLogoMm } from '../../components/Receipt';
 import {
   Button, Card, CardHeader, Field, Input, Loading, Modal, PageHeader, Select, Textarea, cx, useConfirm, useToast,
 } from '../../components/ui';
@@ -23,7 +23,7 @@ import { BarcodeLabel, FORMATS, LABEL_SIZES } from '../barcodes/labels';
 const DEFAULTS = {
   brand: { primary_color: '#1bd173', sidebar_color: 'glass', sidebar_logo_size: '96', theme: 'light', show_logo_on_receipt: '1' },
   shop: { name: '', phone: '', address: '', email: '', website: '' },
-  receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm', paper_mm: '', print_width_mm: '', margin_mm: '0', text_size: 'normal' },
+  receipt: { header: '', footer: '', show_tax_line: '1', paper_width: '80mm', paper_mm: '', print_width_mm: '', margin_mm: '0', text_size: 'normal', logo_size: '16' },
   tax: { enabled: '0', label: 'GST', percentage: '0' },
   barcode: { default_format: 'code128', default_label_size: 'small', show_shop_name: '1' },
   business: { type: 'general' },
@@ -607,6 +607,7 @@ function ReceiptForm({ d, set, err }) {
           )}
         </Field>
         <PrintTuning d={d} set={set} err={err} />
+        <ReceiptLogo d={d} set={set} />
         <Field label={t('Message at the top')} hint={t('Shown under the shop name, e.g. “Thank you for shopping with us!”')} error={err('receipt', 'header')}>
           <Textarea rows={2} maxLength={500} value={d.receipt.header} onChange={set('receipt', 'header')} />
         </Field>
@@ -616,6 +617,52 @@ function ReceiptForm({ d, set, err }) {
         <Toggle checked={d.receipt.show_tax_line === '1'} onChange={(v) => set('receipt', 'show_tax_line')(v ? '1' : '0')} label={t('Show tax on the receipt')} hint={t('Prints the tax amount on its own line when a sale has tax.')} />
       </div>
     </>
+  );
+}
+
+// Size of the shop logo printed at the top of the bill.
+function ReceiptLogo({ d, set }) {
+  const t = useT();
+  const shop = useShop();
+  const mm = receiptLogoMm(d.receipt);
+  const on = (d.brand?.show_logo_on_receipt ?? '1') !== '0';
+  const setMm = (v) => set('receipt', 'logo_size')(String(Math.min(LOGO_MM.max, Math.max(LOGO_MM.min, Math.round(v)))));
+  return (
+    <div className="space-y-3 rounded-2xl border border-slate-900/10 bg-white/50 p-4">
+      <div className="flex items-start gap-3">
+        <ShopLogo className="size-12" rounded="rounded-xl" />
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold text-slate-900">{t('Logo on the bill')}</div>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {!shop.logoUrl ? t('Upload your logo in Brand & look to print it on the bill.')
+              : !on ? t('The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.')
+                : t('Make the logo bigger or smaller. The preview shows it on the bill.')}
+          </p>
+        </div>
+      </div>
+      {shop.logoUrl && on && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-slate-700">{t('Logo size')}</span>
+            <span className="num rounded-lg bg-slate-500/10 px-2 py-0.5 text-sm font-semibold text-slate-700">{mm} mm</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" aria-label="−" onClick={() => setMm(mm - 1)} className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-500/10 text-lg font-bold text-slate-700 hover:bg-slate-500/15">−</button>
+            <input type="range" min={LOGO_MM.min} max={LOGO_MM.max} step="1" value={mm} onChange={(e) => setMm(Number(e.target.value))}
+              className="w-full cursor-pointer accent-[var(--color-brand-600)]" aria-label={t('Logo size')} />
+            <button type="button" aria-label="+" onClick={() => setMm(mm + 1)} className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-500/10 text-lg font-bold text-slate-700 hover:bg-slate-500/15">+</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[['Small', 10], ['Medium', 16], ['Large', 24], ['Extra large', 32]].map(([label, v]) => (
+              <button key={v} type="button" onClick={() => setMm(v)}
+                className={cx('rounded-lg px-3.5 py-1.5 text-sm font-semibold transition', mm === v ? 'bg-brand-600 text-brand-ink' : 'bg-slate-500/10 text-slate-600 hover:bg-slate-500/15')}>
+                {t(label)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

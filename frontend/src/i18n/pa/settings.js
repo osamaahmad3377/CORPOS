@@ -237,4 +237,10 @@ export default {
   'Reset': 'پہلاں ورگا',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'نمونے دے تھلے "ایہہ نمونہ پرنٹ کرو" دبا کے کاغذ اُتے ویکھو، فیر محفوظ کرو۔',
   'Print this sample': 'ایہہ نمونہ پرنٹ کرو',
+  // logo on the bill
+  'Logo on the bill': 'بل اُتے لوگو',
+  'Upload your logo in Brand & look to print it on the bill.': 'بل اُتے لوگو چھاپن لئی برانڈ تے انداز وچ اپنا لوگو اپ لوڈ کرو۔',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بل اُتے لوگو بند اے — برانڈ تے انداز وچ "بل اُتے لوگو چھاپو" آن کرو۔',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو وڈا یا چھوٹا کرو۔ نمونے وچ بل اُتے دسے گا۔',
+  'Logo size': 'لوگو دا سائز',
 };

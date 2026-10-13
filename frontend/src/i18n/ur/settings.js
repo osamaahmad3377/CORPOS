@@ -267,4 +267,10 @@ export default {
   'Reset': 'پہلے جیسا',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'نمونے کے نیچے "یہ نمونہ پرنٹ کریں" دبا کر کاغذ پر دیکھیں، پھر محفوظ کریں۔',
   'Print this sample': 'یہ نمونہ پرنٹ کریں',
+  // logo on the bill
+  'Logo on the bill': 'بل پر لوگو',
+  'Upload your logo in Brand & look to print it on the bill.': 'بل پر لوگو چھاپنے کے لیے برانڈ اور انداز میں اپنا لوگو اپ لوڈ کریں۔',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بل پر لوگو بند ہے — برانڈ اور انداز میں "بل پر لوگو چھاپیں" آن کریں۔',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو بڑا یا چھوٹا کریں۔ نمونے میں بل پر نظر آئے گا۔',
+  'Logo size': 'لوگو کا سائز',
 };

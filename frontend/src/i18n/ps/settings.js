@@ -237,4 +237,10 @@ export default {
   'Reset': 'لومړني حالت ته',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'د نمونې لاندې "دا نمونه چاپ کړئ" کېکاږئ او په کاغذ یې وګورئ، بیا یې خوندي کړئ.',
   'Print this sample': 'دا نمونه چاپ کړئ',
+  // logo on the bill
+  'Logo on the bill': 'په بل لوګو',
+  'Upload your logo in Brand & look to print it on the bill.': 'په بل د لوګو چاپولو لپاره په برانډ او بڼه کې خپل لوګو پورته کړئ.',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'په بل لوګو بند دی — په برانډ او بڼه کې "په بل لوګو چاپ کړئ" فعال کړئ.',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوګو لوی یا کوچنی کړئ. نمونه یې په بل کې ښيي.',
+  'Logo size': 'د لوګو اندازه',
 };

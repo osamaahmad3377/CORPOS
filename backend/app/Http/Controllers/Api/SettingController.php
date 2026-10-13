@@ -36,6 +36,7 @@ class SettingController extends Controller
             'print_width_mm' => ['nullable', 'numeric', 'min:30', 'max:120'],
             'margin_mm' => ['nullable', 'numeric', 'min:0', 'max:15'],
             'text_size' => ['nullable', 'in:small,normal,large,xlarge'],
+            'logo_size' => ['nullable', 'numeric', 'min:6', 'max:40'], // logo height on the bill, mm
         ],
         'barcode' => [
             'default_format' => ['nullable', 'in:code128,ean13'],

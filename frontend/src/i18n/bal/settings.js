@@ -237,4 +237,10 @@ export default {
   'Reset': 'پیسریگیں وڑا',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'نمونہءِ جہلا "اے نمونہءَ چاپ کن" بجن و کاگدءَ سرا بچار، رندا سمبھال کن۔',
   'Print this sample': 'اے نمونہءَ چاپ کن',
+  // logo on the bill
+  'Logo on the bill': 'بلءِ سرا لوگو',
+  'Upload your logo in Brand & look to print it on the bill.': 'بلءِ سرا لوگو چاپ کنگءِ ہاترا برانڈ و دابءَ وتی لوگوءَ اپ لوڈ کن۔',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بلءِ سرا لوگو بند انت — برانڈ و دابءَ "بلءِ سرا لوگو چاپ کن" آن کن۔',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگوءَ مزن یا کسان کن۔ نمونہءَ بلءِ سرا گندگ بیت۔',
+  'Logo size': 'لوگوءِ ناپ',
 };

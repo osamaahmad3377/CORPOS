@@ -237,4 +237,10 @@ export default {
   'Reset': 'إعادة',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'اضغط "اطبع هذا النموذج" تحت المعاينة لتراها على الورق، ثم احفظ.',
   'Print this sample': 'اطبع هذا النموذج',
+  // logo on the bill
+  'Logo on the bill': 'الشعار على الفاتورة',
+  'Upload your logo in Brand & look to print it on the bill.': 'ارفع شعارك في العلامة والمظهر لطباعته على الفاتورة.',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'الشعار متوقف على الفواتير — فعّل "طباعة الشعار على الفواتير" في العلامة والمظهر.',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'كبّر الشعار أو صغّره. تعرضه المعاينة على الفاتورة.',
+  'Logo size': 'حجم الشعار',
 };

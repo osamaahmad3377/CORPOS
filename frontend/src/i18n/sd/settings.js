@@ -237,4 +237,10 @@ export default {
   'Reset': 'اڳ جهڙو',
   'Press “Print this sample” under the preview to check it on paper, then save.': 'نموني هيٺان "هي نمونو ڇاپيو" دٻائي ڪاغذ تي ڏسو، پوءِ محفوظ ڪريو.',
   'Print this sample': 'هي نمونو ڇاپيو',
+  // logo on the bill
+  'Logo on the bill': 'بل تي لوگو',
+  'Upload your logo in Brand & look to print it on the bill.': 'بل تي لوگو ڇاپڻ لاءِ برانڊ ۽ انداز ۾ پنهنجو لوگو اپلوڊ ڪريو.',
+  'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بل تي لوگو بند آهي — برانڊ ۽ انداز ۾ "بل تي لوگو ڇاپيو" آن ڪريو.',
+  'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو وڏو يا ننڍو ڪريو. نموني ۾ بل تي نظر ايندو.',
+  'Logo size': 'لوگو جي ماپ',
 };
