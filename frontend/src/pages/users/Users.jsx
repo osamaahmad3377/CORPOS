@@ -177,7 +177,7 @@ function StaffList() {
                         <Button variant="ghost" icon={KeyRound} onClick={() => setResetting(u)}>{t('New password')}</Button>
                         {!self && (u.is_active
                           ? <Button variant="ghost" icon={UserX} className="text-red-600! hover:bg-red-50" onClick={() => onToggle(u)}>{t('Stop sign-in')}</Button>
-                          : <Button variant="ghost" icon={UserCheck} className="text-emerald-700! hover:bg-emerald-50" onClick={() => onToggle(u)}>{t('Allow sign-in')}</Button>)}
+                          : <Button variant="ghost" icon={UserCheck} onClick={() => onToggle(u)}>{t('Allow sign-in')}</Button>)}
                       </div>
                     </Td>
                   </tr>

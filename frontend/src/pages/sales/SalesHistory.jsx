@@ -284,9 +284,9 @@ function SaleDetail() {
               {t('Receive payment')} <span className="num">{money(due)}</span>
             </Button>
           )}
-          {canReturn && <Button size="lg" variant="secondary" icon={RotateCcw} className="border-2 border-red-200 text-red-700 hover:bg-red-50" onClick={() => setReturning(true)}>{t('Return items')}</Button>}
+          {canReturn && <Button size="lg" variant="secondary" icon={RotateCcw} className="" onClick={() => setReturning(true)}>{t('Return items')}</Button>}
           <Button size="lg" variant="secondary" icon={Printer} onClick={() => setPrinting(true)}>{t('Print receipt')}</Button>
-          <Button size="lg" variant="secondary" icon={MessageCircle} className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={sendWhatsApp}>{t('Send bill on WhatsApp')}</Button>
+          <Button size="lg" variant="secondary" icon={MessageCircle} className="" onClick={sendWhatsApp}>{t('Send bill on WhatsApp')}</Button>
           {can('sales.delete') && <Button size="lg" variant="ghost" icon={Trash2} className="text-red-600 hover:bg-red-50 hover:text-red-700 sm:ms-auto" onClick={() => setDeleting(true)}>{t('Delete bill')}</Button>}
         </div>
       )}

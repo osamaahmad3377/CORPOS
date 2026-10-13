@@ -95,7 +95,7 @@ function CustomerList() {
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <StatCard icon={Users} label={t('Customers')} value={<span className="num">{all.length}</span>} />
         <StatCard icon={Wallet} label={t('Total udhaar (still owed to you)')} value={<span className="num">{money(outstanding)}</span>} tone={outstanding > 0 ? 'red' : 'green'} />
-        <button type="button" className={cx('rounded-xl text-start', filter === 'due' && 'ring-2 ring-amber-400')} onClick={() => setFilter(filter === 'due' ? '' : 'due')}>
+        <button type="button" className={cx('rounded-xl text-start', filter === 'due' && 'ring-2 ring-brand-500')} onClick={() => setFilter(filter === 'due' ? '' : 'due')}>
           <StatCard icon={ReceiptText} label={t('Customers who owe you (tap to see)')} value={<span className="num">{withDues}</span>} tone="amber" />
         </button>
       </div>
@@ -305,7 +305,7 @@ function CustomerDetail() {
               ]} />
             )}
             {canSales && (
-              <Button variant="secondary" icon={MessageCircle} className="text-emerald-700" disabled={!sales.length} onClick={() => openWhatsApp(c.phone, buildStatementText(c, sales, shop, t))}>
+              <Button variant="secondary" icon={MessageCircle} disabled={!sales.length} onClick={() => openWhatsApp(c.phone, buildStatementText(c, sales, shop, t))}>
                 {t('Send statement')}
               </Button>
             )}
@@ -325,7 +325,7 @@ function CustomerDetail() {
           {due > 0 && <div className="num text-3xl font-bold text-red-700">{money(due)}</div>}
         </div>
         {due > 0 && (
-          <Button size="lg" variant="secondary" icon={MessageCircle} className="h-auto min-h-14 whitespace-normal py-2 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => openWhatsApp(c.phone, buildUdhaarReminder(c, due, shop, t))}>
+          <Button size="lg" variant="secondary" icon={MessageCircle} className="h-auto min-h-14 whitespace-normal py-2" onClick={() => openWhatsApp(c.phone, buildUdhaarReminder(c, due, shop, t))}>
             {t('Send udhaar reminder on WhatsApp')}
           </Button>
         )}

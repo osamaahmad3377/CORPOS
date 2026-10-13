@@ -189,6 +189,19 @@ html.dark .app-canvas {
 }
 
 /* round frosted buttons in the top bar */
+/* secondary buttons: a light, glassy tint of the brand colour */
+.btn-tint {
+  background-color: var(--color-brand-50);
+  background-image: var(--glass-sheen);
+  color: var(--color-brand-800);
+  border: 1px solid rgb(var(--bt-tint) / 0.2);
+  box-shadow: var(--glass-rim), 0 6px 16px -12px rgb(var(--bt-tint) / 0.45);
+  transition: background-color 150ms, box-shadow 150ms, transform 150ms;
+}
+.btn-tint:hover { background-color: var(--color-brand-100); }
+.btn-tint:active { transform: scale(0.97); }
+html.dark .btn-tint { border-color: rgb(255 255 255 / 0.1); box-shadow: var(--glass-rim); }
+
 /* floating capsules (top bar, secondary buttons) */
 .glass-btn, .glass-capsule {
   border-radius: 9999px;
@@ -200,6 +213,8 @@ html.dark .app-canvas {
   transition: background-color 150ms, box-shadow 150ms, transform 150ms;
 }
 .glass-btn:hover, .glass-capsule:hover { background-color: var(--glass-bg-strong); }
+/* top-bar buttons: icon and text in the brand colour */
+.glass-btn { color: var(--color-brand-700); }
 .glass-btn:active, .glass-capsule:active { transform: scale(0.97); }
 
 /* Glass sidebar: a floating frosted panel; the open page is a white pill. */

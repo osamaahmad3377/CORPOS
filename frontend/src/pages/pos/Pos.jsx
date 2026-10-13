@@ -849,7 +849,7 @@ export default function Pos() {
         footer={(
           <>
             <Button variant="secondary" size="lg" onClick={() => { setReceipt(null); focusScan(); }}>{t('New bill')}</Button>
-            <Button variant="secondary" size="lg" icon={MessageCircle} className="text-emerald-700" onClick={() => openWhatsApp(receiptPhone, buildReceiptText(receipt, shop, t))}>{t('WhatsApp')}</Button>
+            <Button variant="secondary" size="lg" icon={MessageCircle} onClick={() => openWhatsApp(receiptPhone, buildReceiptText(receipt, shop, t))}>{t('WhatsApp')}</Button>
             <Button icon={Printer} size="lg" autoFocus onClick={() => printNow('receipt')}>{t('Print receipt')}</Button>
           </>
         )}

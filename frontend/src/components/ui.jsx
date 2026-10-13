@@ -10,12 +10,15 @@ export function cx(...c) {
 // Solid buttons get a soft top highlight and a coloured shadow; the brand
 // button's text colour (brand-ink) is picked for contrast with the shop's colour.
 const RAISED = 'shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_1px_2px_rgb(16_24_40/0.12)] hover:brightness-[0.96] active:brightness-[0.92]';
+// Every button takes the shop's brand colour: solid for the main action
+// (primary / success), a light brand tint for the rest. Only buttons that
+// delete or remove something stay red, so they are never pressed by mistake.
 const BTN = {
   primary: 'btn-jewel bg-brand-600 text-brand-ink active:brightness-[0.95]',
-  secondary: 'glass-capsule text-slate-800',
+  secondary: 'btn-tint',
   danger: `bg-red-600 text-white ${RAISED}`,
-  ghost: 'text-slate-600 hover:bg-slate-500/10 hover:text-slate-900',
-  success: `bg-emerald-600 text-white ${RAISED}`,
+  ghost: 'text-brand-700 hover:bg-brand-50 hover:text-brand-800',
+  success: 'btn-jewel bg-brand-600 text-brand-ink active:brightness-[0.95]',
 };
 // Generous sizes: easy to hit on touchscreens and for unsteady hands.
 // Capsule buttons, like iOS / macOS.
@@ -292,7 +295,7 @@ export function Switch({ checked, onChange, disabled, label, size = 'md' }) {
       className={cx(
         'relative inline-flex shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
         big ? 'h-7 w-12' : 'h-6 w-10',
-        checked ? 'bg-emerald-600' : 'bg-slate-300',
+        checked ? 'bg-brand-600' : 'bg-slate-300',
       )}
     >
       {/* inset-inline-start so the knob also moves the right way in Urdu (RTL) */}
