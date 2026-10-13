@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'په بل لوګو بند دی — په برانډ او بڼه کې "په بل لوګو چاپ کړئ" فعال کړئ.',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوګو لوی یا کوچنی کړئ. نمونه یې په بل کې ښيي.',
   'Logo size': 'د لوګو اندازه',
+  // glass sidebar colours
+  'Glass (see-through)': 'ښیښه (روڼه)',
+  'Solid': 'ساده رنګ',
+  'Clear glass': 'روڼه ښیښه',
+  'Brand glass': 'برانډي ښیښه',
+  'Midnight glass': 'نیمه شپه ښیښه',
+  'Navy glass': 'نیوي ښیښه',
+  'Forest glass': 'شنه ښیښه',
+  'Plum glass': 'بنفش ښیښه',
+  'Rose glass': 'ګلابي ښیښه',
+  'Ocean glass': 'سمندري ښیښه',
+  'Sunset glass': 'نارنجي ښیښه',
+  'Any other glass colour': 'بل ښیښه یي رنګ',
 };

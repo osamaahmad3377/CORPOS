@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'لوگو برای فاکتورها خاموش است — «چاپ لوگو روی فاکتور» را در برند و ظاهر روشن کنید.',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو را بزرگ‌تر یا کوچک‌تر کنید. پیش‌نمایش آن را روی فاکتور نشان می‌دهد.',
   'Logo size': 'اندازهٔ لوگو',
+  // glass sidebar colours
+  'Glass (see-through)': 'شیشه (شفاف)',
+  'Solid': 'رنگ یکدست',
+  'Clear glass': 'شیشهٔ شفاف',
+  'Brand glass': 'شیشهٔ رنگ برند',
+  'Midnight glass': 'شیشهٔ نیمه‌شب',
+  'Navy glass': 'شیشهٔ سرمه‌ای',
+  'Forest glass': 'شیشهٔ سبز',
+  'Plum glass': 'شیشهٔ بنفش',
+  'Rose glass': 'شیشهٔ صورتی',
+  'Ocean glass': 'شیشهٔ آبی اقیانوسی',
+  'Sunset glass': 'شیشهٔ نارنجی',
+  'Any other glass colour': 'رنگ شیشه‌ای دیگر',
 };

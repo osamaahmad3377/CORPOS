@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bike, Briefcase, Building2, CalendarClock, Check, Gauge, Sparkles, Zap, Home as HomeIcon, Package as PackageIcon, ShoppingCart as CartIcon, ImageUp, Printer, UtensilsCrossed, Languages, Lightbulb, Monitor, Moon, Palette, Percent, Plus, Puzzle, ReceiptText, RotateCcw, Save, ScanBarcode, Store, Sun, Trash2, Users, X } from 'lucide-react';
-import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_SWATCH, SIDEBAR_PRESETS, isSidebarValue, sidebarTheme } from '../../lib/theme';
+import { BRAND_PRESETS, DEFAULT_SIDEBAR, GLASS_PRESETS, GLASS_SWATCH, SIDEBAR_PRESETS, glassTint, isGlassSidebar, isSidebarValue, sidebarTheme } from '../../lib/theme';
 import { applyEffects, effectsSetting, isLowEnd, loadSystemInfo, resolvedEffects } from '../../lib/perf';
 import { TEXT_SIZES, isDesktop, listPrinters, printNow, printerPrefs, receiptLayout, savePrinterPrefs } from '../../lib/printer';
 import { ShopLogo } from '../../components/Brand';
@@ -288,7 +288,9 @@ function BrandForm({ d, set }) {
   const fileRef = useRef(null);
   const color = d.brand.primary_color;
   const sidebar = isSidebarValue(d.brand.sidebar_color) ? d.brand.sidebar_color : DEFAULT_SIDEBAR;
-  const sidebarHex = sidebar === 'glass' ? '#ffffff' : sidebar;
+  const sidebarGlass = isGlassSidebar(sidebar);
+  // the colour behind the picker: the glass tint, the solid colour, or white for clear glass
+  const sidebarHex = sidebar === 'glass' ? '#ffffff' : (glassTint(sidebar, color) || sidebar);
   const logoSize = clampLogo(d.brand.sidebar_logo_size);
   const upload = async (file) => {
     if (!file) return;
@@ -365,24 +367,41 @@ function BrandForm({ d, set }) {
           <div className="mb-2 text-sm font-semibold text-slate-700">{t('Sidebar colour')}</div>
           <div className="flex flex-wrap items-start gap-5">
             <div className="min-w-0 flex-1">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Glass (see-through)')}</div>
+              <div className="flex flex-wrap gap-2.5">
+                {GLASS_PRESETS.map((p) => {
+                  const on = sidebar.toLowerCase() === p.hex;
+                  const tint = glassTint(p.hex, color);
+                  const th = sidebarTheme(p.hex, color);
+                  return (
+                    <button key={p.hex} type="button" title={t(p.name)} aria-label={t(p.name)} onClick={() => set('brand', 'sidebar_color')(p.hex)}
+                      className={cx('grid size-11 place-items-center rounded-xl border border-white/70 ring-offset-2 transition hover:scale-105', on && 'ring-2 ring-slate-900')}
+                      style={{ background: tint ? `linear-gradient(160deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 55%), ${tint}` : GLASS_SWATCH, boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.8)' }}>
+                      {on && <Check className="size-5" style={{ color: tint ? th.text : 'rgb(var(--bt-ink))' }} />}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Solid')}</div>
               <div className="flex flex-wrap gap-2.5">
                 {SIDEBAR_PRESETS.map((p) => {
                   const on = sidebar.toLowerCase() === p.hex;
                   return (
                     <button key={p.hex} type="button" title={t(p.name)} aria-label={t(p.name)} onClick={() => set('brand', 'sidebar_color')(p.hex)}
                       className={cx('grid size-11 place-items-center rounded-xl border border-slate-900/10 ring-offset-2 transition hover:scale-105', on && 'ring-2 ring-slate-900')}
-                      style={{ background: p.hex === 'glass' ? GLASS_SWATCH : p.hex }}>
-                      {on && <Check className="size-5" style={{ color: p.hex === 'glass' ? 'rgb(var(--bt-ink))' : sidebarTheme(p.hex).text }} />}
+                      style={{ background: p.hex }}>
+                      {on && <Check className="size-5" style={{ color: sidebarTheme(p.hex).text }} />}
                     </button>
                   );
                 })}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input type="color" value={sidebarHex} onChange={(e) => set('brand', 'sidebar_color')(e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
-                  {t('Any other colour')}
+                  <input type="color" value={sidebarHex} onChange={(e) => set('brand', 'sidebar_color')(sidebarGlass ? `glass:${e.target.value}` : e.target.value)} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
+                  {sidebarGlass ? t('Any other glass colour') : t('Any other colour')}
                 </label>
-                <Input className="num w-32 font-mono" value={sidebar === 'glass' ? '' : sidebar} placeholder={sidebar === 'glass' ? t('Glass') : ''} maxLength={7} onChange={(e) => set('brand', 'sidebar_color')(e.target.value || 'glass')} />
+                <Input className="num w-32 font-mono" value={sidebar === 'glass' || sidebar === 'glass:brand' ? '' : sidebarHex} placeholder={sidebar === 'glass' ? t('Clear glass') : sidebar === 'glass:brand' ? t('Brand glass') : ''} maxLength={7}
+                  onChange={(e) => { const v = e.target.value; set('brand', 'sidebar_color')(!v ? 'glass' : sidebarGlass ? `glass:${v}` : v); }} />
               </div>
               <p className="mt-2 text-xs text-slate-500">{t('Your logo sits right on this colour. If your logo is dark, pick a light sidebar; if it is light, pick a dark one.')}</p>
 
@@ -412,7 +431,7 @@ function BrandForm({ d, set }) {
                 {!shop.logoUrl && <p className="mt-2 text-xs text-slate-500">{t('Upload a logo above to see it in the sidebar.')}</p>}
               </div>
             </div>
-            <SidebarPreview hex={sidebar} size={logoSize} />
+            <SidebarPreview hex={sidebar} brand={color} size={logoSize} />
           </div>
         </div>
 
@@ -1157,10 +1176,10 @@ function BusinessesCard() {
 }
 
 // A small copy of the menu in the chosen sidebar colour, with the shop's logo.
-function SidebarPreview({ hex, size = 96 }) {
+function SidebarPreview({ hex, brand, size = 96 }) {
   const t = useT();
   const shop = useShop();
-  const th = sidebarTheme(hex);
+  const th = sidebarTheme(hex, brand);
   const items = [[HomeIcon, 'Home', true], [CartIcon, 'Sell', false], [PackageIcon, 'Items & stock', false]];
   return (
     <div className={cx('w-56 shrink-0 overflow-hidden rounded-2xl border border-slate-200 shadow-card', th.glass && 'app-canvas')} aria-label={t('Preview')}>

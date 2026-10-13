@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بل اُتے لوگو بند اے — برانڈ تے انداز وچ "بل اُتے لوگو چھاپو" آن کرو۔',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو وڈا یا چھوٹا کرو۔ نمونے وچ بل اُتے دسے گا۔',
   'Logo size': 'لوگو دا سائز',
+  // glass sidebar colours
+  'Glass (see-through)': 'شیشہ (آر پار)',
+  'Solid': 'سادہ رنگ',
+  'Clear glass': 'صاف شیشہ',
+  'Brand glass': 'برانڈ شیشہ',
+  'Midnight glass': 'گوڑھا نیلا شیشہ',
+  'Navy glass': 'نیوی شیشہ',
+  'Forest glass': 'ہرا شیشہ',
+  'Plum glass': 'جامنی شیشہ',
+  'Rose glass': 'گلابی شیشہ',
+  'Ocean glass': 'سمندری نیلا شیشہ',
+  'Sunset glass': 'نارنجی شیشہ',
+  'Any other glass colour': 'کوئی ہور شیشہ رنگ',
 };

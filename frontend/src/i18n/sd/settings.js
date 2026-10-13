@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بل تي لوگو بند آهي — برانڊ ۽ انداز ۾ "بل تي لوگو ڇاپيو" آن ڪريو.',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگو وڏو يا ننڍو ڪريو. نموني ۾ بل تي نظر ايندو.',
   'Logo size': 'لوگو جي ماپ',
+  // glass sidebar colours
+  'Glass (see-through)': 'شيشو (آرپار)',
+  'Solid': 'سادو رنگ',
+  'Clear glass': 'صاف شيشو',
+  'Brand glass': 'برانڊ شيشو',
+  'Midnight glass': 'گهرو نيرو شيشو',
+  'Navy glass': 'نيوي شيشو',
+  'Forest glass': 'سائو شيشو',
+  'Plum glass': 'واڱڻائي شيشو',
+  'Rose glass': 'گلابي شيشو',
+  'Ocean glass': 'سمنڊ نيرو شيشو',
+  'Sunset glass': 'نارنگي شيشو',
+  'Any other glass colour': 'ڪو ٻيو شيشي رنگ',
 };

@@ -24,7 +24,7 @@ export function ShopProvider({ children }) {
     applyBrand(brandColor);
   }, [mode, brandColor]);
   const sidebarColor = settings.data?.brand?.sidebar_color;
-  useEffect(() => { applySidebar(sidebarColor); }, [sidebarColor]);
+  useEffect(() => { applySidebar(sidebarColor, brandColor); }, [sidebarColor, brandColor]);
   const setMode = useCallback((m) => { setStoredMode(m); setModeState(m); }, []);
 
   // the shop's name and logo on the window, tab, taskbar and in messages

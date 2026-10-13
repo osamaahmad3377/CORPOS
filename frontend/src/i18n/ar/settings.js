@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'الشعار متوقف على الفواتير — فعّل "طباعة الشعار على الفواتير" في العلامة والمظهر.',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'كبّر الشعار أو صغّره. تعرضه المعاينة على الفاتورة.',
   'Logo size': 'حجم الشعار',
+  // glass sidebar colours
+  'Glass (see-through)': 'زجاج (شفاف)',
+  'Solid': 'لون سادة',
+  'Clear glass': 'زجاج شفاف',
+  'Brand glass': 'زجاج بلون العلامة',
+  'Midnight glass': 'زجاج منتصف الليل',
+  'Navy glass': 'زجاج كحلي',
+  'Forest glass': 'زجاج أخضر',
+  'Plum glass': 'زجاج بنفسجي',
+  'Rose glass': 'زجاج وردي',
+  'Ocean glass': 'زجاج أزرق محيطي',
+  'Sunset glass': 'زجاج برتقالي',
+  'Any other glass colour': 'لون زجاجي آخر',
 };

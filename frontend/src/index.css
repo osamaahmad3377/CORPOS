@@ -221,15 +221,21 @@ html.dark .btn-tint { border-color: rgb(255 255 255 / 0.1); box-shadow: var(--gl
 html[data-sidebar=glass] .app-sidebar {
   margin: 12px; margin-inline-end: 0; height: calc(100% - 24px);
   border: 1px solid var(--glass-edge); border-radius: 32px;
-  background-color: var(--sbg-bg); background-image: var(--glass-sheen);
+  background-color: var(--sb-bg); background-image: var(--glass-sheen);
   -webkit-backdrop-filter: blur(32px) saturate(1.9); backdrop-filter: blur(32px) saturate(1.9);
   box-shadow: 0 0 0 0.5px var(--glass-ring), var(--glass-shadow);
   overflow: hidden;
 }
-html[data-sidebar=glass] .app-drawer { background: var(--sbg-solid); }
+html[data-sidebar=glass] .app-drawer { background: var(--sb-solid); }
+/* tinted glass: a softer sheen so dark tints stay rich, a lighter rim */
+html[data-sidebar-tone=dark] .app-sidebar {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.04) 40%, rgb(255 255 255 / 0) 60%, rgb(255 255 255 / 0.06) 100%) !important;
+  border-color: rgb(255 255 255 / 0.18) !important;
+}
+html[data-sidebar-tone=dark] .nav-active { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 8px 18px -10px rgb(0 0 0 / 0.45) !important; }
 html[data-sidebar=glass] .sidebar-depth { background-image: none; }
 html[data-sidebar=glass] .nav-active {
-  background-color: var(--sbg-active);
+  background-color: var(--sb-active);
   background-image: var(--glass-sheen);
   box-shadow: var(--nav-pill-shadow);
 }
@@ -242,6 +248,7 @@ html.dark .glass-dialog { background-color: rgb(var(--bt-dk-panel) / 0.92); }
 /* Lite mode (slow / old PCs, set per computer): solid surfaces, no blur,
    no animation — the same layout, just cheaper to draw. */
 html.lite .glass, html.lite .glass-strong, html.lite .glass-btn, html.lite .glass-capsule, html.lite[data-sidebar=glass] .app-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }
+html.lite[data-sidebar=glass] .app-sidebar { background: var(--sb-solid); }
 html.lite .glass-dialog { background: rgb(255 255 255 / 0.98); }
 html.dark.lite .glass-dialog { background: rgb(20 29 48 / 0.98); }
 html.lite [class*="backdrop-blur"], html.lite [class*="backdrop-saturate"] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
@@ -252,7 +259,7 @@ html.lite .app-canvas { background-attachment: scroll; }
 /* people who ask their computer for less transparency get solid surfaces */
 @media (prefers-reduced-transparency: reduce) {
   .glass, .glass-strong { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-bg-strong); }
-  html[data-sidebar=glass] .app-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--sbg-solid); }
+  html[data-sidebar=glass] .app-sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--sb-solid); }
 }
 
 /* ---------------------------------------------------------------- luxury

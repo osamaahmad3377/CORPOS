@@ -145,15 +145,32 @@ export function applyBrand(hex) {
 // ---------------------------------------------------------------- sidebar
 // The menu's background is the shop's choice too (Settings → Brand & look).
 // Text, icons and highlights are worked out from it: light text on a dark
-// sidebar, dark text on a light one. 'glass' is the frosted panel: its
-// colours live in index.css (--sbg-*) so they follow light/dark mode.
+// sidebar, dark text on a light one.
+//   'glass'          clear frosted panel (colours in index.css, --sbg-*, so
+//                    they follow light / dark mode)
+//   'glass:brand'    frosted glass tinted with the brand colour
+//   'glass:#rrggbb'  frosted glass tinted with any colour
+//   '#rrggbb'        solid colour
 
 export const DEFAULT_SIDEBAR = 'glass';
 export const GLASS_SWATCH = 'linear-gradient(135deg, #ffffff 0%, rgb(var(--bt-glow-4)) 55%, rgb(var(--bt-glow-2)) 100%)';
-export const isSidebarValue = (v) => v === 'glass' || /^#[0-9a-f]{6}$/i.test(v || '');
+const HEX = /^#[0-9a-f]{6}$/i;
+export const isSidebarValue = (v) => v === 'glass' || /^glass:(brand|#[0-9a-f]{6})$/i.test(v || '') || HEX.test(v || '');
+export const isGlassSidebar = (v) => v === 'glass' || String(v || '').startsWith('glass:');
+
+export const GLASS_PRESETS = [
+  { name: 'Clear glass', hex: 'glass' },
+  { name: 'Brand glass', hex: 'glass:brand' },
+  { name: 'Midnight glass', hex: 'glass:#0f1626' },
+  { name: 'Navy glass', hex: 'glass:#0c2340' },
+  { name: 'Forest glass', hex: 'glass:#0e3a2c' },
+  { name: 'Plum glass', hex: 'glass:#2c1838' },
+  { name: 'Rose glass', hex: 'glass:#be185d' },
+  { name: 'Ocean glass', hex: 'glass:#0369a1' },
+  { name: 'Sunset glass', hex: 'glass:#c2410c' },
+];
 
 export const SIDEBAR_PRESETS = [
-  { name: 'Glass', hex: 'glass' },
   { name: 'Midnight', hex: '#0f1626' },
   { name: 'Charcoal', hex: '#202326' },
   { name: 'Navy', hex: '#0c2340' },
@@ -168,7 +185,9 @@ export const SIDEBAR_PRESETS = [
 const GLASS_THEME = {
   light: true,
   glass: true,
+  tone: 'clear',
   bg: 'var(--sbg-bg)',
+  solid: 'var(--sbg-solid)',
   text: 'var(--sbg-text)',
   muted: 'var(--sbg-muted)',
   label: 'var(--sbg-label)',
@@ -179,31 +198,64 @@ const GLASS_THEME = {
   accent: 'var(--color-brand-600)',
 };
 
-export function sidebarTheme(hex) {
-  const bg = isSidebarValue(hex) ? hex : DEFAULT_SIDEBAR;
-  if (bg === 'glass') return GLASS_THEME;
-  const light = luminance(bg) > 0.35;
+const rgbOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(' ');
+
+// The tint colour of a glass sidebar (null for clear glass and solid colours).
+export function glassTint(value, brandHex = DEFAULT_BRAND) {
+  if (!String(value || '').startsWith('glass:')) return null;
+  const t = value.slice(6);
+  return t === 'brand' ? (HEX.test(brandHex || '') ? brandHex : DEFAULT_BRAND) : t;
+}
+
+export function sidebarTheme(value, brandHex) {
+  const v = isSidebarValue(value) ? value : DEFAULT_SIDEBAR;
+  if (v === 'glass') return GLASS_THEME;
+  const tint = glassTint(v, brandHex);
+  const bg = tint || v;
+  const light = luminance(bg) > (tint ? 0.45 : 0.35);
   const ink = light ? '15 23 42' : '255 255 255';
-  return {
+  const common = {
     light,
-    bg,
     text: light ? '#0f172a' : '#ffffff',
-    muted: `rgb(${ink} / ${light ? 0.72 : 0.68})`,
-    label: `rgb(${ink} / ${light ? 0.45 : 0.4})`,
-    icon: `rgb(${ink} / ${light ? 0.5 : 0.5})`,
+    muted: `rgb(${ink} / ${light ? 0.72 : 0.72})`,
+    label: `rgb(${ink} / ${light ? 0.45 : 0.45})`,
+    icon: `rgb(${ink} / ${light ? 0.5 : 0.55})`,
+    line: `rgb(${ink} / ${light ? 0.08 : 0.1})`,
+  };
+  if (tint) {
+    // see-through glass in that colour; the open page is a frosted pill
+    return {
+      ...common,
+      glass: true,
+      tone: light ? 'light' : 'dark',
+      bg: `rgb(${rgbOf(tint)} / ${light ? 0.58 : 0.8})`,
+      solid: tint,
+      hover: light ? 'rgb(255 255 255 / 0.35)' : 'rgb(255 255 255 / 0.1)',
+      active: light ? 'rgb(255 255 255 / 0.85)' : 'rgb(255 255 255 / 0.2)',
+      accent: light ? 'var(--color-brand-700)' : '#ffffff',
+    };
+  }
+  return {
+    ...common,
+    bg,
+    solid: bg,
     hover: `rgb(${ink} / ${light ? 0.05 : 0.06})`,
     active: `rgb(${ink} / ${light ? 0.07 : 0.1})`,
-    line: `rgb(${ink} / ${light ? 0.08 : 0.08})`,
     accent: light ? 'var(--color-brand-700)' : 'var(--color-brand-500)',
   };
 }
 
-export function applySidebar(hex) {
-  const th = sidebarTheme(hex);
+export function applySidebar(value, brandHex) {
+  const th = sidebarTheme(value, brandHex);
   const root = document.documentElement;
-  for (const k of ['bg', 'text', 'muted', 'label', 'icon', 'hover', 'active', 'line', 'accent']) root.style.setProperty(`--sb-${k}`, th[k]);
-  if (th.glass) root.dataset.sidebar = 'glass';
-  else delete root.dataset.sidebar;
+  for (const k of ['bg', 'solid', 'text', 'muted', 'label', 'icon', 'hover', 'active', 'line', 'accent']) root.style.setProperty(`--sb-${k}`, th[k]);
+  if (th.glass) {
+    root.dataset.sidebar = 'glass';
+    root.dataset.sidebarTone = th.tone;
+  } else {
+    delete root.dataset.sidebar;
+    delete root.dataset.sidebarTone;
+  }
 }
 
 const MODE_KEY = 'corepos_theme';

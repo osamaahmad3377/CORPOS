@@ -243,4 +243,17 @@ export default {
   'The logo is switched off for bills — turn on “Print logo on bills” in Brand & look.': 'بلءِ سرا لوگو بند انت — برانڈ و دابءَ "بلءِ سرا لوگو چاپ کن" آن کن۔',
   'Make the logo bigger or smaller. The preview shows it on the bill.': 'لوگوءَ مزن یا کسان کن۔ نمونہءَ بلءِ سرا گندگ بیت۔',
   'Logo size': 'لوگوءِ ناپ',
+  // glass sidebar colours
+  'Glass (see-through)': 'شیشه (پار)',
+  'Solid': 'ساده رنگ',
+  'Clear glass': 'ساپیں شیشه',
+  'Brand glass': 'برانڈی شیشه',
+  'Midnight glass': 'نیم شپی شیشه',
+  'Navy glass': 'نیوی شیشه',
+  'Forest glass': 'سبزیں شیشه',
+  'Plum glass': 'بنپشی شیشه',
+  'Rose glass': 'گلابی شیشه',
+  'Ocean glass': 'زِری شیشه',
+  'Sunset glass': 'نارنجی شیشه',
+  'Any other glass colour': 'دگہ شیشهءِ رنگ',
 };
