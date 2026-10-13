@@ -127,10 +127,18 @@ const btn = (text, scope = 'document') => {
   const test = text instanceof RegExp ? `${text}.test(b.textContent.trim())` : `b.textContent.trim().includes(${JSON.stringify(text)})`;
   return `[...(${scope}).querySelectorAll('button,a')].find((b) => b.offsetParent !== null && !b.disabled && ${test})`;
 };
-async function click(text, scope) {
-  await waitFor(btn(text, scope), `button "${text}"`);
-  await js(`${btn(text, scope)}.click()`);
-  await sleep(250);
+// find and press in one step (a button can be disabled for a moment while
+// prices refresh), retrying until it works
+async function click(text, scope, ms = 15000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await js(`(() => { const b = ${btn(text, scope)}; if (!b) return false; b.click(); return true; })()`).catch(() => false)) {
+      await sleep(250);
+      return;
+    }
+    await sleep(150);
+  }
+  throw new Error(`timed out waiting for button "${text}"`);
 }
 async function go(url, base) {
   await win.loadURL(base + url);
@@ -321,6 +329,23 @@ app.whenReady().then(async () => {
       const box = (pdf.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/) || []).slice(1).map((v) => Math.round((v / 72) * 25.4));
       expect(pages === 3, `${pages} pages for 3 stickers`);
       expect(box[0] === 50 && box[1] === 30, `page is ${box.join(' × ')} mm, expected 50 × 30 mm`);
+    });
+
+    await check('Restaurant: send a table order to the kitchen → kitchen slip prints on the bill printer', async () => {
+      await api('PUT', '/settings', { features: { restaurant: '1' } }, token);
+      await go('/pos', base);
+      await js(`(() => { const b = [...document.querySelectorAll('main button')].find((x) => { const l = x.innerText.split('\\n').map((v) => v.trim()).filter(Boolean); return l[0]?.toUpperCase() === 'TABLE' && l[1] === '1'; }); b.click(); })()`);
+      await sleep(400);
+      await click('Test Soap', 'document.querySelector("main")');
+      await click(/^Kitchen$/, 'document.querySelector("main")');
+      await waitFor(`document.querySelector('[data-modal-open] [data-print="kitchen"]')`, 'the kitchen slip window');
+      const before = jobs.length;
+      await click('Print slip', '[...document.querySelectorAll("[data-modal-open]")].at(-1)');
+      const job = await nextJob(before, 'kitchen slip');
+      expect(job.options.deviceName === RECEIPT_PRINTER, `kitchen slip went to "${job.options.deviceName}"`);
+      expect(job.slips === 1 && job.kinds[0] === 'kitchen', `printed ${job.kinds} instead of only the kitchen slip`);
+      for (const c of ['KITCHEN ORDER', 'Test Soap', 'Table 1']) expect(job.text.includes(c), `"${c}" is not on the kitchen slip`);
+      if (job.inkMm !== null) expect(job.inkMm >= 55, `kitchen slip printed only ${job.inkMm} mm wide`);
     });
 
     const failed = results.filter((r) => !r.ok).length;

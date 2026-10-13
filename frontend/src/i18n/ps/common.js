@@ -144,4 +144,9 @@ export default {
   'Bills, stock, udhaar and reports': 'بلونه، سټاک، پور او راپورونه',
   'Every person has their own login': 'هر کس خپل ننوتل لري',
   'Welcome back': 'ښه راغلاست',
+  // receipt
+  'SALE RECEIPT': 'رسید',
+  'You saved Rs {amount}': 'تاسو Rs {amount} وسپمول',
+  'Points used': 'کارول شوي ټکي',
+  'Points earned': 'ګټل شوي ټکي',
 };

@@ -12,30 +12,52 @@ export const ORDER_TYPES = [
 
 export const orderTypeLabel = (code) => ORDER_TYPES.find((t) => t.code === code)?.label || '';
 
+// One clear font for every printed slip (bills use it too), pure black.
+export const SLIP_FONT = '"Inter Variable", "Segoe UI", Arial, sans-serif';
+
+// Read across a busy kitchen: big order type / table, quantities in bold
+// boxes, one dish per line, the note in a box.
 export default function KitchenSlip({ order }) {
   const shop = useShop();
   const { t, isUrdu } = useLang();
   const slip = slipProps(shop.settings.receipt);
+  const rule = (kind = 'dashed') => <div style={{ borderTop: kind === 'solid' ? '1.5px solid #000' : '1px dashed #000', margin: '1.6mm 0' }} />;
+  const where = order.table_no ? t('Table {n}', { n: order.table_no }) : t(orderTypeLabel(order.order_type));
   return (
-    <div data-print="kitchen" className={`print-area mx-auto bg-white ${isUrdu ? '' : 'font-mono'} text-[13px] leading-snug text-black`} data-paper={slip['data-paper']} style={{ ...slip.style, padding: '2mm' }}>
-      <div className="text-center text-[15px] font-bold">{t('KITCHEN ORDER')}</div>
-      <div className="text-center">{t(orderTypeLabel(order.order_type))}{order.table_no ? ` — ${t('Table {n}', { n: order.table_no })}` : ''}</div>
-      {order.waiter && <div className="text-center text-[13px] font-bold">{t('Waiter')}: {order.waiter}</div>}
-      {order.order_type === 'delivery' && (order.delivery_name || order.delivery_area) && <div className="text-center text-[13px] font-bold">{[order.delivery_name, order.delivery_area].filter(Boolean).join(' · ')}</div>}
-      <div className="mt-1 flex justify-between text-[11px]"><span>{order.invoice_number}</span><span>{new Date().toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' })}</span></div>
-      <div className="my-2 border-t border-dashed border-black" />
+    <div
+      data-print="kitchen"
+      data-paper={slip['data-paper']}
+      className="print-area slip mx-auto bg-white"
+      style={{ ...slip.style, padding: '2mm', color: '#000', background: '#fff', fontSize: '13px', fontWeight: 500, fontFamily: isUrdu ? 'var(--font-urdu)' : SLIP_FONT, lineHeight: isUrdu ? 2 : 1.3 }}
+    >
+      <div className="text-center" style={{ fontSize: '12px', fontWeight: 800, letterSpacing: isUrdu ? 0 : '0.16em' }}>{t('KITCHEN ORDER')}</div>
+      {rule('solid')}
+      <div className="text-center" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1.15 }}>{where}</div>
+      {order.table_no && <div className="text-center" style={{ fontSize: '12px', fontWeight: 700 }}>{t(orderTypeLabel(order.order_type))}</div>}
+      {order.waiter && <div className="text-center" style={{ fontSize: '13px', fontWeight: 700 }}>{t('Waiter')}: {order.waiter}</div>}
+      {order.order_type === 'delivery' && (order.delivery_name || order.delivery_area) && (
+        <div className="text-center" dir="auto" style={{ fontSize: '13px', fontWeight: 700 }}>{[order.delivery_name, order.delivery_area].filter(Boolean).join(' · ')}</div>
+      )}
+      <div className="flex justify-between" style={{ fontSize: '11px', marginTop: '1mm' }}>
+        <span className="num">{order.invoice_number}</span>
+        <span className="num">{new Date().toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' })}</span>
+      </div>
+      {rule('solid')}
       {order.items.map((it, i) => (
-        <div key={i} className="mb-1 flex gap-2 text-[14px]">
-          <span className="w-10 shrink-0 font-bold">{qty(it.quantity)}x</span>
-          <span>{it.product_name}{variantLabel(it) ? ` (${variantLabel(it)})` : ''}</span>
+        <div key={i} className="flex items-start" style={{ gap: '2mm', marginBottom: '1.4mm', breakInside: 'avoid' }}>
+          <span className="num shrink-0 text-center" style={{ minWidth: '9mm', border: '1.5px solid #000', borderRadius: '1mm', fontSize: '15px', fontWeight: 800, lineHeight: 1.35 }}>{qty(it.quantity)}</span>
+          <span dir="auto" style={{ fontSize: '15px', fontWeight: 700, lineHeight: 1.3, overflowWrap: 'anywhere' }}>
+            {it.product_name}{variantLabel(it) ? ` (${variantLabel(it)})` : ''}
+          </span>
         </div>
       ))}
       {order.notes && (
-        <>
-          <div className="my-2 border-t border-dashed border-black" />
-          <div>{t('Note')}: {order.notes}</div>
-        </>
+        <div dir="auto" style={{ border: '1.5px solid #000', padding: '1.5mm', marginTop: '1.5mm', fontSize: '13px', fontWeight: 700 }}>
+          {t('Note')}: {order.notes}
+        </div>
       )}
+      {rule()}
+      <div className="text-center" style={{ fontSize: '10.5px' }}>{t('Qty')}: <span className="num">{qty(order.items.reduce((a, it) => a + Number(it.quantity || 0), 0))}</span></div>
     </div>
   );
 }

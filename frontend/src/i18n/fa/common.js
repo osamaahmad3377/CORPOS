@@ -144,4 +144,9 @@ export default {
   'Bills, stock, udhaar and reports': 'فاکتور، موجودی، نسیه و گزارش',
   'Every person has their own login': 'هر نفر ورود جداگانه خودش را دارد',
   'Welcome back': 'خوش آمدید',
+  // receipt
+  'SALE RECEIPT': 'رسید فروش',
+  'You saved Rs {amount}': 'شما Rs {amount} صرفه‌جویی کردید',
+  'Points used': 'امتیاز استفاده‌شده',
+  'Points earned': 'امتیاز به‌دست‌آمده',
 };

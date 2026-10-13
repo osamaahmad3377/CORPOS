@@ -144,4 +144,9 @@ export default {
   'Bills, stock, udhaar and reports': 'بل، اسٽاڪ، اڌار ۽ رپورٽون',
   'Every person has their own login': 'هر ماڻهوءَ جو پنهنجو لاگ ان',
   'Welcome back': 'ڀلي ڪري آيا',
+  // receipt
+  'SALE RECEIPT': 'رسيد',
+  'You saved Rs {amount}': 'توهان Rs {amount} بچايا',
+  'Points used': 'استعمال ٿيل پوائنٽس',
+  'Points earned': 'مليل پوائنٽس',
 };

@@ -71,6 +71,8 @@ html[dir=rtl] input[type=password], html[dir=rtl] .font-mono, html[dir=rtl] .ltr
 }
 html[dir=rtl] input[type=number] { text-align: right; }
 .num { font-family: var(--font-sans); unicode-bidi: isolate; direction: ltr; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* printed slips: numbers in the slip's own font, so labels and amounts match */
+.slip .num { font-family: "Inter Variable", "Segoe UI", Arial, sans-serif; }
 /* Nastaliq letters are tall — tight line-heights make lines overlap. */
 html[dir=rtl] [class*="leading-"] { line-height: 1.75; }
 html[dir=rtl] h1, html[dir=rtl] h2, html[dir=rtl] h3 { line-height: 1.7; }

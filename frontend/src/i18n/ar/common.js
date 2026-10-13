@@ -144,4 +144,9 @@ export default {
   'Bills, stock, udhaar and reports': 'الفواتير والمخزون والآجل والتقارير',
   'Every person has their own login': 'لكل شخص حساب دخول خاص',
   'Welcome back': 'مرحباً بعودتك',
+  // receipt
+  'SALE RECEIPT': 'إيصال بيع',
+  'You saved Rs {amount}': 'وفّرت Rs {amount}',
+  'Points used': 'النقاط المستخدمة',
+  'Points earned': 'النقاط المكتسبة',
 };
