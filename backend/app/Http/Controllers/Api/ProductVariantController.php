@@ -157,7 +157,10 @@ class ProductVariantController extends Controller
             ], 422);
         }
 
-        $variant->delete();
+        DB::transaction(function () use ($variant) {
+            $variant->releaseBarcode(); // the barcode can be used again for a new item
+            $variant->delete();
+        });
 
         return response()->json(['message' => 'Variant deleted successfully.']);
     }

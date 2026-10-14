@@ -117,6 +117,8 @@ class ProductController extends Controller
             // sellable catalog — otherwise they stay scannable/searchable
             // at the POS terminal even though the product is "gone".
             $product->variants()->update(['is_active' => false]);
+            // give the barcodes back, so the same numbers can be used again
+            $product->variants()->get()->each->releaseBarcode();
             $product->variants()->delete();
             $product->delete();
         });

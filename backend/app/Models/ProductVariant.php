@@ -37,6 +37,23 @@ class ProductVariant extends Model
         ];
     }
 
+    /** Prefix a deleted variant's barcode gets, so the number is free again. */
+    public const RELEASED_PREFIX = 'DEL-';
+
+    /**
+     * A deleted item gives its barcode back: the number can be used for a new
+     * item straight away. The deleted variant row stays (old bills still point
+     * at it) with its barcode renamed to DEL-<id>-<old barcode>, and its saved
+     * barcode record is removed.
+     */
+    public function releaseBarcode(): void
+    {
+        Barcode::where('variant_id', $this->id)->delete();
+        if ($this->barcode && ! str_starts_with($this->barcode, self::RELEASED_PREFIX)) {
+            $this->forceFill(['barcode' => self::RELEASED_PREFIX.$this->id.'-'.$this->barcode])->saveQuietly();
+        }
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class)->withTrashed();
