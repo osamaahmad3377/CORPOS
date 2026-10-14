@@ -19,7 +19,9 @@ export default defineConfig({
   optimizeDeps: { include: ['jsbarcode', 'xlsx', 'react-dom/client', 'react-router-dom', '@tanstack/react-query', 'lucide-react'] },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
-    __APP_BUILD__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+    // build date and time (local), shown under the version so two builds of
+    // the same version can be told apart
+    __APP_BUILD__: JSON.stringify((() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; })()),
   },
   server: {
     proxy: {
