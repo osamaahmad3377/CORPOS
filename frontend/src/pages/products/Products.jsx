@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useScanner from '../../lib/useScanner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, ImageIcon, Package, PackagePlus, Pencil, Plus, ScanBarcode, Search, Trash2, Upload, X } from 'lucide-react';
+import { CalendarClock, ImageIcon, Package, PackagePlus, Pencil, Plus, ScanBarcode, Search, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -50,6 +50,16 @@ export default function Products() {
   const [adding, setAdding] = useState(searchParams.get('new') ? { barcode: '', name: '' } : null); // { barcode, name } when open
   useEffect(() => { if (searchParams.get('new')) setSearchParams({}, { replace: true }); }, [searchParams, setSearchParams]);
   const [openId, setOpenId] = useState(null);
+  // ticked items (kept while paging / searching): id -> { id, name, stock, unit, counted }
+  const [picked, setPicked] = useState(() => new Map());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const canDelete = can('products.delete');
+  const togglePick = (p, on) => setPicked((m) => {
+    const next = new Map(m);
+    if (on) next.set(p.id, { id: p.id, name: p.name, stock: totalStock(p.variants), unit: p.unit, counted: p.track_stock !== false });
+    else next.delete(p.id);
+    return next;
+  });
 
   // Debounce typing; Enter (what barcode scanners send) searches immediately.
   useEffect(() => {
@@ -123,9 +133,24 @@ export default function Products() {
             </EmptyState>
           )
         ) : (
+          <>
+          {picked.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-brand-50/70 px-4 py-2.5">
+              <span className="font-semibold text-brand-900">{t('{n} selected', { n: picked.size })}</span>
+              <Button size="sm" variant="ghost" onClick={() => setPicked(new Map())}>{t('Clear')}</Button>
+              <Button size="sm" variant="danger" icon={Trash2} className="ms-auto" onClick={() => setBulkDeleting(true)}>{t('Delete selected')}</Button>
+            </div>
+          )}
           <Table>
             <thead>
-              <tr><Th className="w-14" /><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('Category')}</Th><Th className="text-start">{t('Price')}</Th><Th className="text-end">{restaurant ? t('Available') : t('In stock')}</Th><Th /></tr>
+              <tr>{canDelete && (
+                <Th className="w-12">
+                  <input type="checkbox" className="size-5 cursor-pointer accent-brand-600" aria-label={t('Select all on this page')} title={t('Select all on this page')}
+                    checked={rows.length > 0 && rows.every((p) => picked.has(p.id))}
+                    ref={(el) => { if (el) el.indeterminate = rows.some((p) => picked.has(p.id)) && !rows.every((p) => picked.has(p.id)); }}
+                    onChange={(e) => rows.forEach((p) => togglePick(p, e.target.checked))} />
+                </Th>
+              )}<Th className="w-14" /><Th className="text-start">{t('Item')}</Th><Th className="text-start">{t('Category')}</Th><Th className="text-start">{t('Price')}</Th><Th className="text-end">{restaurant ? t('Available') : t('In stock')}</Th><Th /></tr>
             </thead>
             <tbody>
               {rows.map((p) => {
@@ -133,7 +158,12 @@ export default function Products() {
                 const stock = totalStock(p.variants);
                 const low = (p.variants || []).some((v) => v.is_low_stock);
                 return (
-                  <tr key={p.id} className="cursor-pointer hover:bg-slate-50 [&>td]:py-3.5" onClick={() => setOpenId(p.id)}>
+                  <tr key={p.id} className={cx('cursor-pointer hover:bg-slate-50 [&>td]:py-3.5', picked.has(p.id) && 'bg-brand-50/60')} onClick={() => setOpenId(p.id)}>
+                    {canDelete && (
+                      <Td onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" className="size-5 cursor-pointer accent-brand-600" aria-label={t('Select {name}', { name: p.name })} checked={picked.has(p.id)} onChange={(e) => togglePick(p, e.target.checked)} />
+                      </Td>
+                    )}
                     <Td>
                       <div className="grid size-10 place-items-center overflow-hidden rounded-lg bg-slate-100">
                         {img ? <img src={img} alt="" className="size-full object-cover" /> : <ImageIcon className="size-4 text-slate-400" />}
@@ -168,6 +198,7 @@ export default function Products() {
               })}
             </tbody>
           </Table>
+          </>
         )}
         <Pagination meta={meta} onPage={setPage} />
       </Card>
@@ -175,7 +206,68 @@ export default function Products() {
       <ProductForm open={!!adding} onClose={() => setAdding(null)} initialBarcode={adding?.barcode} initialName={adding?.name} onSaved={(p) => { setSearch(''); setOpenId(p.id); }} />
       {openId && <ProductDetail id={openId} onClose={() => setOpenId(null)} />}
       {importing && <ImportItemsModal onClose={() => setImporting(false)} />}
+      {bulkDeleting && <BulkDeleteModal items={[...picked.values()]} onClose={() => setBulkDeleting(false)} onDone={() => { setPicked(new Map()); setBulkDeleting(false); }} />}
     </Page>
+  );
+}
+
+// ---------------------------------------------------------------- delete many
+
+const CONFIRM_WORD = 'DELETE';
+
+// Delete the ticked items. Items never sold or bought are removed from the
+// database; items on old bills are kept only for those bills (hidden, stock
+// written off, barcode freed) — see ProductDeleter on the server.
+function BulkDeleteModal({ items, onClose, onDone }) {
+  const t = useT();
+  const shop = useShop();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [word, setWord] = useState('');
+  const withStock = items.filter((i) => i.counted && i.stock > 0);
+  const del = useMutation({
+    mutationFn: () => api.post('/products/bulk-delete', { ids: items.map((i) => i.id) }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      toast(t('{n} items deleted', { n: res.deleted ?? items.length }));
+      onDone();
+    },
+  });
+  const ok = word.trim() === CONFIRM_WORD;
+  return (
+    <Modal open onClose={onClose} size="sm" title={t('Delete {n} items?', { n: items.length })}
+      footer={(
+        <>
+          <Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button>
+          <Button variant="danger" size="lg" icon={Trash2} disabled={!ok} loading={del.isPending} onClick={() => del.mutate()}>{t('Delete for ever')}</Button>
+        </>
+      )}>
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 rounded-xl bg-red-50 px-4 py-3 text-red-800 ring-1 ring-inset ring-red-600/15">
+          <TriangleAlert className="mt-0.5 size-5 shrink-0" />
+          <p className="font-semibold">{t('These items are deleted from the database. It cannot be undone.')}</p>
+        </div>
+        <ul className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-slate-200 px-3 py-2 text-[15px] text-slate-700">
+          {items.map((i) => (
+            <li key={i.id} className="flex justify-between gap-3">
+              <span className="min-w-0 truncate">{i.name}</span>
+              {i.counted && i.stock > 0 && <span className="num shrink-0 text-amber-700">{qty(i.stock)} {t(shop.unitLabel(i.unit))}</span>}
+            </li>
+          ))}
+        </ul>
+        <ul className="list-disc space-y-1 ps-5 text-sm text-slate-600">
+          <li>{t('Their barcodes are freed — you can use the same barcodes for new items.')}</li>
+          {withStock.length > 0 && <li className="text-amber-800">{t('{n} of them still have stock — it is removed from your stock and written down.', { n: withStock.length })}</li>}
+          <li>{t('Old bills that sold these items still open and add up correctly.')}</li>
+        </ul>
+        <Field label={t('Type {word} to confirm', { word: CONFIRM_WORD })}>
+          <Input autoFocus dir="ltr" autoComplete="off" spellCheck={false} className="h-12 font-mono text-lg tracking-widest" value={word}
+            onChange={(e) => setWord(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && ok) del.mutate(); }} placeholder={CONFIRM_WORD} />
+        </Field>
+        <ErrorBox error={del.error} />
+      </div>
+    </Modal>
   );
 }
 
@@ -222,7 +314,7 @@ function ProductDetail({ id, onClose }) {
   });
 
   const remove = async () => {
-    if (!(await confirm({ title: t('Delete this item?'), message: t("{name} will be removed from your items. An item that still has stock can't be deleted.", { name: p.name }), danger: true, confirmLabel: t('Delete') }))) return;
+    if (!(await confirm({ title: t('Delete this item?'), message: t('{name} is deleted from the database and its barcode is freed. Any stock left is removed and written down.', { name: p.name }), danger: true, confirmLabel: t('Delete') }))) return;
     try {
       await api.del(`/products/${id}`);
       refresh();

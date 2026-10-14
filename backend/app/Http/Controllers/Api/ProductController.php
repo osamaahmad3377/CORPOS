@@ -9,8 +9,10 @@ use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Services\ActivityLogger;
 use App\Services\BarcodeGenerator;
 use App\Services\BatchService;
+use App\Services\ProductDeleter;
 use App\Services\SerialService;
 use App\Services\SkuGenerator;
 use App\Services\StockService;
@@ -100,30 +102,30 @@ class ProductController extends Controller
         return new ProductResource($product->load(['category', 'brand', 'images', 'variants']));
     }
 
-    public function destroy(Product $product)
+    public function destroy(Request $request, Product $product)
     {
-        // Same reasoning as variant deletion — soft-deleting drops every
-        // variant out of inventory views, so any remaining stock would
-        // silently vanish from reports instead of being accounted for.
-        $stockRemaining = $product->variants()->sum('stock_qty');
-        if ($stockRemaining > 0) {
-            return response()->json([
-                'message' => "This product still has {$stockRemaining} unit(s) in stock across its variants. Zero them out via stock adjustments before deleting it.",
-            ], 422);
+        $how = ProductDeleter::delete($product, $request->user());
+        ActivityLogger::log($request->user(), 'delete', 'products', "Deleted item \"{$product->name}\" ({$how}).");
+
+        return response()->json(['message' => 'Product deleted successfully.', 'result' => $how]);
+    }
+
+    // Delete many items at once (ticked in the item list).
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $count = ['removed' => 0, 'archived' => 0];
+        foreach (Product::whereIn('id', $validated['ids'])->get() as $product) {
+            $count[ProductDeleter::delete($product, $request->user())]++;
         }
+        $total = $count['removed'] + $count['archived'];
+        ActivityLogger::log($request->user(), 'delete', 'products', "Deleted {$total} item(s) at once ({$count['removed']} removed, {$count['archived']} kept for old bills).");
 
-        DB::transaction(function () use ($product) {
-            // Deleting a product must also pull its variants out of the
-            // sellable catalog — otherwise they stay scannable/searchable
-            // at the POS terminal even though the product is "gone".
-            $product->variants()->update(['is_active' => false]);
-            // give the barcodes back, so the same numbers can be used again
-            $product->variants()->get()->each->releaseBarcode();
-            $product->variants()->delete();
-            $product->delete();
-        });
-
-        return response()->json(['message' => 'Product deleted successfully.']);
+        return response()->json(['deleted' => $total] + $count);
     }
 
     public function updateImage(Request $request, Product $product)

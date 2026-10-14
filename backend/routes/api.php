@@ -102,6 +102,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     });
     Route::middleware('permission:products.delete')->group(function () {
         Route::delete('products/{product}', [ProductController::class, 'destroy']);
+        Route::post('products/bulk-delete', [ProductController::class, 'bulkDestroy']);
         Route::delete('product-variants/{variant}', [ProductVariantController::class, 'destroy']);
     });
 
