@@ -114,6 +114,105 @@ class ReportController extends Controller
      * separately because it is the government's money, not the shop's.
      * Cost and profit figures are only sent to users with purchases.view.
      */
+    /**
+     * Sales for any period, by day or by month — used by the Yearly report
+     * (a whole year by month) and the Date range report (from / to).
+     * GET /reports/sales-period?start=Y-m-d&end=Y-m-d&group=day|month
+     * Totals: bills, sales, returns, discounts, tax, net sale, udhaar given,
+     * payment methods, best-selling items; profit (cost of goods) only for
+     * staff who may see buying prices.
+     */
+    public function salesPeriod(Request $request)
+    {
+        $request->validate([
+            'start' => ['required', 'date_format:Y-m-d'],
+            'end' => ['required', 'date_format:Y-m-d'],
+            'group' => ['nullable', 'in:day,month'],
+        ]);
+        $start = $request->input('start');
+        $end = $request->input('end');
+        if ($end < $start) {
+            [$start, $end] = [$end, $start];
+        }
+        $group = $request->input('group', 'day');
+        $bucket = $group === 'month' ? "strftime('%Y-%m', sales.sale_date)" : 'DATE(sales.sale_date)';
+        $canSeeCost = $request->user()->hasPermission('purchases.view');
+
+        $sales = fn () => DB::table('sales')
+            ->whereNull('sales.deleted_at')
+            ->whereIn('sales.status', ['completed', 'returned'])
+            ->whereDate('sales.sale_date', '>=', $start)
+            ->whereDate('sales.sale_date', '<=', $end);
+
+        $sums = 'COUNT(*) as bills,
+            COALESCE(SUM(grand_total), 0) as gross,
+            COALESCE(SUM(refunded_amount), 0) as returns,
+            COALESCE(SUM(discount_amount), 0) as discounts,
+            COALESCE(SUM(tax_amount), 0) as tax,
+            COALESCE(SUM(MAX(0, grand_total - refunded_amount - paid_amount)), 0) as udhaar';
+
+        // cost of what was sold (returned pieces left out), per bucket
+        $returnsAgg = DB::raw('(SELECT sale_item_id, SUM(quantity_returned) as qty_returned FROM sale_return_items GROUP BY sale_item_id) as returns_agg');
+        $cogs = $canSeeCost
+            ? $sales()->join('sale_items', 'sale_items.sale_id', '=', 'sales.id')
+                ->leftJoin($returnsAgg, 'returns_agg.sale_item_id', '=', 'sale_items.id')
+                ->selectRaw("$bucket as period, COALESCE(SUM((sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) * COALESCE(sale_items.cost_price, 0)), 0) as cogs")
+                ->groupBy('period')->pluck('cogs', 'period')
+            : collect();
+
+        $row = function ($r, $cost = null) use ($canSeeCost) {
+            $net = round((float) $r->gross - (float) $r->returns, 2);
+            $out = [
+                'bills' => (int) $r->bills,
+                'gross' => round((float) $r->gross, 2),
+                'returns' => round((float) $r->returns, 2),
+                'discounts' => round((float) $r->discounts, 2),
+                'tax' => round((float) $r->tax, 2),
+                'net' => $net,
+                'udhaar' => round((float) $r->udhaar, 2),
+                'average' => (int) $r->bills ? round($net / (int) $r->bills, 2) : 0,
+            ];
+            if ($canSeeCost) {
+                $c = round((float) $cost, 2);
+                $out['cost'] = $c;
+                $out['profit'] = round($net - (float) $r->tax - $c, 2);
+            }
+
+            return $out;
+        };
+
+        $rows = $sales()->selectRaw("$bucket as period, $sums")->groupBy('period')->orderBy('period')->get()
+            ->map(fn ($r) => ['period' => $r->period] + $row($r, $cogs[$r->period] ?? 0))->values();
+        $total = $row($sales()->selectRaw($sums)->first(), $cogs->sum());
+
+        $methods = $sales()->selectRaw('payment_method, COUNT(*) as bills, COALESCE(SUM(grand_total - refunded_amount), 0) as total')
+            ->groupBy('payment_method')->orderByDesc('total')->get()
+            ->map(fn ($r) => ['method' => $r->payment_method, 'bills' => (int) $r->bills, 'total' => round((float) $r->total, 2)]);
+
+        $items = $sales()->join('sale_items', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin($returnsAgg, 'returns_agg.sale_item_id', '=', 'sale_items.id')
+            ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->selectRaw('products.name as name, products.unit as unit,
+                SUM(sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) as quantity,
+                SUM(sale_items.total_price * (sale_items.quantity - COALESCE(returns_agg.qty_returned, 0)) / sale_items.quantity) as revenue')
+            ->where('sale_items.quantity', '>', 0)
+            ->groupBy('products.id', 'products.name', 'products.unit')
+            ->orderByDesc('revenue')->limit(10)->get()
+            ->map(fn ($r) => ['name' => $r->name, 'unit' => $r->unit, 'quantity' => round((float) $r->quantity, 3), 'revenue' => round((float) $r->revenue, 2)]);
+
+        return response()->json([
+            'start' => $start,
+            'end' => $end,
+            'group' => $group,
+            'can_see_cost' => $canSeeCost,
+            'total' => $total,
+            'rows' => $rows,
+            'payment_methods' => $methods,
+            'top_items' => $items,
+        ]);
+    }
+
     public function profit(Request $request)
     {
         $request->validate([

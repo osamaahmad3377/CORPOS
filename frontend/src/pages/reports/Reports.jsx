@@ -21,6 +21,8 @@ import ProfitReport from '../expenses/ProfitReport';
 const TABS = [
   { to: 'daily', label: 'Today' },
   { to: 'monthly', label: 'This month' },
+  { to: 'yearly', label: 'Yearly' },
+  { to: 'range', label: 'Date range' },
   { to: 'products', label: 'Items sold' },
   { to: 'profit', label: 'Profit' },
   { to: 'inventory', label: 'Stock value' },
@@ -57,6 +59,8 @@ export default function Reports() {
         <Route index element={<Navigate to="daily" replace />} />
         <Route path="daily" element={<DailySales />} />
         <Route path="monthly" element={<MonthlySales />} />
+        <Route path="yearly" element={<YearlySales />} />
+        <Route path="range" element={<RangeSales />} />
         <Route path="products" element={<ProductSales />} />
         <Route path="profit" element={<ProfitReport />} />
         <Route path="inventory" element={<InventoryReport />} />
@@ -266,6 +270,214 @@ function MonthlySales() {
         footer={rows.length ? { total_sales: bills, avg: money(bills ? total / bills : 0), total_revenue: money(total) } : null}
       />
     </ReportFrame>
+  );
+}
+
+// ---------------------------------------------------------------- yearly & date range
+
+// One period (a year by month, or any from–to by day or month): totals,
+// a bar for each day / month, the table, payment methods and best items.
+// Profit columns only for staff who may see buying prices.
+function PeriodReport({ start, end, group, title, hint, period, filters, fileName, slots, slotLabel, emptyText, extraStat }) {
+  const t = useT();
+  const shop = useShop();
+  const d = useDates();
+  const valid = /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end);
+  const q = useQuery({ queryKey: ['reports', 'period', start, end, group], queryFn: () => api.get('/reports/sales-period', { start, end, group }), enabled: valid });
+  const data = q.data;
+  const cost = !!data?.can_see_cost;
+  const total = data?.total || {};
+  const byPeriod = Object.fromEntries((data?.rows || []).map((r) => [r.period, r]));
+  // every slot (each month of the year / each day) so quiet ones show as gaps
+  const rows = (slots || (data?.rows || []).map((r) => r.period)).map((key) => ({ period: key, ...(byPeriod[key] || { bills: 0, gross: 0, returns: 0, discounts: 0, net: 0, udhaar: 0, average: 0, profit: 0, cost: 0 }) }));
+  const filled = rows.filter((r) => r.bills > 0);
+  const best = filled.reduce((b, r) => (r.net > (b?.net || 0) ? r : b), null);
+  const max = Math.max(...rows.map((r) => r.net), 1);
+  const label = (key) => slotLabel(key);
+
+  const columns = [
+    { key: 'period', en: group === 'month' ? 'Month' : 'Date', render: (r) => <Num>{label(r.period)}</Num>, csv: (r) => r.period },
+    { key: 'bills', en: 'Bills', align: 'end' },
+    { key: 'gross', en: 'Sale', align: 'end', render: (r) => money(r.gross), csv: (r) => n(r.gross) },
+    { key: 'returns', en: 'Returned', align: 'end', render: (r) => (n(r.returns) ? <span className="text-red-600">−{money(r.returns)}</span> : '—'), csv: (r) => n(r.returns) },
+    { key: 'discounts', en: 'Discount', align: 'end', render: (r) => (n(r.discounts) ? money(r.discounts) : '—'), csv: (r) => n(r.discounts) },
+    { key: 'net', en: 'Sale after returns', align: 'end', className: 'font-semibold', render: (r) => money(r.net), csv: (r) => n(r.net) },
+    { key: 'udhaar', en: 'Udhaar', align: 'end', render: (r) => (n(r.udhaar) ? money(r.udhaar) : '—'), csv: (r) => n(r.udhaar) },
+    ...(cost ? [{ key: 'profit', en: 'Profit', align: 'end', className: 'font-semibold', render: (r) => <span className={n(r.profit) < 0 ? 'text-red-600' : 'text-emerald-700'}>{money(r.profit)}</span>, csv: (r) => n(r.profit) }] : []),
+    { key: 'average', en: 'Average bill', align: 'end', render: (r) => (r.bills ? money(r.average) : '—'), csv: (r) => n(r.average) },
+  ];
+  const footer = rows.length ? {
+    bills: total.bills, gross: money(total.gross), returns: n(total.returns) ? `−${money(total.returns)}` : '—', discounts: n(total.discounts) ? money(total.discounts) : '—',
+    net: money(total.net), udhaar: n(total.udhaar) ? money(total.udhaar) : '—', ...(cost ? { profit: money(total.profit) } : {}), average: money(total.average),
+  } : null;
+
+  return (
+    <ReportFrame
+      title={title}
+      hint={hint}
+      period={period}
+      loading={valid && q.isLoading}
+      error={q.error}
+      filters={filters}
+      csv={(fmt) => downloadCsv(`${fileName}.csv`, columns, rows, fmt)}
+    >
+      <Stats>
+        <StatCard icon={Banknote} label={t('Sale (after returns)')} value={<Num>{money(total.net)}</Num>} sub={extraStat} />
+        <StatCard icon={ReceiptText} label={t('Bills')} value={<Num>{total.bills || 0}</Num>} sub={t('Average bill {amount}', { amount: money(total.average) })} />
+        {cost
+          ? <StatCard icon={CircleDollarSign} label={t('Profit')} value={<Num>{money(total.profit)}</Num>} tone={n(total.profit) < 0 ? 'red' : 'green'} sub={t('After buying cost of {amount}', { amount: money(total.cost) })} />
+          : <StatCard icon={RotateCcw} label={t('Returned')} value={<Num>{money(total.returns)}</Num>} tone="red" />}
+        <StatCard icon={Trophy} label={group === 'month' ? t('Best month') : t('Best day')} value={best ? <span className="block text-xl"><Num>{label(best.period)}</Num></span> : '—'} sub={best ? money(best.net) : null} tone="amber" />
+      </Stats>
+
+      <Card className="mb-5">
+        <CardHeader title={group === 'month' ? t('Sale of each month') : t('Sale of each day')} subtitle={period} />
+        {!filled.length ? <EmptyState icon={CalendarRange} title={emptyText} /> : (
+          <div className="px-5 pb-5 pt-10">
+            <div className="flex h-52 items-end gap-1.5">
+              {rows.map((x) => (
+                <div key={x.period} className="group relative flex h-full flex-1 items-end">
+                  <div className="w-full rounded-t-lg bg-brand-500/85 transition-colors group-hover:bg-brand-600 print:bg-slate-500" style={{ height: `${Math.max((x.net / max) * 100, x.net ? 2 : 0)}%` }} />
+                  <div className="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
+                    <Num>{label(x.period)}</Num>: <Num>{money(x.net)}</Num> · {billsText(t, x.bills)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-1.5 text-xs text-slate-400">
+              {rows.map((x, i) => <span key={x.period} className="flex-1 truncate text-center">{rows.length <= 12 || i % Math.ceil(rows.length / 12) === 0 ? <Num>{group === 'month' ? label(x.period).split(' ')[0] : d.shortDate(x.period)}</Num> : ''}</span>)}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <ReportTable title={group === 'month' ? t('Month by month') : t('Day by day')} columns={columns} rows={rows} rowKey="period" empty={emptyText} footer={footer} />
+
+      {filled.length > 0 && (
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <Card>
+            <CardHeader title={t('Paid by')} />
+            <div className="space-y-3 p-5">
+              {(data.payment_methods || []).map((m) => (
+                <div key={m.method}>
+                  <div className="mb-1 flex justify-between text-sm"><span className="font-medium text-slate-700">{t(shop.paymentLabel(m.method))} <span className="text-slate-400">· {billsText(t, m.bills)}</span></span><Num>{money(m.total)}</Num></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-500/15"><div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.max(2, (m.total / Math.max(n(total.net), 1)) * 100)}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <CardHeader title={t('Best-selling items')} />
+            <div className="divide-y divide-slate-900/[0.05] px-5 pb-3">
+              {(data.top_items || []).map((it, i) => (
+                <div key={it.name} className="flex items-center gap-3 py-2.5 text-sm">
+                  <span className="w-5 text-slate-400"><Num>{i + 1}</Num></span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{it.name}</span>
+                  <span className="text-slate-500"><Num>{qty(it.quantity)}</Num> {t(shop.unitLabel(it.unit))}</span>
+                  <span className="w-28 text-end font-semibold"><Num>{money(it.revenue)}</Num></span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+    </ReportFrame>
+  );
+}
+
+function YearlySales() {
+  const t = useT();
+  const d = useDates();
+  const now = new Date().getFullYear();
+  const [year, setYear] = useState(now);
+  const years = Array.from({ length: 11 }, (_, i) => now - i);
+  const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+  // last year's total, to compare
+  const prev = useQuery({ queryKey: ['reports', 'period', 'total', year - 1], queryFn: () => api.get('/reports/sales-period', { start: `${year - 1}-01-01`, end: `${year - 1}-12-31`, group: 'month' }), select: (r) => r?.total });
+  const cur = useQuery({ queryKey: ['reports', 'period', `${year}-01-01`, `${year}-12-31`, 'month'], queryFn: () => api.get('/reports/sales-period', { start: `${year}-01-01`, end: `${year}-12-31`, group: 'month' }) });
+  const a = n(cur.data?.total?.net);
+  const b = n(prev.data?.net);
+  const change = b ? Math.round(((a - b) / b) * 1000) / 10 : null;
+  return (
+    <PeriodReport
+      start={`${year}-01-01`} end={`${year}-12-31`} group="month"
+      title={t('Sales for the year {year}', { year })}
+      hint={t('Every month of one year, with totals and profit. Pick another year to look back.')}
+      period={String(year)}
+      fileName={`yearly-sales-${year}`}
+      slots={months}
+      slotLabel={(k) => d.prettyMonth(k)}
+      emptyText={t('No sales in this year.')}
+      extraStat={change === null ? null : t('{p}% vs {year}', { p: `${change > 0 ? '+' : ''}${change}`, year: year - 1 })}
+      filters={(
+        <FilterBox label={t('Year')}>
+          <Select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y} value={y}>{y}</option>)}</Select>
+        </FilterBox>
+      )}
+    />
+  );
+}
+
+function RangeSales() {
+  const t = useT();
+  const d = useDates();
+  const [start, setStart] = useState(monthStart());
+  const [end, setEnd] = useState(today());
+  const days = start && end ? Math.round((new Date(end) - new Date(start)) / 86400000) + 1 : 0;
+  const [groupPick, setGroupPick] = useState('auto');
+  const group = groupPick === 'auto' ? (days > 62 ? 'month' : 'day') : groupPick;
+  const set = (s, e) => { setStart(s); setEnd(e); };
+  const ago = (n) => ymd(new Date(Date.now() - n * 86400000));
+  const y = new Date().getFullYear();
+  const presets = [
+    ['Last 7 days', () => set(ago(6), today())],
+    ['Last 30 days', () => set(ago(29), today())],
+    ['This month', () => set(monthStart(), today())],
+    ['This year', () => set(`${y}-01-01`, today())],
+    ['Last year', () => set(`${y - 1}-01-01`, `${y - 1}-12-31`)],
+  ];
+  // every day / month between the dates, so quiet ones show as gaps
+  const slots = useMemo(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start) return null;
+    const out = [];
+    if (group === 'month') {
+      const [sy, sm] = start.split('-').map(Number);
+      const [ey, em] = end.split('-').map(Number);
+      for (let yy = sy, mm = sm; yy < ey || (yy === ey && mm <= em); mm === 12 ? (yy += 1, mm = 1) : (mm += 1)) out.push(`${yy}-${String(mm).padStart(2, '0')}`);
+    } else if (days <= 400) {
+      for (let i = 0; i < days; i++) out.push(ymd(new Date(new Date(`${start}T00:00:00`).getTime() + i * 86400000)));
+    }
+    return out.length ? out : null;
+  }, [start, end, group, days]);
+  return (
+    <PeriodReport
+      start={start} end={end} group={group}
+      title={t('Sales from {from} to {to}', { from: d.prettyDate(start), to: d.prettyDate(end) })}
+      hint={t('Pick any two dates to see the sale, returns, udhaar and profit between them.')}
+      period={d.rangeLabel(start, end)}
+      fileName={`sales-${start}-to-${end}`}
+      slots={slots}
+      slotLabel={(k) => (group === 'month' ? d.prettyMonth(k) : d.prettyDate(k))}
+      emptyText={t('No sales between these dates.')}
+      extraStat={days > 0 ? t('{n} days', { n: days }) : null}
+      filters={(
+        <>
+          <DateRange start={start} end={end} setStart={setStart} setEnd={setEnd} />
+          <FilterBox label={t('Show')}>
+            <Select value={groupPick} onChange={(e) => setGroupPick(e.target.value)}>
+              <option value="auto">{t('Automatic')}</option>
+              <option value="day">{t('Day by day')}</option>
+              <option value="month">{t('Month by month')}</option>
+            </Select>
+          </FilterBox>
+          <div className="flex flex-wrap gap-1.5 pb-0.5">
+            {presets.map(([label, fn]) => (
+              <button key={label} type="button" onClick={fn} className="rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">{t(label)}</button>
+            ))}
+          </div>
+        </>
+      )}
+    />
   );
 }
 

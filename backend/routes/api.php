@@ -152,6 +152,7 @@ Route::middleware(['auth:sanctum', 'token.active'])->group(function () {
     Route::middleware('permission:reports.view')->prefix('reports')->group(function () {
         Route::get('daily-sales', [ReportController::class, 'dailySales']);
         Route::get('monthly-sales', [ReportController::class, 'monthlySales']);
+        Route::get('sales-period', [ReportController::class, 'salesPeriod']); // yearly + date range
         Route::get('product-sales', [ReportController::class, 'productSales']);
         Route::get('inventory', [ReportController::class, 'inventory']);
         Route::get('low-stock', [ReportController::class, 'lowStock']);
