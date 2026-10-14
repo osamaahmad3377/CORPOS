@@ -189,4 +189,9 @@ export default {
   'Expired {n} days ago': 'انتهى منذ {n} أيام',
   '{n} days left': 'تبقّى {n} أيام',
   'Needed so it can be sold now. Count in {unit}.': 'مطلوب ليمكن بيعه الآن. العدّ بالـ{unit}.',
+  // expiry for each type
+  'This item has an expiry date': 'لهذا الصنف تاريخ انتهاء',
+  'Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.': 'اكتب رقم التشغيلة وتاريخ الانتهاء لكل نوع في الجدول أدناه. يُباع المخزون الأقرب انتهاءً أولاً، وتُنبَّه قبل انتهائه.',
+  'Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".': 'لكل نوع تاريخ انتهاء خاص به. يمكن إضافة مخزون آخر بتاريخ انتهاء جديد لاحقاً من "شراء البضاعة (المشتريات)".',
+  'This type': 'هذا النوع',
 };

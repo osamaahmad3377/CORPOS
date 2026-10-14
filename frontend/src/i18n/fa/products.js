@@ -189,4 +189,9 @@ export default {
   'Expired {n} days ago': '{n} روز پیش منقضی شد',
   '{n} days left': '{n} روز مانده',
   'Needed so it can be sold now. Count in {unit}.': 'برای فروش همین حالا لازم است. به {unit} بشمارید.',
+  // expiry for each type
+  'This item has an expiry date': 'این کالا تاریخ انقضا دارد',
+  'Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.': 'شمارهٔ بچ و تاریخ انقضای هر نوع را در جدول زیر بنویسید. موجودی‌ای که زودتر منقضی می‌شود اول فروخته می‌شود و پیش از انقضا به شما هشدار داده می‌شود.',
+  'Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".': 'هر نوع تاریخ انقضای خودش را دارد. موجودی بیشتر با تاریخ انقضای جدید را بعداً از «خرید کالا» اضافه کنید.',
+  'This type': 'این نوع',
 };

@@ -401,7 +401,8 @@ function AddVariantModal({ product, counted = true, onClose, onSaved }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
-  const [row, setRow] = useState({ color: '', size: '', barcode: '', purchase_price: '', selling_price: product.variants[0]?.selling_price || '', wholesale_price: product.variants[0]?.wholesale_price || '', stock_qty: '' });
+  const [row, setRow] = useState({ color: '', size: '', barcode: '', purchase_price: '', selling_price: product.variants[0]?.selling_price || '', wholesale_price: product.variants[0]?.wholesale_price || '', stock_qty: '', batch_no: '', expiry_date: '' });
+  const expiry = !!product.track_expiry;
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const step = shop.isFractional(product.unit) ? '0.001' : '1';
@@ -416,6 +417,7 @@ function AddVariantModal({ product, counted = true, onClose, onSaved }) {
         color: row.color.trim() || null, size: row.size.trim() || null, barcode: row.barcode.trim() || null,
         purchase_price: Number(row.purchase_price || 0), selling_price: Number(row.selling_price || 0), stock_qty: Number(row.stock_qty || 0),
         wholesale_price: row.wholesale_price === '' || row.wholesale_price == null ? null : Number(row.wholesale_price),
+        ...(expiry && (row.batch_no || row.expiry_date) ? { batch_no: row.batch_no.trim() || null, expiry_date: row.expiry_date || null } : {}),
       }] });
       toast(t('Type added'));
       onSaved();
@@ -438,6 +440,8 @@ function AddVariantModal({ product, counted = true, onClose, onSaved }) {
         <Field label={t('Selling price')} required><Input type="number" min="0" step="0.01" required value={row.selling_price} onChange={set('selling_price')} /></Field>
         {!shop.isRestaurant && <Field label={t('Wholesale price (optional)')} hint={t('Leave empty to use the selling price.')}><Input type="number" min="0" step="0.01" value={row.wholesale_price} onChange={set('wholesale_price')} /></Field>}
         {counted && <Field label={t('How many in stock now?')} hint={t('Count in {unit}. Leave empty if none.', { unit: t(shop.unitLabel(product.unit)) })}><Input type="number" min="0" step={step} value={row.stock_qty} onChange={set('stock_qty')} /></Field>}
+        {counted && expiry && <Field label={t('Batch no. (for this stock)')}><Input value={row.batch_no} onChange={set('batch_no')} /></Field>}
+        {counted && expiry && <Field label={t('Expiry date (for this stock)')}><Input type="date" value={row.expiry_date} onChange={set('expiry_date')} /></Field>}
       </form>
     </Modal>
   );

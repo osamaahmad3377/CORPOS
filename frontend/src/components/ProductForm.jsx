@@ -2,9 +2,9 @@
 // unknown barcode is scanned (initialBarcode pre-fills the barcode).
 // The everyday fields come first in plain words; types (options), serial and
 // expiry tracking live under "More options" so the form stays simple.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Dices, ImagePlus, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
+import { CalendarClock, ChevronDown, Dices, ImagePlus, Plus, ScanBarcode, Trash2, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShop } from '../lib/shop';
 import { useT } from '../lib/i18n';
@@ -100,7 +100,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
           stock_qty: form.track_serial ? serials.length : (form.track_stock === false || shop.isRestaurant) ? 0 : Number(r.stock_qty || 0),
           low_stock_threshold: r.low_stock_threshold === '' ? undefined : Number(r.low_stock_threshold),
           ...(serials.length ? { serials } : {}),
-          ...(form.track_expiry && !hasOptions && (r.batch_no || r.expiry_date) ? { batch_no: r.batch_no || null, expiry_date: r.expiry_date || null } : {}),
+          ...(form.track_expiry && (r.batch_no || r.expiry_date) ? { batch_no: r.batch_no?.trim() || null, expiry_date: r.expiry_date || null } : {}),
         };
       });
       const res = await api.post('/products', {
@@ -116,6 +116,9 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
         variants,
       });
       let product = res.data;
+      if (form.track_expiry && !shop.features.expiry) {
+        try { await api.put('/settings', { features: { expiry: '1' } }); shop.refetchSettings(); } catch { /* not allowed to change settings */ }
+      }
       if (image) {
         const fd = new FormData();
         fd.append('image', image);
@@ -144,7 +147,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
     <Modal
       open={open}
       onClose={onClose}
-      size="lg"
+      size={hasOptions ? 'xl' : 'lg'}
       title={t('Add new item')}
       footer={(
         <>
@@ -215,6 +218,16 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
               {units.map((u) => <option key={u.code} value={u.code}>{t(u.label)}</option>)}
             </Select>
           </Field>
+          {counted && (
+            <div className="sm:col-span-2">
+              <CheckRow
+                checked={!!form.track_expiry}
+                onChange={(e) => { const on = e.target.checked; setForm((f) => ({ ...f, track_expiry: on })); }}
+                title={t('This item has an expiry date')}
+                hint={hasOptions ? t('Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.') : t('Sells the stock that expires first, and warns you before it expires.')}
+              />
+            </div>
+          )}
         </div>
 
         {/* ---- more options (secondary) ---- */}
@@ -271,14 +284,6 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                     hint={t('Each piece has its own number (mobiles, laptops, bikes).')}
                   />
                 )}
-                {shop.features.expiry && (
-                  <CheckRow
-                    checked={!!form.track_expiry}
-                    onChange={(e) => { const on = e.target.checked; setForm((f) => ({ ...f, track_expiry: on })); }}
-                    title={t('Track batch & expiry date')}
-                    hint={t('Sells the stock that expires first, and warns you before it expires.')}
-                  />
-                )}
                 {form.track_serial && (
                   <div className="ps-10 sm:w-1/2">
                     <Field label={t('Warranty (months)')} hint={t('Printed on the receipt with the serial number')}>
@@ -303,7 +308,8 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                       </thead>
                       <tbody>
                         {rows.map((r, i) => (
-                          <tr key={i} className="border-t border-slate-100">
+                          <Fragment key={i}>
+                          <tr className="border-t border-slate-100">
                             <td className="p-1.5"><Input value={r.color} onChange={(e) => setRow(i, 'color', e.target.value)} /></td>
                             <td className="p-1.5"><Input value={r.size} onChange={(e) => setRow(i, 'size', e.target.value)} /></td>
                             <td className="p-1.5">
@@ -320,6 +326,20 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                               <button type="button" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="rounded-lg p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label={t('Remove this type')} title={t('Remove this type')}><Trash2 className="size-5" /></button>
                             </td>
                           </tr>
+                          {counted && form.track_expiry && (
+                            // this type's own batch and expiry date, right under it
+                            <tr>
+                              <td colSpan={20} className="px-1.5 pb-2.5">
+                                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-amber-50/70 px-3 py-2 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/15">
+                                  <CalendarClock className="size-4 shrink-0" />
+                                  <span className="font-semibold">{[r.color, r.size].filter(Boolean).join(' / ') || t('This type')}:</span>
+                                  <label className="flex items-center gap-1.5 whitespace-nowrap">{t('Batch no.')}<Input className="h-9 w-32" placeholder={t('Optional')} value={r.batch_no} onChange={(e) => setRow(i, 'batch_no', e.target.value)} onKeyDown={noEnter} /></label>
+                                  <label className="flex items-center gap-1.5 whitespace-nowrap">{t('Expiry date')}<Input className="h-9 w-44" type="date" value={r.expiry_date} onChange={(e) => setRow(i, 'expiry_date', e.target.value)} /></label>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -327,7 +347,7 @@ export default function ProductForm({ open, onClose, onSaved, initialBarcode = '
                   <Button variant="secondary" icon={Plus} onClick={() => setRows((r) => [...r, { ...emptyRow(), purchase_price: r[r.length - 1]?.purchase_price || '', selling_price: r[r.length - 1]?.selling_price || '', wholesale_price: r[r.length - 1]?.wholesale_price || '' }])}>{t('Add another type')}</Button>
                   {form.track_serial
                     ? <p className="text-xs text-slate-500">{t('After saving, add the stock and serial numbers from "Buy stock (purchases)".')}</p>
-                    : form.track_expiry && <p className="text-xs text-slate-500">{t('After saving, add stock with batch & expiry from "Buy stock (purchases)".')}</p>}
+                    : form.track_expiry && <p className="text-xs text-slate-500">{t('Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".')}</p>}
                 </div>
               )}
             </div>

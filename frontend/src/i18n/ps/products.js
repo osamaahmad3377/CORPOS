@@ -189,4 +189,9 @@ export default {
   'Expired {n} days ago': '{n} ورځې مخکې پای ته ورسېد',
   '{n} days left': '{n} ورځې پاتې',
   'Needed so it can be sold now. Count in {unit}.': 'د اوسني پلور لپاره اړین دی. په {unit} یې ولیکئ.',
+  // expiry for each type
+  'This item has an expiry date': 'دا توکی د ختمېدو نېټه لري',
+  'Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.': 'د هر ډول بېچ او د ختمېدو نېټه لاندې جدول کې ولیکئ. هغه سټاک چې لومړی ختمېږي لومړی پلورل کېږي، او له ختمېدو مخکې تاسو ته خبر درکول کېږي.',
+  'Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".': 'هر ډول خپله د ختمېدو نېټه ساتي. د نوې نېټې سره نور سټاک وروسته له "مال پېرل" څخه زیاتولی شئ.',
+  'This type': 'دا ډول',
 };

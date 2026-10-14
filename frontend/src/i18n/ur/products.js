@@ -198,4 +198,9 @@ export default {
   'Expired {n} days ago': '{n} دن پہلے ختم ہو گیا',
   '{n} days left': '{n} دن باقی',
   'Needed so it can be sold now. Count in {unit}.': 'ابھی بیچنے کے لیے ضروری ہے۔ {unit} میں گنتی لکھیں۔',
+  // expiry for each type
+  'This item has an expiry date': 'اس چیز کی ایکسپائری تاریخ ہے',
+  'Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.': 'ہر قسم کا بیچ اور ایکسپائری تاریخ نیچے ٹیبل میں لکھیں۔ جو اسٹاک پہلے ایکسپائر ہو وہ پہلے بکے گا، اور ایکسپائری سے پہلے آپ کو اطلاع ملے گی۔',
+  'Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".': 'ہر قسم کی اپنی ایکسپائری تاریخ رہتی ہے۔ نئی ایکسپائری والا مزید اسٹاک بعد میں "مال خریدیں" سے ڈالا جا سکتا ہے۔',
+  'This type': 'یہ قسم',
 };

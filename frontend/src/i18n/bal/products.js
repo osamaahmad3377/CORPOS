@@ -189,4 +189,9 @@ export default {
   'Expired {n} days ago': '{n} روچ پیسرا ہلاس بوت',
   '{n} days left': '{n} روچ پشت کپتگ',
   'Needed so it can be sold now. Count in {unit}.': 'انوں بہا کنگءِ ہاترا زلوری انت۔ {unit} ءَ ہساب بنبیس۔',
+  // expiry for each type
+  'This item has an expiry date': 'اے چیزءِ هلاسیءِ تاریخ است',
+  'Write the batch and expiry date of each type in the table below. The stock that expires first is sold first, and you are warned before it expires.': 'هر ڈولءِ بیچ و هلاسیءِ تاریخءَ جهلا ٹیبلءَ بنبیس۔ هما اسٹاک که اولی هلاس بیت اولی بہا بیت، و هلاسیءَ پیسر شمارا هال رسیت۔',
+  'Each type keeps its own expiry date. More stock with a new expiry date can be added later from "Buy stock (purchases)".': 'هر ڈولءِ وتی هلاسیءِ تاریخ پشت کپیت۔ نوکیں هلاسیءِ گوں گیشتر اسٹاک رندا "مال گِر" ءَ ایر کنگ بیت۔',
+  'This type': 'اے ڈول',
 };
