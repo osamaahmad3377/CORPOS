@@ -27,7 +27,8 @@
     "dist:win7": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/legacy.config.cjs --win nsis --x64 -c.win.signAndEditExecutable=false && electron-builder --config build/legacy.config.cjs --win nsis --ia32 -c.win.signAndEditExecutable=false",
     "dist:linux": "npm run prepare:php:linux && npm run prepare:app && electron-builder --linux AppImage --x64 --arm64",
     "dist:windows": "npm run prepare:php:win7 && npm run prepare:app && electron-builder --config build/windows-all.config.cjs --win nsis --x64 --ia32 -c.win.signAndEditExecutable=false",
-    "dist:everything": "npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --config build/windows-all.config.cjs --win nsis --x64 --ia32 -c.win.signAndEditExecutable=false && electron-builder --linux AppImage --x64 --arm64"
+    "dist:everything": "npm run prepare:app && electron-builder --mac dmg --universal && electron-builder --config build/windows-all.config.cjs --win nsis --x64 --ia32 -c.win.signAndEditExecutable=false && electron-builder --linux AppImage --x64 --arm64",
+    "release": "zsh scripts/release.sh"
   },
   "devDependencies": {
     "electron": "^38.0.0",

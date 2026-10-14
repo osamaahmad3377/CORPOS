@@ -70,7 +70,8 @@ Edit [desktop/app.config.json](desktop/app.config.json):
 ```bash
 cd desktop
 npm install
-npm run dist:all       # on a Mac: all three installers below
+npm run release        # on a Mac: all installers below, put in "Version <x.y.z>"
+npm run dist:all       # the same installers, left in desktop/dist
 npm run dist:windows   # Windows only
 npm run dist:mac       # Mac only
 npm run dist:linux     # Linux only
