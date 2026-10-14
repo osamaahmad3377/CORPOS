@@ -39,6 +39,17 @@ class BatchService
         ]);
     }
 
+    /** Stock count with one batch / expiry date: the counted stock becomes that one batch. */
+    public static function recount(ProductVariant $variant, float $qty, ?string $batchNo, ?string $expiry, ?float $cost = null): ?ProductBatch
+    {
+        if (! self::tracks($variant)) {
+            return null;
+        }
+        ProductBatch::where('variant_id', $variant->id)->where('quantity', '>', 0)->update(['quantity' => 0]);
+
+        return $qty > 0 ? self::receive($variant, $qty, $batchNo, $expiry, $cost) : null;
+    }
+
     /** FEFO draw for a sale line. Any quantity beyond batched stock is un-batched stock. */
     public static function consumeForSale(ProductVariant $variant, SaleItem $item): void
     {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStockAdjustmentRequest;
 use App\Http\Resources\ProductVariantResource;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use App\Models\StockAdjustment;
 use App\Services\ActivityLogger;
 use App\Services\BatchService;
@@ -133,8 +134,21 @@ class InventoryController extends Controller
                     ? SerialService::receive($variant, $serials, abs($delta), 'serials')
                     : SerialService::remove($variant, $serials, abs($delta), 'serials', 'damaged');
             }
-            if ($delta > 0) {
-                BatchService::receive($variant, $delta, trim((string) ($validated['batch_no'] ?? '')) ?: null, $validated['expiry_date'] ?? null, (float) $variant->purchase_price);
+            // An expiry date / batch given for an item that doesn't track
+            // them yet switches tracking on (and the shop's expiry alerts).
+            $batchNo = trim((string) ($validated['batch_no'] ?? '')) ?: null;
+            $expiry = $validated['expiry_date'] ?? null;
+            $product = $variant->product;
+            if (($batchNo || $expiry) && $product && ! $product->track_expiry && ! SerialService::tracks($variant)) {
+                $product->forceFill(['track_expiry' => true])->save();
+                Setting::updateOrCreate(['key' => 'features.expiry'], ['value' => '1', 'group' => 'features']);
+            }
+
+            if ($dbType === 'adjustment' && ($batchNo || $expiry) && BatchService::tracks($variant)) {
+                // a recount with a date: all the stock left is this batch
+                BatchService::recount($variant, $validated['new_quantity'], $batchNo, $expiry, (float) $variant->purchase_price);
+            } elseif ($delta > 0) {
+                BatchService::receive($variant, $delta, $batchNo, $expiry, (float) $variant->purchase_price);
             } elseif ($delta < 0) {
                 BatchService::consume($variant, abs($delta));
             }

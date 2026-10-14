@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useScanner from '../../lib/useScanner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImageIcon, Package, Pencil, Plus, ScanBarcode, Search, Trash2, Upload, X } from 'lucide-react';
+import { CalendarClock, ImageIcon, Package, PackagePlus, Pencil, Plus, ScanBarcode, Search, Trash2, Upload, X } from 'lucide-react';
 import { api, paged } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useShop } from '../../lib/shop';
@@ -195,6 +195,7 @@ function ProductDetail({ id, onClose }) {
   const [error, setError] = useState(null);
   const [addingVariant, setAddingVariant] = useState(false);
   const [tracking, setTracking] = useState(null);
+  const [stocking, setStocking] = useState(null);
   const p = product.data;
   const canEdit = can('products.edit');
   // stock is shown only for items that count it (not restaurant dishes —
@@ -330,27 +331,28 @@ function ProductDetail({ id, onClose }) {
               {canEdit && <Button variant="secondary" icon={Plus} onClick={() => setAddingVariant(true)}>{t('Add a type')}</Button>}
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className={cx('w-full text-sm', counted ? 'min-w-[920px]' : 'min-w-[640px]')}>
+              <table className={cx('w-full text-sm', counted ? 'min-w-[1000px]' : 'min-w-[640px]')}>
                 <thead className="bg-slate-50 text-xs text-slate-500">
                   <tr>{[t(shop.option1), t(shop.option2), t('Barcode'), t('Buying price'), t('Selling price'), ...(shop.isRestaurant ? [] : [t('Wholesale price')]), ...(counted ? [t('Warn when below'), t('Stock')] : []), ''].map((h, i) => <th key={i} className="px-3 py-2 text-start font-semibold">{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} counted={counted} wholesale={!shop.isRestaurant} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} />)}
+                  {p.variants.map((v) => <VariantRow key={v.id} v={v} unit={p.unit} counted={counted} wholesale={!shop.isRestaurant} canEdit={canEdit} canDelete={can('products.delete')} canBarcode={can('barcodes.manage')} onChanged={refresh} onTracking={p.track_serial || p.track_expiry ? () => setTracking(v) : null} trackingLabel={p.track_serial ? t('Serial numbers') : t('Batches')} onUpdateStock={counted && !p.track_serial && can('inventory.adjust') ? () => setStocking(v) : null} />)}
                 </tbody>
               </table>
             </div>
-            {counted && <p className="mt-2 text-xs text-slate-500">{t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.')}</p>}
+            {counted && <p className="mt-2 text-xs text-slate-500">{p.track_serial || !can('inventory.adjust') ? t('To change stock, use "Buy stock (purchases)" or "Stock count" — that way every change is written down.') : t('Press "Update stock" on a row to add stock that arrived or correct the stock left, with its expiry date. Every change is written down.')}</p>}
             {shop.isRestaurant && can('inventory.view') && <div className="mt-5"><RecipeEditor variants={p.variants} canEdit={canEdit} /></div>}
           </div>
         </div>
       )}
       {addingVariant && p && <AddVariantModal counted={counted} product={p} onClose={() => setAddingVariant(false)} onSaved={refresh} />}
       {tracking && p && <TrackingModal product={p} variant={tracking} onClose={() => setTracking(null)} />}
+      {stocking && p && <UpdateStockModal product={p} variant={p.variants.find((x) => x.id === stocking.id) || stocking} onClose={() => setStocking(null)} onSaved={refresh} />}
     </Modal>
   );
 }
 
-function VariantRow({ v, unit, counted = true, wholesale = true, canEdit, canDelete, canBarcode, onChanged, onTracking, trackingLabel }) {
+function VariantRow({ v, unit, counted = true, wholesale = true, canEdit, canDelete, canBarcode, onChanged, onTracking, trackingLabel, onUpdateStock }) {
   const t = useT();
   const shop = useShop();
   const toast = useToast();
@@ -397,7 +399,14 @@ function VariantRow({ v, unit, counted = true, wholesale = true, canEdit, canDel
       <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} value={row.selling_price} onChange={(e) => setRow({ ...row, selling_price: e.target.value })} /></td>
       {wholesale && <td className="p-1.5"><Input className={`${cell} w-24`} type="number" min="0" step="0.01" disabled={!canEdit} placeholder="—" title={t('Wholesale price (optional)')} value={row.wholesale_price} onChange={(e) => setRow({ ...row, wholesale_price: e.target.value })} /></td>}
       {counted && <td className="p-1.5"><Input className={`${cell} w-20`} type="number" min="0" step="any" disabled={!canEdit} value={row.low_stock_threshold} onChange={(e) => setRow({ ...row, low_stock_threshold: e.target.value })} /></td>}
-      {counted && <td className="whitespace-nowrap px-3"><Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge></td>}
+      {counted && (
+        <td className="whitespace-nowrap px-3">
+          <span className="inline-flex flex-col items-start gap-1.5 py-1">
+            <Badge color={Number(v.stock_qty) <= 0 ? 'red' : v.is_low_stock ? 'amber' : 'green'}><span className="num">{qty(v.stock_qty)}</span>&nbsp;{t(shop.unitLabel(unit))}</Badge>
+            {onUpdateStock && <Button size="sm" variant="secondary" icon={PackagePlus} className="whitespace-nowrap" onClick={onUpdateStock}>{t('Update stock')}</Button>}
+          </span>
+        </td>
+      )}
       <td className="whitespace-nowrap p-1.5 text-end">
         {onTracking && !dirty && <Button size="sm" variant="ghost" onClick={onTracking}>{trackingLabel}</Button>}
         {canEdit && dirty && <Button loading={busy} onClick={save}>{t('Save')}</Button>}
@@ -457,6 +466,92 @@ function AddVariantModal({ product, counted = true, onClose, onSaved }) {
   );
 }
 
+// Change the stock of one type straight from the item: add stock that has
+// arrived, or set the stock left after counting — with its batch and expiry
+// date (calendar). Goes through the stock-count records like Stock count.
+function UpdateStockModal({ product, variant, onClose, onSaved }) {
+  const t = useT();
+  const shop = useShop();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const now = Number(variant.stock_qty || 0);
+  const [mode, setMode] = useState('add');
+  const [form, setForm] = useState({ quantity: '', left: String(now), batch_no: '', expiry_date: '', reason: '' });
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const step = shop.isFractional(product.unit) ? '0.001' : '1';
+  const unit = t(shop.unitLabel(product.unit));
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const after = mode === 'add' ? now + Number(form.quantity || 0) : Number(form.left === '' ? now : form.left);
+  const name = [product.name, variantLabel(variant)].filter(Boolean).join(' — ');
+  const dated = form.batch_no.trim() || form.expiry_date;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await api.post('/inventory/adjust', {
+        variant_id: variant.id,
+        ...(mode === 'add' ? { type: 'in', quantity: Number(form.quantity) } : { type: 'count', new_quantity: Number(form.left) }),
+        batch_no: form.batch_no.trim() || null,
+        expiry_date: form.expiry_date || null,
+        reason: form.reason.trim() || (mode === 'add' ? 'Stock arrived' : 'Stock corrected'),
+      });
+      qc.invalidateQueries({ queryKey: ['batches', variant.id] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      if (dated && !shop.features.expiry) shop.refetchSettings();
+      toast(t('Stock of {name} is now {n}', { name, n: `${qty(after)} ${unit}` }));
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tab = (key, label) => (
+    <button type="button" onClick={() => setMode(key)} aria-pressed={mode === key}
+      className={cx('flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition', mode === key ? 'bg-brand-600 text-brand-ink shadow' : 'text-slate-600 hover:bg-white/60')}>
+      {label}
+    </button>
+  );
+
+  return (
+    <Modal open onClose={onClose} title={t('Update stock — {name}', { name })} footer={<><Button variant="secondary" size="lg" onClick={onClose}>{t('Cancel')}</Button><Button type="submit" size="lg" form="stock-form" loading={busy}>{t('Save stock')}</Button></>}>
+      <form id="stock-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2"><ErrorBox error={error} /></div>
+        <div className="flex gap-1 rounded-full bg-slate-100 p-1 sm:col-span-2">
+          {tab('add', t('Stock arrived (add)'))}
+          {tab('set', t('Correct the stock left'))}
+        </div>
+        {mode === 'add' ? (
+          <Field label={t('How many arrived?')} required hint={t('Count in {unit}. This is added to the stock you have.', { unit })} className="sm:col-span-2">
+            <Input type="number" min={step} step={step} required autoFocus className="h-12 text-lg" value={form.quantity} onChange={set('quantity')} />
+          </Field>
+        ) : (
+          <Field label={t('How many are left now?')} required hint={t('Count what is on the shelf, in {unit}.', { unit })} className="sm:col-span-2">
+            <Input type="number" min="0" step={step} required autoFocus className="h-12 text-lg" value={form.left} onChange={set('left')} />
+          </Field>
+        )}
+        <div className="flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-900 sm:col-span-2">
+          <span>{t('Stock now')}: <b className="num">{qty(now)}</b> {unit}</span>
+          <span>→ {t('after saving')}: <b className="num">{qty(Math.max(0, after))}</b> {unit}</span>
+        </div>
+        <Field label={t('Expiry date')} hint={mode === 'add' ? t('Of the stock that arrived. Leave empty if it does not expire.') : t('All the stock left gets this date. Leave empty to keep the dates as they are.')}>
+          <div className="relative">
+            <CalendarClock className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+            <Input type="date" className="h-12 ps-10" value={form.expiry_date} onChange={set('expiry_date')} />
+          </div>
+        </Field>
+        <Field label={t('Batch no.')} hint={t('Optional')}><Input className="h-12" value={form.batch_no} onChange={set('batch_no')} /></Field>
+        {dated && !product.track_expiry && <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 sm:col-span-2">{t('Expiry tracking will be switched on for this item — the stock that expires first is sold first, and you are warned before it expires.')}</p>}
+        <Field label={t('Note (optional)')} className="sm:col-span-2"><Input value={form.reason} onChange={set('reason')} placeholder={t('e.g. Bill #123 from supplier')} /></Field>
+      </form>
+    </Modal>
+  );
+}
 
 // Serial numbers (in stock / sold) or batches with expiry for one variant.
 function TrackingModal({ product, variant, onClose }) {
