@@ -53,6 +53,8 @@ export default {
   'Not now': 'ليس الآن',
   Switch: 'تحويل',
   'Count stock for this item': 'عدّ مخزون هذا الصنف',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'فعّله للأصناف المعبأة التي تشتريها وتبيعها كما هي (المشروبات المعبأة، الماء، الشيبس) — بعدها يمكنك إضافة تاريخ انتهاء صلاحيتها أيضًا.',
+  'Count stock for this item (packed things like bottled drinks)': 'عدّ مخزون هذا الصنف (أصناف معبأة مثل المشروبات المعبأة)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'أوقفه للأشياء التي تُحضّر حسب الطلب (الأطباق، الخدمات) — يمكن بيعها دائماً.',
   '{busy} of {total} busy': '{busy} من {total} مشغولة',
   'Other open orders': 'طلبات مفتوحة أخرى',

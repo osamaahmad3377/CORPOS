@@ -53,6 +53,8 @@ export default {
   'Not now': 'انوں نہ',
   Switch: 'بدل کن',
   'Count stock for this item': 'اے چیزءِ اسٹاکا ہساب کن',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'ہما پیک بوتگیں چیزاں ءِ واستا آن کن کہ تو گِر ئے ءُ ہمے ڈولا بہا کن ئے (بوتلءِ نوشابہ، آپ، چپس) — گڈا تو آیانی ایکسپائریءِ تاریخ ءَ ہم نبشتہ کت کن ئے۔',
+  'Count stock for this item (packed things like bottled drinks)': 'اے چیزءِ اسٹاکا ہساب کن (پیک بوتگیں چیز، چو بوتلءِ نوشابہ)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'آرڈرءِ سرا جوڑ بوہگیں چیزانی (ڈش، سروس) ہاترا بند کن — اے ہمیشہ بہا بوت کننت۔',
   '{busy} of {total} busy': '{total} ءَ {busy} پُر',
   'Other open orders': 'دگہ پچیں آرڈر',

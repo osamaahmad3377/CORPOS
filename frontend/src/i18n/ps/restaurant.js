@@ -53,6 +53,8 @@ export default {
   'Not now': 'اوس نه',
   Switch: 'اوړل',
   'Count stock for this item': 'د دې توکي سټاک وشمېرئ',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'د هغو بسته شويو توکو لپاره یې چالان کړئ چې اخلئ یې او همداسې یې پلورئ (بوتلي څښاک، اوبه، چپس) — بیا یې د ختمېدو نېټه هم لیکلی شئ.',
+  'Count stock for this item (packed things like bottled drinks)': 'د دې توکي سټاک وشمېرئ (بسته شوي توکي لکه بوتلي څښاک)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'د فرمایش پر بنسټ جوړېدونکو شیانو (خواړه، خدمات) لپاره یې بند کړئ — تل پلورل کېدای شي.',
   '{busy} of {total} busy': 'له {total} څخه {busy} بوخت',
   'Other open orders': 'نور خلاص فرمایشونه',

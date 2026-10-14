@@ -53,6 +53,8 @@ export default {
   'Not now': 'حالے نئیں',
   Switch: 'بدلو',
   'Count stock for this item': 'ایس چیز دا سٹاک گنو',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'اوہناں پیک چیزاں لئی آن کرو جیہڑیاں تسیں خرید کے اونج ای ویچدے او (بوتل والے مشروب، پانی، چپس) — فیر تسیں اوہناں دی ایکسپائری تاریخ وی لکھ سکدے او۔',
+  'Count stock for this item (packed things like bottled drinks)': 'ایس چیز دا سٹاک گنو (پیک چیزاں جیویں بوتل والے مشروب)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'آرڈر اُتے بنن والیاں چیزاں (ڈشاں، سروس) لئی بند کرو — ایہہ ہمیشہ ویچیاں جا سکدیاں نیں۔',
   '{busy} of {total} busy': '{total} وچوں {busy} رُجھیاں',
   'Other open orders': 'ہور کھلے آرڈر',

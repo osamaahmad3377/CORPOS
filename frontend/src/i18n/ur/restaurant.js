@@ -60,6 +60,8 @@ export default {
   'Not now': 'ابھی نہیں',
   Switch: 'منتقل کریں',
   'Count stock for this item': 'اس چیز کا اسٹاک گنیں',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'اُن پیک شدہ چیزوں کے لیے آن کریں جو آپ خرید کر ویسے ہی بیچتے ہیں (بوتل والے مشروبات، پانی، چپس) — پھر آپ ان کی ایکسپائری تاریخ بھی لکھ سکتے ہیں۔',
+  'Count stock for this item (packed things like bottled drinks)': 'اس چیز کا اسٹاک گنیں (پیک شدہ چیزیں جیسے بوتل والے مشروبات)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'آرڈر پر بننے والی چیزوں (ڈشز، سروس) کے لیے بند کریں — یہ ہمیشہ بیچی جا سکتی ہیں۔',
   '{busy} of {total} busy': '{total} میں سے {busy} مصروف',
   'Other open orders': 'دوسرے کھلے آرڈر',

@@ -53,6 +53,8 @@ export default {
   'Not now': 'اڃا نه',
   Switch: 'منتقل ڪريو',
   'Count stock for this item': 'هن شيءِ جو اسٽاڪ ڳڻيو',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'انهن پيڪ ٿيل شين لاءِ آن ڪريو جيڪي توهان خريد ڪري ائين ئي وڪڻو ٿا (بوتل وارا مشروب، پاڻي، چپس) — پوءِ توهان انهن جي ايڪسپائري تاريخ به لکي سگهو ٿا.',
+  'Count stock for this item (packed things like bottled drinks)': 'هن شيءِ جو اسٽاڪ ڳڻيو (پيڪ ٿيل شيون جهڙوڪ بوتل وارا مشروب)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'آرڊر تي ٺهندڙ شين (ڊشون، سروس) لاءِ بند ڪريو — اهي هميشه وڪرو ٿي سگهن ٿيون.',
   '{busy} of {total} busy': '{total} مان {busy} مصروف',
   'Other open orders': 'ٻيا کليل آرڊر',

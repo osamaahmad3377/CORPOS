@@ -53,6 +53,8 @@ export default {
   'Not now': 'فعلاً نه',
   Switch: 'تغییر',
   'Count stock for this item': 'شمارش موجودی این کالا',
+  'Turn on for packed things you buy and sell as they are (bottled drinks, water, chips) — then you can also add their expiry date.': 'برای اقلام بسته‌بندی‌شده‌ای که می‌خرید و همان‌طور می‌فروشید روشن کنید (نوشیدنی بطری، آب، چیپس) — سپس می‌توانید تاریخ انقضای آن‌ها را هم وارد کنید.',
+  'Count stock for this item (packed things like bottled drinks)': 'شمارش موجودی این کالا (اقلام بسته‌بندی‌شده مانند نوشیدنی بطری)',
   'Turn off for things made to order (dishes, services) — they can always be sold.': 'برای چیزهای سفارشی (غذا، خدمات) خاموش کنید — همیشه قابل فروش‌اند.',
   '{busy} of {total} busy': '{busy} از {total} پر',
   'Other open orders': 'سایر سفارش‌های باز',

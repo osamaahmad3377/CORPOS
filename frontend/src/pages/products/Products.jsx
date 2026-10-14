@@ -155,10 +155,11 @@ export default function Products() {
                           <span className={cx('text-sm font-medium', p.is_active ? 'text-emerald-700' : 'text-slate-400')}>{p.is_active ? t('On') : t('Off')}</span>
                           <Switch checked={!!p.is_active} disabled={!can('products.edit') || toggleActive.isPending} label={t('Available on the menu')} onChange={(v) => toggleActive.mutate({ id: p.id, is_active: v })} />
                         </span>
-                      ) : p.track_stock === false ? (
-                        <span className="text-sm text-slate-400">{t('Not counted')}</span>
+                      ) : null}
+                      {p.track_stock === false ? (
+                        !restaurant && <span className="text-sm text-slate-400">{t('Not counted')}</span>
                       ) : (
-                        <Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className="text-sm">{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge>
+                        <Badge color={stock <= 0 ? 'red' : low ? 'amber' : 'green'} className={cx('text-sm', restaurant && 'ms-2')}>{stock <= 0 ? t('Finished') : <><span className="num">{qty(stock)}</span>&nbsp;{t(shop.unitLabel(p.unit))}</>}</Badge>
                       )}
                     </Td>
                     <Td className="text-end"><span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-700"><Pencil className="size-4" />{t('Open')}</span></Td>
@@ -196,8 +197,9 @@ function ProductDetail({ id, onClose }) {
   const [tracking, setTracking] = useState(null);
   const p = product.data;
   const canEdit = can('products.edit');
-  // stock is shown only for items that count it (never on a restaurant menu)
-  const counted = !shop.isRestaurant && p?.track_stock !== false;
+  // stock is shown only for items that count it (not restaurant dishes —
+  // a restaurant's packed items such as bottled drinks can count it)
+  const counted = p?.track_stock !== false;
 
   useEffect(() => {
     if (p) setInfo({ name: p.name, category_id: p.category_id, brand_id: p.brand_id || '', unit: p.unit, description: p.description || '', is_active: p.is_active, track_serial: !!p.track_serial, track_expiry: !!p.track_expiry, warranty_months: p.warranty_months ?? '', track_stock: p.track_stock !== false });
@@ -209,7 +211,12 @@ function ProductDetail({ id, onClose }) {
 
   const save = useMutation({
     mutationFn: () => api.put(`/products/${id}`, { ...info, category_id: Number(info.category_id), brand_id: info.brand_id ? Number(info.brand_id) : null, warranty_months: info.warranty_months === '' ? null : Number(info.warranty_months) }),
-    onSuccess: () => { refresh(); toast(t('Item saved')); },
+    onSuccess: () => {
+      refresh();
+      toast(t('Item saved'));
+      // first item with an expiry date: switch on the expiry alerts
+      if (info.track_expiry && !shop.features.expiry) api.put('/settings', { features: { expiry: '1' } }).then(() => shop.refetchSettings()).catch(() => {});
+    },
     onError: setError,
   });
 
@@ -276,6 +283,7 @@ function ProductDetail({ id, onClose }) {
                 </Select>
               </Field>
               {shop.isRestaurant ? (
+                <>
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-900/10 px-4 py-3 sm:col-span-2">
                   <span>
                     <span className="block font-semibold text-slate-900">{t('Available on the menu')}</span>
@@ -283,6 +291,8 @@ function ProductDetail({ id, onClose }) {
                   </span>
                   <Switch checked={!!info.is_active} disabled={!canEdit} label={t('Available on the menu')} onChange={(v) => setInfo((f) => ({ ...f, is_active: v }))} />
                 </div>
+                <label className="flex items-center gap-3 py-1 text-sm sm:col-span-2"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_stock} onChange={(e) => { const on = e.target.checked; setInfo((f) => ({ ...f, track_stock: on, track_expiry: on && f.track_expiry })); }} />{t('Count stock for this item (packed things like bottled drinks)')}</label>
+                </>
               ) : (
                 <>
                   <Field label={t('Show on the Sell screen?')}>
@@ -297,7 +307,7 @@ function ProductDetail({ id, onClose }) {
               {(shop.features.serials || p.track_serial) && (
                 <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_serial} onChange={(e) => setInfo((f) => ({ ...f, track_serial: e.target.checked }))} />{t('Track serial / IMEI numbers')}</label>
               )}
-              {(shop.features.expiry || p.track_expiry) && (
+              {(info.track_stock || p.track_expiry) && (
                 <label className="flex items-center gap-3 py-1 text-sm"><input type="checkbox" className="size-5 accent-brand-600" disabled={!canEdit} checked={info.track_expiry} onChange={(e) => setInfo((f) => ({ ...f, track_expiry: e.target.checked }))} />{t('Track batch & expiry date')}</label>
               )}
               {info.track_serial && <Field label={t('Warranty (months)')}><Input type="number" min="0" max="240" disabled={!canEdit} value={info.warranty_months} onChange={set('warranty_months')} /></Field>}

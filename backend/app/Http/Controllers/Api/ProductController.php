@@ -64,10 +64,10 @@ class ProductController extends Controller
                 'description' => $validated['description'] ?? null,
                 'unit' => $validated['unit'] ?? 'pcs',
                 'track_serial' => $validated['track_serial'] ?? false,
-                // a restaurant's menu is never stock-counted: dishes can always be sold
-                'track_stock' => \App\Models\Setting::where('key', 'business.type')->value('value') === 'restaurant'
-                    ? false
-                    : ($validated['track_stock'] ?? true),
+                // restaurant dishes are not stock-counted unless asked (packed
+                // items such as bottled drinks can count stock and expiry)
+                'track_stock' => $validated['track_stock']
+                    ?? \App\Models\Setting::where('key', 'business.type')->value('value') !== 'restaurant',
                 'track_expiry' => $validated['track_expiry'] ?? false,
                 'warranty_months' => $validated['warranty_months'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,

@@ -75,6 +75,9 @@ function restaurantSections() {
     ] },
     { title: 'Supplies', items: [
       { to: '/kitchen-stock', label: 'Kitchen stock', icon: Beef, perm: 'inventory.view' },
+      // packed items that count stock (bottled drinks…): restock, batches, expiry
+      { to: '/purchases', label: 'Buy stock (purchases)', icon: Boxes, perm: 'purchases.view' },
+      { to: '/inventory', label: 'Stock count', icon: Warehouse, perm: 'inventory.view' },
       { to: '/suppliers', label: 'Suppliers', icon: Truck, perm: 'suppliers.manage' },
       { to: '/expenses', label: 'Expenses', icon: Wallet, perm: 'expenses.manage' },
     ] },
