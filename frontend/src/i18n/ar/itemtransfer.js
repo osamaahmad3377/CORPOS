@@ -43,4 +43,11 @@ export default {
   'No item name': 'لا يوجد اسم صنف',
   'No selling price': 'لا يوجد سعر بيع',
   'Could not save this row': 'تعذّر حفظ هذا الصف',
+  "Barcodes changed": "باركودات تم تغييرها",
+  "{n} new categories were made.": "تم إنشاء {n} فئات جديدة.",
+  "{n} rows need a look": "{n} صفوف تحتاج إلى مراجعة",
+  "Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.": "يتم العثور على الأصناف باسمها (ونوعها). تأخذ الباركود والأسعار والمخزون والفئة من الملف — لذا فإن رفع ملف مصحَّح يصلح الباركودات الخاطئة. اتركه غير مفعّل لإضافة أصناف جديدة فقط.",
+  "Items are matched by name, so you can upload the same file again to correct barcodes and prices.": "تتم مطابقة الأصناف بالاسم، لذا يمكنك رفع الملف نفسه مرة أخرى لتصحيح الباركودات والأسعار.",
+  "Barcode {code} is already used by \"{item}\" — this row kept its own barcode.": "الباركود {code} مستخدم بالفعل لـ \"{item}\" — احتفظ هذا الصف بباركوده.",
+  "Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.": "أفسد Excel هذا الباركود (يظهر مثل 8.96E+12). اجعل عمود الباركود من نوع نص (Text)، وأعد كتابة الباركودات ثم ارفع الملف مرة أخرى.",
 };

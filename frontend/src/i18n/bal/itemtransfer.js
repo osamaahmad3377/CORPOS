@@ -43,4 +43,11 @@ export default {
   'No item name': 'چیزءِ نام نیست',
   'No selling price': 'بہاءِ کیمت نیست',
   'Could not save this row': 'اے رد سانبھ نہ بوت',
+  "Barcodes changed": "بارکوڈ بدل بوتنت",
+  "{n} new categories were made.": "{n} نوکیں کیٹیگری جوڑ بوتنت۔",
+  "{n} rows need a look": "{n} قطار چارگءِ لائک انت",
+  "Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.": "چیز وتی نام (ءُ ڈول) ءَ گوں درگیجگ بنت۔ آیاں فائلا بارکوڈ، بہا، اسٹاک ءُ کیٹیگری رسیت — پمیشکا راستیں فائلءِ پدا اپلوڈ کنگا رد بوتگیں بارکوڈ راست بنت۔ بس نوکیں چیزانی ہور کنگءِ واستا بند کن۔",
+  "Items are matched by name, so you can upload the same file again to correct barcodes and prices.": "چیز نامءَ گوں دیم پہ دیم کنگ بنت، پمیشکا بارکوڈ ءُ بہانی راست کنگءِ واستا ہما فائلا پدا اپلوڈ کت کن ئے۔",
+  "Barcode {code} is already used by \"{item}\" — this row kept its own barcode.": "بارکوڈ {code} پیسرا \"{item}\" ءِ انت — اے قطارا وتی کوہنیں بارکوڈ داشت۔",
+  "Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.": "ایکسلا اے بارکوڈ هراب کت (8.96E+12 ءِ پئیما گندگ بیت)۔ بارکوڈءِ کالما Text کن، بارکوڈاں پدا نبشتہ کن ءُ اپلوڈ کن۔",
 };

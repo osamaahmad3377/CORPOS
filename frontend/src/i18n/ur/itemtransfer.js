@@ -44,4 +44,11 @@ export default {
   'No item name': 'چیز کا نام نہیں',
   'No selling price': 'فروخت کی قیمت نہیں',
   'Could not save this row': 'یہ قطار محفوظ نہیں ہو سکی',
+  "Barcodes changed": "بارکوڈ بدلے",
+  "{n} new categories were made.": "{n} نئی کیٹیگریز بنائی گئیں۔",
+  "{n} rows need a look": "{n} قطاریں دیکھنے کی ضرورت ہے",
+  "Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.": "چیزیں ان کے نام (اور قسم) سے ڈھونڈی جاتی ہیں۔ انہیں فائل سے بارکوڈ، قیمتیں، اسٹاک اور کیٹیگری مل جاتی ہے — اس لیے درست فائل دوبارہ اپلوڈ کرنے سے غلط بارکوڈ ٹھیک ہو جاتے ہیں۔ صرف نئی چیزیں شامل کرنے کے لیے بند رکھیں۔",
+  "Items are matched by name, so you can upload the same file again to correct barcodes and prices.": "چیزیں نام سے ملائی جاتی ہیں، اس لیے آپ بارکوڈ اور قیمتیں درست کرنے کے لیے وہی فائل دوبارہ اپلوڈ کر سکتے ہیں۔",
+  "Barcode {code} is already used by \"{item}\" — this row kept its own barcode.": "بارکوڈ {code} پہلے ہی \"{item}\" کا ہے — اس قطار نے اپنا پرانا بارکوڈ رکھا۔",
+  "Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.": "ایکسل نے یہ بارکوڈ خراب کر دیا (یہ 8.96E+12 جیسا دکھتا ہے)۔ بارکوڈ والے کالم کو Text بنائیں، بارکوڈ دوبارہ لکھیں اور پھر اپلوڈ کریں۔",
 };

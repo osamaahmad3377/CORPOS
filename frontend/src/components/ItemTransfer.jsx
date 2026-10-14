@@ -2,7 +2,7 @@
 // export from another POS — and export all items to Excel or CSV.
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Download, FileSpreadsheet, FileUp, Info, Upload, X } from 'lucide-react';
+import { CheckCircle2, Download, FileSpreadsheet, FileUp, Info, TriangleAlert, Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useShop } from '../lib/shop';
 import { useT } from '../lib/i18n';
@@ -11,6 +11,13 @@ import { FIELDS, downloadItemsFile, fieldLabels, guessMapping, readItemsFile, ro
 import { Button, ErrorBox, Modal, Select, cx, useToast } from './ui';
 
 const CHUNK = 200;
+
+// A row that was saved but needs a look (from the server's notes).
+function noteText(t, n) {
+  if (n.code === 'barcode_taken') return t('Barcode {code} is already used by "{item}" — this row kept its own barcode.', { code: n.barcode, item: n.other });
+  if (n.code === 'barcode_spoiled') return t('Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.');
+  return n.code || '';
+}
 
 export function ExportItemsButton() {
   const t = useT();
@@ -57,7 +64,7 @@ export function ImportItemsModal({ onClose }) {
   const labels = fieldLabels(t, shop);
   const [file, setFile] = useState(null); // { name, headers, rows, headerRow }
   const [mapping, setMapping] = useState({});
-  const [update, setUpdate] = useState(false);
+  const [update, setUpdate] = useState(true);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(null); // { done, total }
   const [result, setResult] = useState(null);
@@ -87,14 +94,15 @@ export function ImportItemsModal({ onClose }) {
   const run = async () => {
     const all = rowsFromMapping(file.rows, mapping);
     const total = all.length;
-    const sum = { created_items: 0, created_types: 0, updated: 0, unchanged: 0, categories: 0, skipped: [] };
+    const sum = { created_items: 0, created_types: 0, updated: 0, unchanged: 0, categories: 0, barcodes_changed: 0, skipped: [], notes: [] };
     setProgress({ done: 0, total });
     setError(null);
     try {
       for (let i = 0; i < total; i += CHUNK) {
         const res = await api.post('/items/import', { rows: all.slice(i, i + CHUNK), update_existing: update, start_row: file.headerRow + 1 + i });
-        for (const k of ['created_items', 'created_types', 'updated', 'unchanged', 'categories']) sum[k] += res[k] || 0;
+        for (const k of ['created_items', 'created_types', 'updated', 'unchanged', 'categories', 'barcodes_changed']) sum[k] += res[k] || 0;
         sum.skipped.push(...(res.skipped || []));
+        sum.notes.push(...(res.notes || []));
         setProgress({ done: Math.min(total, i + CHUNK), total });
       }
       setResult(sum);
@@ -107,7 +115,10 @@ export function ImportItemsModal({ onClose }) {
     }
   };
 
-  const downloadSkipped = () => downloadItemsFile(result.skipped.map((s) => ({ name: s.name || '', description: `${t('Row {n}', { n: s.row })}: ${t(s.reason)}` })), { format: 'xlsx', labels: { ...labels, active: '' }, fileName: 'Skipped rows' });
+  const downloadSkipped = () => downloadItemsFile([
+    ...result.skipped.map((s) => ({ name: s.name || '', description: `${t('Row {n}', { n: s.row })}: ${t(s.reason)}` })),
+    ...result.notes.map((s) => ({ name: s.name || '', description: `${t('Row {n}', { n: s.row })}: ${noteText(t, s)}` })),
+  ], { format: 'xlsx', labels: { ...labels, active: '' }, fileName: 'Import problems' });
 
   // ----- results
   if (result) {
@@ -119,11 +130,25 @@ export function ImportItemsModal({ onClose }) {
           <div className="font-semibold">{t('{n} items added', { n: made })}{result.updated ? ` · ${t('{n} updated', { n: result.updated })}` : ''}</div>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[[t('New items'), result.created_items], [t('New types of existing items'), result.created_types], [t('Updated'), result.updated], [t('Categories added'), result.categories]].map(([l, v]) => (
+          {[[t('New items'), result.created_items], [t('New types of existing items'), result.created_types], [t('Updated'), result.updated], [t('Barcodes changed'), result.barcodes_changed]].map(([l, v]) => (
             <div key={l} className="rounded-xl bg-slate-500/[0.06] p-3"><div className="num text-2xl font-extrabold text-slate-900">{v}</div><div className="text-xs text-slate-500">{l}</div></div>
           ))}
         </div>
         {result.unchanged > 0 && <p className="mt-3 text-sm text-slate-600">{t('{n} rows were already here and left as they are (tick "Update items that already exist" to update them).', { n: result.unchanged })}</p>}
+        {result.categories > 0 && <p className="mt-3 text-sm text-slate-600">{t('{n} new categories were made.', { n: result.categories })}</p>}
+        {result.notes.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h4 className="flex items-center gap-2 font-semibold text-amber-800"><TriangleAlert className="size-5" />{t('{n} rows need a look', { n: result.notes.length })}</h4>
+              {!result.skipped.length && <Button size="sm" variant="secondary" icon={Download} onClick={downloadSkipped}>{t('Download list')}</Button>}
+            </div>
+            <div className="max-h-48 overflow-y-auto rounded-xl ring-1 ring-amber-600/20">
+              {result.notes.slice(0, 100).map((s, i) => (
+                <div key={i} className="flex gap-3 border-b border-slate-900/5 px-3 py-2 text-sm last:border-0"><span className="num w-16 shrink-0 text-slate-500">{t('Row {n}', { n: s.row })}</span><span className="w-40 shrink-0 truncate font-medium text-slate-800">{s.name || '—'}</span><span className="min-w-0 flex-1 text-amber-800">{noteText(t, s)}</span></div>
+              ))}
+            </div>
+          </div>
+        )}
         {result.skipped.length > 0 && (
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -171,6 +196,7 @@ export function ImportItemsModal({ onClose }) {
             <div className="min-w-0 flex-1 space-y-1">
               <p>{t('Needed: item name and selling price. Also read if present: category (use "Main > Sub" for a sub-category), brand, unit, sizes / types, barcode, buying price, wholesale price, stock and warning level.')}</p>
               <p>{t('Rows with the same item name become one item with several types. Missing categories are created.')}</p>
+              <p>{t('Items are matched by name, so you can upload the same file again to correct barcodes and prices.')}</p>
             </div>
             <Button variant="secondary" size="sm" icon={Download} onClick={template}>{t('Download template')}</Button>
           </div>
@@ -216,7 +242,7 @@ export function ImportItemsModal({ onClose }) {
 
           <label className="flex items-start gap-3 rounded-2xl ring-1 ring-slate-900/10 p-4">
             <input type="checkbox" className="mt-0.5 size-5 accent-brand-600" checked={update} onChange={(e) => setUpdate(e.target.checked)} />
-            <span><span className="block font-semibold text-slate-900">{t('Update items that already exist')}</span><span className="block text-sm text-slate-500">{t('Items found by barcode (or name and type) get the prices and stock from the file. Leave off to only add new items.')}</span></span>
+            <span><span className="block font-semibold text-slate-900">{t('Update items that already exist')}</span><span className="block text-sm text-slate-500">{t('Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.')}</span></span>
           </label>
 
           {progress && (

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barcode;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
@@ -59,8 +60,12 @@ class ItemTransferController extends Controller
      * rows: [{ name, category, brand, unit, option1, option2, barcode,
      *          purchase_price, selling_price, wholesale_price, stock_qty,
      *          low_stock_threshold, description }]
-     * update_existing: also update prices / stock of items already here
-     *   (matched by barcode, else by name + type).
+     *
+     * Items are matched by NAME (and type — option1 / option2), never by
+     * barcode: barcodes in old files are often wrong, and uploading the
+     * file again must fix them. update_existing: items already here get
+     * the barcode, prices, stock, category, brand and description from the
+     * file.
      */
     public function import(Request $request)
     {
@@ -75,10 +80,9 @@ class ItemTransferController extends Controller
         $user = $request->user();
         $restaurant = Setting::where('key', 'business.type')->value('value') === 'restaurant';
 
-        $result = ['created_items' => 0, 'created_types' => 0, 'updated' => 0, 'unchanged' => 0, 'categories' => 0, 'skipped' => []];
+        $result = ['created_items' => 0, 'created_types' => 0, 'updated' => 0, 'unchanged' => 0, 'categories' => 0, 'barcodes_changed' => 0, 'skipped' => [], 'notes' => []];
         $catCache = [];
         $brandCache = [];
-        $productCache = [];
 
         foreach ($data['rows'] as $i => $raw) {
             $rowNo = $startRow + $i;
@@ -91,23 +95,14 @@ class ItemTransferController extends Controller
                 $result['skipped'][] = ['row' => $rowNo, 'name' => $r['name'], 'reason' => 'No selling price'];
                 continue;
             }
+            if ($r['barcode_damaged']) {
+                $result['notes'][] = ['row' => $rowNo, 'name' => $r['name'], 'code' => 'barcode_spoiled'];
+            }
 
             try {
-                DB::transaction(function () use ($r, $update, $user, $restaurant, &$result, &$catCache, &$brandCache, &$productCache, $rowNo) {
-                    // 1. an existing type with this barcode?
-                    $variant = $r['barcode'] ? ProductVariant::where('barcode', $r['barcode'])->first() : null;
-
-                    // 2. else the item by name (+ category when given), and its type by options
-                    if (! $variant) {
-                        $key = mb_strtolower($r['name']);
-                        $product = $productCache[$key] ?? Product::whereRaw('lower(name) = ?', [$key])->first();
-                        if ($product) {
-                            $variant = $product->variants()
-                                ->whereRaw("lower(coalesce(color, '')) = ?", [mb_strtolower($r['option1'] ?? '')])
-                                ->whereRaw("lower(coalesce(size, '')) = ?", [mb_strtolower($r['option2'] ?? '')])
-                                ->first();
-                        }
-                    }
+                DB::transaction(function () use ($r, $update, $user, $restaurant, $rowNo, &$result, &$catCache, &$brandCache) {
+                    $product = $this->findByName($r['name']);
+                    $variant = $product ? $this->findType($product, $r['option1'], $r['option2']) : null;
 
                     if ($variant) {
                         if (! $update) {
@@ -115,26 +110,13 @@ class ItemTransferController extends Controller
 
                             return;
                         }
-                        $variant->update(array_filter([
-                            'selling_price' => $r['selling_price'],
-                            'purchase_price' => $r['purchase_price'],
-                            'wholesale_price' => $r['wholesale_price'],
-                            'low_stock_threshold' => $r['low_stock_threshold'],
-                        ], fn ($v) => $v !== null));
-                        if ($r['stock_qty'] !== null && $variant->product?->track_stock !== false) {
-                            $delta = round($r['stock_qty'] - (float) $variant->stock_qty, 3);
-                            if ($delta != 0.0) {
-                                StockService::adjust($variant, $delta, 'adjustment', $user, 'Import (stock set from file)');
-                            }
-                        }
+                        $this->updateExisting($product, $variant, $r, $user, $rowNo, $result, $catCache, $brandCache);
                         $result['updated']++;
 
                         return;
                     }
 
-                    // 3. new type — of an item already created in this import / already here, or a new item
-                    $key = mb_strtolower($r['name']);
-                    $product = $productCache[$key] ?? Product::whereRaw('lower(name) = ?', [$key])->first();
+                    // a new type of an item already here, or a new item
                     if (! $product) {
                         [$categoryId, $made] = $this->category($r['category'], $catCache);
                         $result['categories'] += $made;
@@ -152,7 +134,6 @@ class ItemTransferController extends Controller
                     } else {
                         $result['created_types']++;
                     }
-                    $productCache[$key] = $product;
 
                     $variant = ProductVariant::create([
                         'product_id' => $product->id,
@@ -166,12 +147,10 @@ class ItemTransferController extends Controller
                         'stock_qty' => 0,
                         'low_stock_threshold' => $r['low_stock_threshold'] ?? 5,
                     ]);
-                    if ($r['barcode']) {
-                        BarcodeGenerator::assignCustom($variant, $r['barcode']);
-                    } else {
+                    if (! $r['barcode'] || ! $this->setBarcode($variant, $r['barcode'], $rowNo, $r['name'], $result)) {
                         BarcodeGenerator::assignToVariant($product, $variant);
                     }
-                    if (! $restaurant && ($r['stock_qty'] ?? 0) > 0) {
+                    if ($product->track_stock !== false && ($r['stock_qty'] ?? 0) > 0) {
                         StockService::increment($variant, $r['stock_qty'], 'in', $user, null, 'Opening stock (import)');
                     }
                 });
@@ -182,9 +161,112 @@ class ItemTransferController extends Controller
         }
 
         $made = $result['created_items'] + $result['created_types'];
-        ActivityLogger::log($user, 'import', 'products', "Imported items: {$made} new, {$result['updated']} updated, ".count($result['skipped']).' skipped.');
+        ActivityLogger::log($user, 'import', 'products', "Imported items: {$made} new, {$result['updated']} updated ({$result['barcodes_changed']} barcodes changed), ".count($result['skipped']).' skipped.');
 
         return response()->json($result);
+    }
+
+    /** The item with this name (spaces and capitals don't matter). */
+    private function findByName(string $name): ?Product
+    {
+        return Product::whereRaw('lower(trim(name)) = ?', [mb_strtolower($name)])->orderBy('id')->first();
+    }
+
+    /** The type with these options. An item with one type matches a row without options. */
+    private function findType(Product $product, ?string $option1, ?string $option2): ?ProductVariant
+    {
+        $variant = $product->variants()
+            ->whereRaw("lower(trim(coalesce(color, ''))) = ?", [mb_strtolower($option1 ?? '')])
+            ->whereRaw("lower(trim(coalesce(size, ''))) = ?", [mb_strtolower($option2 ?? '')])
+            ->first();
+        if ($variant) {
+            return $variant;
+        }
+        $types = $product->variants()->get();
+        if ($option1 === null && $option2 === null) {
+            return $types->count() === 1 ? $types->first() : null;
+        }
+        // the same options in the other column ("500ml" under Size in the
+        // file, saved as the first option here)
+        $want = $this->optionSet($option1, $option2);
+
+        return $types->first(fn (ProductVariant $v) => $this->optionSet($v->color, $v->size) === $want);
+    }
+
+    private function optionSet(?string $a, ?string $b): string
+    {
+        $set = array_values(array_filter([mb_strtolower(trim((string) $a)), mb_strtolower(trim((string) $b))], 'strlen'));
+        sort($set);
+
+        return implode('|', $set);
+    }
+
+    private function updateExisting(Product $product, ProductVariant $variant, array $r, $user, int $rowNo, array &$result, array &$catCache, array &$brandCache): void
+    {
+        $variant->update(array_filter([
+            'selling_price' => $r['selling_price'],
+            'purchase_price' => $r['purchase_price'],
+            'wholesale_price' => $r['wholesale_price'],
+            'low_stock_threshold' => $r['low_stock_threshold'],
+        ], fn ($v) => $v !== null));
+
+        $productChanges = [];
+        if ($r['category'] !== '') {
+            [$categoryId, $made] = $this->category($r['category'], $catCache);
+            $result['categories'] += $made;
+            $productChanges['category_id'] = $categoryId;
+        }
+        if ($r['brand'] !== '') {
+            $productChanges['brand_id'] = $this->brand($r['brand'], $brandCache);
+        }
+        if ($r['description'] !== '') {
+            $productChanges['description'] = $r['description'];
+        }
+        if ($productChanges) {
+            $product->update($productChanges);
+        }
+
+        if ($r['barcode'] && $r['barcode'] !== $variant->barcode) {
+            $this->setBarcode($variant, $r['barcode'], $rowNo, $r['name'], $result);
+        }
+
+        if ($r['stock_qty'] !== null && $product->track_stock !== false) {
+            $delta = round($r['stock_qty'] - (float) $variant->stock_qty, 3);
+            if ($delta != 0.0) {
+                StockService::adjust($variant, $delta, 'adjustment', $user, 'Import (stock set from file)');
+            }
+        }
+    }
+
+    /**
+     * Give the type this barcode, replacing its old one(s). Refused (with a
+     * note) when another item uses the barcode. A deleted item's barcode is
+     * freed first.
+     */
+    private function setBarcode(ProductVariant $variant, string $code, int $rowNo, string $name, array &$result): bool
+    {
+        $owner = ProductVariant::withTrashed()->where('barcode', $code)->where('id', '!=', $variant->id)->first();
+        $ownerId = $owner?->id ?? Barcode::where('barcode_number', $code)->where('variant_id', '!=', $variant->id)->value('variant_id');
+        if ($ownerId) {
+            $owner ??= ProductVariant::withTrashed()->find($ownerId);
+            if ($owner && ($owner->trashed() || ! $owner->product)) {
+                $owner->releaseBarcode();
+            } else {
+                $other = $owner?->product?->name ?? '?';
+                $result['notes'][] = ['row' => $rowNo, 'name' => $name, 'code' => 'barcode_taken', 'barcode' => $code, 'other' => $other];
+
+                return false;
+            }
+        }
+
+        $replacing = ! str_starts_with((string) $variant->barcode, 'TMP-');
+        Barcode::where('variant_id', $variant->id)->where('barcode_number', '!=', $code)->delete();
+        BarcodeGenerator::assignCustom($variant, $code);
+        if ($replacing) {
+            $result['barcodes_changed']++;
+        }
+
+        return true;
     }
 
     // ------------------------------------------------------------ helpers
@@ -201,19 +283,22 @@ class ItemTransferController extends Controller
 
             return is_numeric($v) ? max(0, round((float) $v, 3)) : null;
         };
-        $barcode = preg_replace('/\s+/', '', $s('barcode', 64));
-        if (preg_match('/^\d+(\.\d+)?E\+?\d+$/i', $barcode)) {
+        $barcode = ltrim(preg_replace('/\s+/', '', $s('barcode', 64)), "'"); // '0123 = text in Excel
+        $barcode = preg_replace('/^(\d+)\.0+$/', '$1', $barcode); // 8964000123456.0
+        $damaged = (bool) preg_match('/^\d+([.,]\d+)?E\+?\d+$/i', $barcode);
+        if ($damaged) {
             $barcode = ''; // Excel turned a long barcode into 8.97E+12 — the digits are lost
         }
 
         return [
-            'name' => $s('name'),
+            'name' => preg_replace('/\s+/u', ' ', $s('name')),
             'category' => $s('category'),
             'brand' => $s('brand', 120),
             'unit' => $this->unit($s('unit', 30)),
             'option1' => $s('option1', 60) ?: null,
             'option2' => $s('option2', 60) ?: null,
             'barcode' => $barcode ?: null,
+            'barcode_damaged' => $damaged,
             'purchase_price' => $n('purchase_price'),
             'selling_price' => $n('selling_price'),
             'wholesale_price' => $n('wholesale_price'),

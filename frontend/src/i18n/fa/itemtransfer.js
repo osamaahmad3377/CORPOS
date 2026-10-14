@@ -43,4 +43,11 @@ export default {
   'No item name': 'نام کالا نیست',
   'No selling price': 'قیمت فروش نیست',
   'Could not save this row': 'این ردیف ذخیره نشد',
+  "Barcodes changed": "بارکدهای تغییرکرده",
+  "{n} new categories were made.": "{n} دسته جدید ساخته شد.",
+  "{n} rows need a look": "{n} ردیف نیاز به بررسی دارد",
+  "Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.": "کالاها با نامشان (و نوعشان) پیدا می‌شوند. بارکد، قیمت‌ها، موجودی و دسته را از فایل می‌گیرند — پس بارگذاری فایل اصلاح‌شده بارکدهای اشتباه را درست می‌کند. برای فقط افزودن کالاهای جدید خاموش بگذارید.",
+  "Items are matched by name, so you can upload the same file again to correct barcodes and prices.": "کالاها با نام تطبیق داده می‌شوند، پس می‌توانید همان فایل را دوباره بارگذاری کنید تا بارکدها و قیمت‌ها اصلاح شوند.",
+  "Barcode {code} is already used by \"{item}\" — this row kept its own barcode.": "بارکد {code} قبلاً برای «{item}» استفاده شده — این ردیف بارکد خودش را نگه داشت.",
+  "Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.": "اکسل این بارکد را خراب کرد (مثل 8.96E+12 دیده می‌شود). ستون بارکد را از نوع متن (Text) کنید، بارکدها را دوباره بنویسید و دوباره بارگذاری کنید.",
 };

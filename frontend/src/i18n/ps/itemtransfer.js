@@ -43,4 +43,11 @@ export default {
   'No item name': 'د توکي نوم نشته',
   'No selling price': 'د پلور بیه نشته',
   'Could not save this row': 'دا کرښه خوندي نه شوه',
+  "Barcodes changed": "بدل شوي بارکوډونه",
+  "{n} new categories were made.": "{n} نوې کټګورۍ جوړې شوې.",
+  "{n} rows need a look": "{n} کتارونه کتنې ته اړتیا لري",
+  "Items are found by their name (and type). They get the barcode, prices, stock and category from the file — so uploading a corrected file fixes wrong barcodes. Leave off to only add new items.": "توکي د خپل نوم (او ډول) له مخې موندل کېږي. له فایل څخه بارکوډ، بیې، سټاک او کټګوري اخلي — نو د سم شوي فایل بیا اپلوډ کول غلط بارکوډونه سموي. یوازې د نویو توکو د زیاتولو لپاره یې بند پرېږدئ.",
+  "Items are matched by name, so you can upload the same file again to correct barcodes and prices.": "توکي د نوم له مخې سمون خوري، نو د بارکوډونو او بیو د سمولو لپاره همغه فایل بیا اپلوډ کولی شئ.",
+  "Barcode {code} is already used by \"{item}\" — this row kept its own barcode.": "بارکوډ {code} دمخه د \"{item}\" دی — دې کتار خپل زوړ بارکوډ وساته.",
+  "Excel spoiled this barcode (it shows like 8.96E+12). Format the barcode column as Text, type the barcodes again and re-upload.": "اېکسل دا بارکوډ خراب کړ (لکه 8.96E+12 ښکاري). د بارکوډ ستون Text کړئ، بارکوډونه بیا ولیکئ او بیا یې اپلوډ کړئ.",
 };

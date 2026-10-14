@@ -49,14 +49,29 @@ export function guessMapping(headers, shop) {
   return map;
 }
 
+// A number cell as text without losing digits: 8964000123456 (not
+// "8.96E+12", which Excel shows for long numbers in "General" cells).
+// Over 15 digits Excel has already lost the last digits — those stay in
+// E+ form so the import can say the barcode is spoiled.
+function numberText(v) {
+  if (!Number.isFinite(v)) return '';
+  if (Number.isInteger(v)) return Number.isSafeInteger(v) ? BigInt(v).toString() : v.toExponential();
+  return String(Math.round(v * 1e6) / 1e6);
+}
+
 /** File -> { headers, rows } (first sheet; first non-empty row is the header). */
 export async function readItemsFile(file) {
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: 'array', cellDates: false, raw: false, codepage: 65001 });
+  // CSV: keep every cell exactly as written (barcodes keep leading zeros
+  // and all their digits) — no guessing numbers or dates.
+  const csv = /\.(csv|txt)$/i.test(file.name || '');
+  const wb = XLSX.read(buf, { type: 'array', cellDates: false, raw: csv, codepage: 65001 });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error('This file has no sheet.');
-  // raw:false keeps barcodes as written ("8964000123456", not 8.96E+12)
-  const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false });
+  const shown = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false });
+  const values = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '', blankrows: false });
+  // number cells from their real value, everything else as shown
+  const grid = shown.map((r, i) => r.map((c, j) => (typeof values[i]?.[j] === 'number' ? numberText(values[i][j]) : String(c))));
   const start = grid.findIndex((r) => r.some((c) => String(c).trim() !== ''));
   if (start < 0) throw new Error('This file is empty.');
   const headers = grid[start].map((h, i) => String(h).trim() || `Column ${i + 1}`);
